@@ -173,25 +173,24 @@ void UAURDriverOpenCV::InitializeCamera()
 
 void UAURDriverOpenCV::InitializeWorker()
 {
-	this->Worker = new FWorkerRunnable(this);
-	this->WorkerThread = FRunnableThread::Create(this->Worker, TEXT("a"), 0, TPri_Normal);
+	this->Worker.Reset(new FWorkerRunnable(this));
+	this->WorkerThread.Reset(FRunnableThread::Create(this->Worker.Get(), TEXT("a"), 0, TPri_Normal));
 }
 
 void UAURDriverOpenCV::Shutdown()
 {
-	if (this->Worker)
+	if (this->Worker.IsValid())
 	{
 		this->Worker->Stop();
-		this->WorkerThread->WaitForCompletion();
 
-		if (this->WorkerThread)
+		if (this->WorkerThread.IsValid())
 		{
-			delete this->WorkerThread;
-			this->WorkerThread = nullptr;
+			this->WorkerThread->WaitForCompletion();
 		}
 
-		delete this->Worker;
-		this->Worker = nullptr;
+		// Destroy
+		this->WorkerThread.Reset(nullptr);
+		this->Worker.Reset(nullptr);
 	}
 
 	this->VideoCapture.release();

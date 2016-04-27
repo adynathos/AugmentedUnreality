@@ -189,13 +189,13 @@ protected:
 		FThreadSafeBool bContinue;
 
 		cv::Mat CapturedFrame;
+		//std::vector<std::vector< cv::Point2f > > MarkerCorners;
 
 		uint32 bTracking : 1;
 	};
 
-	FWorkerRunnable* Worker;
-	FRunnableThread* WorkerThread;
-
+	TUniquePtr<FWorkerRunnable> Worker;
+	TUniquePtr<FRunnableThread> WorkerThread;
 
 	///=============================================
 	FString DiagnosticText;
