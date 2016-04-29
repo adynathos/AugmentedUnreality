@@ -18,8 +18,6 @@ limitations under the License.
 #include "AURDriver.h"
 #include "AURSmoothingFilter.h"
 
-#include <codecvt> // FString -> bytes conversion
-
 UAURDriver::UAURDriver()
 	: bPerformOrientationTracking(true)
 	, TranslationScale(1.0)
@@ -129,19 +127,4 @@ void UAURDriver::StoreNewOrientation(FTransform const & measurement)
 	{
 		//UE_LOG(LogAUR, Error, TEXT("UAURDriver::StoreNewOrientation: GetWorld() is null"))
 	}
-}
-
-const std::string UAURDriver::FStringToBytes(FString const & ue_str)
-{
-	typedef std::codecvt_utf8<wchar_t> convert_type;
-	std::wstring_convert<convert_type, wchar_t> converter;
-
-	return converter.to_bytes(std::wstring(*ue_str));
-}
-
-std::wstring UAURDriver::BytesToWString(std::string const & bytes)
-{
-	std::wstring result;
-	result.assign(bytes.begin(), bytes.end());
-	return result;
 }

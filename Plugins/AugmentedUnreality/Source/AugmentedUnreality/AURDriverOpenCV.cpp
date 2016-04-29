@@ -18,7 +18,6 @@ limitations under the License.
 #include "AURDriverOpenCV.h"
 #include "AURSmoothingFilter.h"
 
-#include <opencv2/calib3d.hpp>
 #include <sstream>
 #include <utility> // swap
 
@@ -128,8 +127,7 @@ void UAURDriverOpenCV::InitializeCamera()
 			<< "fovy: " << fovy << '\n'
 			<< "f: " << focalLength << '\n'
 			<< "aspect ratio: " << aspectRatio << '\n';
-
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Camera parameters %s"), BytesToWString(param_ss.str()).c_str())
+		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Camera parameters %s"), UTF8_TO_TCHAR(param_ss.str().c_str()))
 	}
 	else
 	{

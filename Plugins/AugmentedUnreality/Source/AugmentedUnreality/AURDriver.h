@@ -193,12 +193,6 @@ protected:
 	**/
 	virtual void StoreNewOrientation(FTransform const & measurement);
 
-	
-public:
-	// Conversions useful when interfacing with external libraries
-	static const std::string FStringToBytes(FString const & ue_str);
-	static std::wstring BytesToWString(std::string const & bytes);
-
 public:
 	struct BGR_Color {
 		uint8 B;

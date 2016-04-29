@@ -44,7 +44,7 @@ void UAURVideoScreenBase::Initialize(UAURDriver* Driver)
 		}
 		else
 		{
-			UE_LOG(LogAUR, Error, TEXT("UAURVideoScreenBase::Initialize GetWorld is null"));
+			UE_LOG(LogAUR, Error, TEXT("UAURVideoScreenBase::Initialize VideoDriver->GetWorld is null"));
 		}
 
 		this->InitDynamicTexture();
@@ -106,7 +106,7 @@ void UAURVideoScreenBase::InitDynamicTexture()
 
 	if (!this->DynamicTexture)
 	{
-		UE_LOG(LogAUR, Error, TEXT("AVideoDisplaySurface::InitDynamicMaterial(): cannot find the material with proper texture parameter"));
+		UE_LOG(LogAUR, Error, TEXT("AVideoDisplaySurface::InitDynamicMaterial(): failed to create dynamic texture"));
 		this->VideoDriver = nullptr;
 	}
 	else
@@ -202,36 +202,39 @@ void UAURVideoScreenBase::UpdateDynamicTexture()
 		{
 			if (UpdateParameters->Texture2DResource->GetCurrentFirstMip() <= 0)
 			{
-
-				FAURVideoFrame* new_video_frame = UpdateParameters->Driver->GetFrame();
-
-				// If the driver was shut down, it will return null
-				// better print an error than make the whole program disappear mysteriously
-				if (new_video_frame)
+				// Re-draw only if a new frame has been captured
+				if (UpdateParameters->Driver->IsNewFrameAvailable())
 				{
-					/**
-					Function signature, https://docs.unrealengine.com/latest/INT/API/Runtime/OpenGLDrv/FOpenGLDynamicRHI/RHIUpdateTexture2D/index.html
+					FAURVideoFrame* new_video_frame = UpdateParameters->Driver->GetFrame();
 
-					virtual void RHIUpdateTexture2D
-					(
-					FTexture2DRHIParamRef Texture,
-					uint32 MipIndex,
-					const struct FUpdateTextureRegion2D & UpdateRegion,
-					uint32 SourcePitch,
-					const uint8 * SourceData
-					)
-					**/
-					RHIUpdateTexture2D(
-						UpdateParameters->Texture2DResource->GetTexture2DRHI(),
-						0,
-						UpdateParameters->RegionDefinition,
-						sizeof(FColor) * UpdateParameters->RegionDefinition.Width, // width of the video in bytes
-						new_video_frame->GetDataPointerRaw()
+					// If the driver was shut down, it will return null
+					// better print an error than make the whole program disappear mysteriously
+					if (new_video_frame)
+					{
+						/**
+						Function signature, https://docs.unrealengine.com/latest/INT/API/Runtime/OpenGLDrv/FOpenGLDynamicRHI/RHIUpdateTexture2D/index.html
+
+						virtual void RHIUpdateTexture2D
+						(
+						FTexture2DRHIParamRef Texture,
+						uint32 MipIndex,
+						const struct FUpdateTextureRegion2D & UpdateRegion,
+						uint32 SourcePitch,
+						const uint8 * SourceData
+						)
+						**/
+						RHIUpdateTexture2D(
+							UpdateParameters->Texture2DResource->GetTexture2DRHI(),
+							0,
+							UpdateParameters->RegionDefinition,
+							sizeof(FColor) * UpdateParameters->RegionDefinition.Width, // width of the video in bytes
+							new_video_frame->GetDataPointerRaw()
 						);
-				}
-				else
-				{
-					UE_LOG(LogAUR, Error, TEXT("UAURVideoScreen::UpdateTexture driver returned null frame. It has probably been shut down."));
+					}
+					else
+					{
+						UE_LOG(LogAUR, Error, TEXT("UAURVideoScreen::UpdateTexture driver returned null frame. It has probably been shut down."));
+					}
 				}
 			}
 

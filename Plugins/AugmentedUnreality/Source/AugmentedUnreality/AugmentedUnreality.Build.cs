@@ -16,22 +16,37 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
 using UnrealBuildTool;
 
 public class AugmentedUnreality : ModuleRules
 {
-	private string ModulePath
+	protected string PluginRootDirectory
 	{
-		get { return Path.GetDirectoryName(RulesCompiler.GetModuleFilename(this.GetType().Name)); }
+		get { return Path.GetFullPath(Path.Combine(ModuleDirectory, "../../")); }
 	}
 
-	private string ThirdPartyPath
+	protected string ThirdPartyPath
 	{
-		get { return Path.GetFullPath(Path.Combine(ModulePath, "../../ThirdParty/")); }
+		get { return Path.GetFullPath(Path.Combine(PluginRootDirectory, "ThirdParty/")); }
 	}
+
+	protected List<string> OpenCVModules = new List<string>()
+	{
+		"opencv_core",
+		"opencv_highgui",
+		"opencv_calib3d",	// camera calibration
+		"opencv_videoio",	// VideoCapture
+		"opencv_aruco",		// Aruco markers
+		"opencv_imgcodecs",	// imwrite
+		"opencv_video"		// Kalman filter, suprisingly it is in modules/video/...
+	};
 
 	public AugmentedUnreality(TargetInfo Target)
 	{
+		//Console.WriteLine("A " + Path.GetDirectoryName("AugmentedUnreality"));
+		Console.WriteLine("B " + RulesCompiler.GetModuleFilename(this.GetType().Name));
+
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",
@@ -41,30 +56,47 @@ public class AugmentedUnreality : ModuleRules
 			"RenderCore"
 		});
 
-		Console.WriteLine("nm: " + this.GetType().Name);
-		Console.WriteLine("mp: " + ModulePath);
-		Console.WriteLine("tp: " + ThirdPartyPath);
-
 		LoadOpenCV(Target);
 	}
 
 	public void LoadOpenCV(TargetInfo Target)
 	{
-		string opencv_build_path = Path.Combine(ThirdPartyPath, "opencv", "build");
+		string opencv_dir = Path.Combine(ThirdPartyPath, "opencv");
+		var binaries_dir = Path.Combine(PluginRootDirectory, "Binaries");
 
-		// Include path
-		string include_path = Path.Combine(opencv_build_path, "include");
-		PublicIncludePaths.Add(Path.Combine(include_path));
+		// Include OpenCV headers
+		PublicIncludePaths.Add(Path.Combine(opencv_dir, "include"));
 
-		// Link
-		string lib_path = Path.Combine(opencv_build_path, "lib"); //Path.Combine(opencv_build_path, "x64", "vc14");
-		PublicAdditionalLibraries.Add(Path.Combine(lib_path, "opencv_world310.lib"));
-		PublicAdditionalLibraries.Add(Path.Combine(lib_path, "opencv_aruco310.lib"));
+		// Libraries are platform-dependent
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			Console.WriteLine("AUR: Libraries for Win64");
 
-		string bin_path = Path.Combine(opencv_build_path, "bin");
-		PublicDelayLoadDLLs.Add(Path.Combine(bin_path, "bin", "opencv_world310.dll"));
-		PublicDelayLoadDLLs.Add(Path.Combine(bin_path, "bin", "opencv_aruco310.dll"));
+			// Static linking
+			var opencv_lib_dir = Path.Combine(opencv_dir, "lib", "Win64");
+			PublicAdditionalLibraries.AddRange(
+				OpenCVModules.ConvertAll(m => Path.Combine(opencv_lib_dir, m + "310" +".lib"))
+			);
 
-		//Definitions.Add("WITH_OPENCV_BINDING=1");
+			// Dynamic libraries
+			// The DLLs need to be in Binaries/Win64 anyway, so let us keep them there instead of ThirdParty/opencv
+			var binaries_platform_dir = Path.Combine(binaries_dir, "Win64");
+			PublicDelayLoadDLLs.AddRange(
+				OpenCVModules.ConvertAll(m => Path.Combine(binaries_platform_dir, m + "310" + ".dll"))
+			);
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux )
+		{
+			Console.WriteLine("AUR: Libraries for Linux");
+
+			var binaries_platform_dir = Path.Combine(binaries_dir, "Linux");
+			PublicAdditionalLibraries.AddRange(
+				OpenCVModules.ConvertAll(m => Path.Combine(binaries_platform_dir, m + ".so"))
+			);
+		}
+		else
+		{
+			Console.WriteLine("AUR: No prebuilt binaries for OpenCV on platform "+Target.Platform);
+		}
 	}
 }

@@ -17,16 +17,11 @@ limitations under the License.
 #pragma once
 
 #include "AURDriver.h"
-
-// no point barking at openCV
-#pragma warning(disable: 4946) 
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/aruco.hpp>
-#pragma warning(default: 4946) 
-
 #include <vector>
+#include "OpenCV_includes.h"
 
 #include "AURDriverOpenCV.generated.h"
+
 
 USTRUCT(BlueprintType)
 struct FArucoGridBoardDefinition
@@ -87,7 +82,7 @@ struct FArucoGridBoardDefinition
 };
 
 /**
- * 
+ *
  */
 UCLASS(Blueprintable, BlueprintType)
 class UAURDriverOpenCV : public UAURDriver
@@ -138,7 +133,7 @@ protected:
 	cv::aruco::GridBoard* ArucoBoard;
 
 	cv::Mat CameraMatrix;
-	cv::Mat CameraDistortionCoefficients;	
+	cv::Mat CameraDistortionCoefficients;
 	float CameraPixelRatio;
 
 	// Threaded capture model
