@@ -18,23 +18,34 @@ limitations under the License.
 #include <iostream>
 
 ArucoWrapper::ArucoWrapper()
-	: CameraMatrix(new cv::Mat(cv::Mat::eye(3, 3, CV_64FC1)))
-	, DistortionCoefficients(new cv::Mat(cv::Mat::zeros(5, 1, CV_64FC1)))
-	, BoardImage(new cv::Mat)
+	: Data(new WrapperData)
 	, bDisplayMarkers(false)
+{
+}
+
+ArucoWrapper::~ArucoWrapper()
+{
+	if (Data)
+	{
+		delete Data;
+		Data = nullptr;
+	}
+}
+
+ArucoWrapper::WrapperData::WrapperData()
+	: CameraMatrix(cv::Mat::eye(3, 3, CV_64FC1))
+	, DistortionCoefficients(cv::Mat::zeros(5, 1, CV_64FC1))
 {
 }
 
 void ArucoWrapper::SetMarkerDefinition(int32_t DictionaryId, int32_t GridWidth, int32_t GridHeight, int32_t MarkerSize, int32_t SeparationSize)
 {
-	this->MarkerDictionary.reset(new cv::aruco::Dictionary(cv::aruco::getPredefinedDictionary(
-		cv::aruco::PREDEFINED_DICTIONARY_NAME(DictionaryId)))
-	);
+	Data->MarkerDictionary = cv::aruco::getPredefinedDictionary(
+		cv::aruco::PREDEFINED_DICTIONARY_NAME(DictionaryId));
 
-	this->Board.reset(new cv::aruco::GridBoard(cv::aruco::GridBoard::create(
-		GridWidth, GridHeight,
-		float(MarkerSize), float(SeparationSize),
-		*this->MarkerDictionary)));
+	Data->Board = cv::aruco::GridBoard::create(
+		GridWidth, GridHeight, float(MarkerSize), float(SeparationSize),
+		Data->MarkerDictionary);
 
 	cv::Size img_size;
 	int32_t marker_with_separation = MarkerSize + SeparationSize;
@@ -43,42 +54,39 @@ void ArucoWrapper::SetMarkerDefinition(int32_t DictionaryId, int32_t GridWidth, 
 	img_size.height = GridHeight * marker_with_separation + SeparationSize;
 
 	// create marker image
-	this->Board->draw(img_size, *this->BoardImage, SeparationSize, 1);
+	Data->Board.draw(img_size, Data->BoardImage, SeparationSize, 1);
 }
 
 void ArucoWrapper::SetCameraProperties(cv::Mat const & CameraMatrix, cv::Mat const & DistortionCoefficients)
 {
-	*this->CameraMatrix = CameraMatrix;
-	*this->DistortionCoefficients = DistortionCoefficients;
+	Data->CameraMatrix = CameraMatrix;
+	Data->DistortionCoefficients = DistortionCoefficients;
 }
 
 bool ArucoWrapper::DetectMarkers(cv::Mat & Image, cv::Vec3d & OutTranslation, cv::Vec3d & OutRotation) const
 {
 	// http://docs.opencv.org/3.1.0/db/da9/tutorial_aruco_board_detection.html
 
-	std::vector<std::vector<cv::Point2f> > MarkerCorners;
-	std::vector<int> MarkerIds;
-
 	try
 	{
-		cv::aruco::detectMarkers(Image, *MarkerDictionary, MarkerCorners, MarkerIds);
+		cv::aruco::detectMarkers(Image, Data->MarkerDictionary, Data->MarkerCorners, Data->MarkerIds);
 
 		// we cannot see any markers at all
-		if (MarkerIds.size() <= 0)
+		if (Data->MarkerIds.size() <= 0)
 		{
 			return false;
 		}
 
 		if (bDisplayMarkers)
 		{
-			cv::aruco::drawDetectedMarkers(Image, MarkerCorners, MarkerIds);
+			cv::aruco::drawDetectedMarkers(Image, Data->MarkerCorners, Data->MarkerIds);
 		}
 
 		cv::Vec3d trans, rot;
 
 		// determine translation and rotation + write to output
-		int number_of_markers = cv::aruco::estimatePoseBoard(MarkerCorners, MarkerIds,
-			*Board, *CameraMatrix, *DistortionCoefficients,
+		int number_of_markers = cv::aruco::estimatePoseBoard(Data->MarkerCorners, Data->MarkerIds,
+			Data->Board, Data->CameraMatrix, Data->DistortionCoefficients,
 			rot, trans);
 
 		// the markers do not fit
@@ -89,7 +97,7 @@ bool ArucoWrapper::DetectMarkers(cv::Mat & Image, cv::Vec3d & OutTranslation, cv
 
 		if (bDisplayMarkers)
 		{
-			cv::aruco::drawAxis(Image, *CameraMatrix, *DistortionCoefficients,
+			cv::aruco::drawAxis(Image, Data->CameraMatrix, Data->DistortionCoefficients,
 				rot, trans, 100);
 		}
 
@@ -104,3 +112,4 @@ bool ArucoWrapper::DetectMarkers(cv::Mat & Image, cv::Vec3d & OutTranslation, cv
 
 	return true;
 }
+

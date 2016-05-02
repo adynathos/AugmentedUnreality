@@ -33,11 +33,12 @@ class OpenCVWrapper_EXPORT ArucoWrapper
 {
 public:
 	ArucoWrapper();
+	~ArucoWrapper();
 
 	void SetMarkerDefinition(int32_t DictionaryId, int32_t GridWidth, int32_t GridHeight, int32_t MarkerSize, int32_t SeparationSize);
 	cv::Mat const& GetMarkerImage() const 
 	{
-		return *BoardImage;
+		return Data->BoardImage;
 	}
 	void SetCameraProperties(cv::Mat const& CameraMatrix, cv::Mat const& DistortionCoefficients);
 	void SetDisplayMarkers(bool b_display)
@@ -47,16 +48,27 @@ public:
 	bool DetectMarkers(cv::Mat & Image, cv::Vec3d & OutTranslation, cv::Vec3d & OutRotation) const;
 
 private:
-	// We store only pointers here, because full classes cannot cross the shared-lib boundary.
+	// prevent copying, which would result in double-delete of this->Data
+	ArucoWrapper(ArucoWrapper const& other) {}
 
-	// Markers
-	std::unique_ptr<cv::aruco::Dictionary> MarkerDictionary;
-	std::unique_ptr<cv::aruco::GridBoard> Board; // board also contains vector<vector<point>> and crashes UE4
-	std::unique_ptr<cv::Mat> BoardImage;
+	// We store only pointers here, because we want allocation and deallocation to happen inside this shared library.
+	// If unique_ptr is used, there is a warning that it crosses the shared library boundary and
+	// the program that links with it may have a different implementation of it, so we are forced to new/delete.
+	struct WrapperData {
+		cv::aruco::Dictionary MarkerDictionary;
+		cv::aruco::GridBoard Board; // board also contains vector<vector<point>> and crashes UE4
+		cv::Mat BoardImage;
 
-	// Camera
-	std::unique_ptr<cv::Mat> CameraMatrix;
-	std::unique_ptr<cv::Mat> DistortionCoefficients;
+		cv::Mat CameraMatrix;
+		cv::Mat DistortionCoefficients;
+
+		std::vector<std::vector<cv::Point2f> > MarkerCorners;
+		std::vector<int> MarkerIds;
+
+		WrapperData();
+	};
+
+	WrapperData* Data;
 
 	// Display
 	bool bDisplayMarkers;
