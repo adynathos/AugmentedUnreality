@@ -56,6 +56,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
 	UTexture2D* DynamicTexture;
 
+	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
+	UMaterialInstanceDynamic* ScreenMaterial;
+
 	/**
 	 * Initializes the mechanisms related to updating a dynamic texture.
 	 */
@@ -69,13 +72,13 @@ protected:
 	/**
 	 * Display the frame received from the driver on the dynamic texture
 	 */
-	void UpdateDynamicTexture();
+	void DisplayNextFrame();
 
 	/**
 	* Finds the material instance with texture parameter "VideoTexture"
 	* on this actor's component
 	*/
-	UMaterialInstanceDynamic* FindVideoMaterial();
+	UMaterialInstanceDynamic* FindScreenMaterial();
 	
 	// The rendering scheduled by ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER 
 	// takes place in the rendering thread:

@@ -23,6 +23,14 @@ limitations under the License.
 class UAURSmoothingFilter;
 #include "AURDriver.generated.h"
 
+UENUM(BlueprintType)
+enum class EAURDriverStatus : uint8
+{
+	DS_Disconnected	UMETA(DisplayName = "Disconnected"),
+	DS_Tracking		UMETA(DisplayName = "Tracking"),
+	DS_Calibration	UMETA(DisplayName = "Calibration")
+};
+
 USTRUCT(BlueprintType)
 struct FAURVideoFrame
 {
@@ -66,7 +74,7 @@ struct FAURVideoFrame
 };
 
 /**
- * 
+ * Represents a way of connecting to a camera.
  */
 UCLASS(Blueprintable, BlueprintType, Abstract)
 class UAURDriver : public UObject
@@ -74,28 +82,42 @@ class UAURDriver : public UObject
 	GENERATED_BODY()
 
 public:
+	/** Settings */
+
+	/** Location of the file containing calibration data for this camera,
+		relative to FPaths::GameSavedDir()
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
+	FString CalibrationFilePath;
+
+	/** Location of the default file containing calibration for this camera,
+		used when the CalibrationFilePath file does not exist,
+		relative to FPaths::GameContentDir()
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
+	FString CalibrationFallbackFilePath;
+
+	/** True if it should track markers and calculate camera position+rotation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	uint32 bPerformOrientationTracking:1;
-
-	/**
-	 *	Scale of the tracking coordinates:
-	 *	unreal coords / tracking coords
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	float TranslationScale;
-
-	/**
-	 *	Desired center of scene in tracker coorindates.
-	 *	Will be subtracted from the measured position.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	FVector SceneCenterInTrackerCoordinates;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	TSubclassOf<UAURSmoothingFilter> SmoothingFilterClass;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
 	UAURSmoothingFilter* SmoothingFilterInstance;
+
+	/** Camera resolution */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
+	FIntPoint Resolution;
+
+	/** Camera horizontal field-of-view */
+	UPROPERTY(BlueprintReadOnly, Category = AugmentedReality)
+	float CameraFov;
+
+	/** Camera image width/height */
+	UPROPERTY(BlueprintReadOnly, Category = AugmentedReality)
+	float CameraAspectRatio;
 
 	UAURDriver();
 
@@ -126,11 +148,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual void Shutdown();
 
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual bool IsCalibrated() const
+	{
+		return false;
+	}
+
+	/**
+	 * Attempt to calibrate the camera by observing a known pattern from different
+	 * viewpoints.
+	 */
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual void StartCalibration();
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual void CancelCalibration();
+
 	/**
 	 * FOV of the camera, available only after Initialize().
 	 */
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual void GetCameraParameters(FIntPoint & resolution, float & field_of_view_angle, float & aspect_ratio_x_to_y);
+	virtual void GetCameraParameters(FIntPoint & camera_resolution, float & field_of_view_angle, float & aspect_ratio_x_to_y);
 
 	/**
 	 * Returns a pointer to FAURVideoFrame containing the current camera frame.
@@ -146,13 +184,19 @@ public:
 	 * @returns true if a new frame has been captured since the last GetFrame() call.
 	 */
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual bool IsNewFrameAvailable();
+	virtual bool IsNewFrameAvailable() const;
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	EAURDriverStatus GetStatus() const
+	{
+		return this->Status;
+	}
 
 	/** Provide the camera orientation and last update time
 	The other accessor functions will by default call this
 	*/
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual void GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime);
+	virtual void GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime) const;
 
 	/**
 	 * Get the current position and rotation of the camera.
@@ -161,22 +205,20 @@ public:
 	virtual FTransform GetOrientation();
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual float GetLastOrientationUpdateTime();
+	virtual float GetLastOrientationUpdateTime() const;
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual float GetTimeSinceLastOrientationUpdate();
+	virtual float GetTimeSinceLastOrientationUpdate() const;
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual bool IsNewOrientationAvailable();
+	virtual bool IsNewOrientationAvailable() const;
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual FString GetDiagnosticText();
+	virtual FString GetDiagnosticText() const;
 
 protected:
-	/** Camera parameters */
-	FIntPoint Resolution;
-	float CameraFov;
-	float CameraAspectRatio;
+	/** Driver state */
+	EAURDriverStatus Status;
 
 	/** Tracking state */
 	FTransform CurrentOrientation;
@@ -192,6 +234,22 @@ protected:
 		If a filter is present, filtering is done here.
 	**/
 	virtual void StoreNewOrientation(FTransform const & measurement);
+
+	FString GetCalibrationFileFullPath() const 
+	{
+		return FPaths::GameSavedDir() / this->CalibrationFilePath;
+	}
+
+	FString GetCalibrationFallbackFileFullPath() const 
+	{
+		return FPaths::GameContentDir() / this->CalibrationFallbackFilePath;
+	}
+
+	static void EnsureDirExists(FString FilePath)
+	{
+		IPlatformFile & filesystem = FPlatformFileManager::Get().GetPlatformFile();
+		filesystem.CreateDirectoryTree(*FPaths::GetPath(FilePath));
+	}
 
 public:
 	struct BGR_Color {

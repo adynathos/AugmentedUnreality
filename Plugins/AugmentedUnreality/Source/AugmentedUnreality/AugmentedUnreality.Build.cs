@@ -31,11 +31,17 @@ public class AugmentedUnreality : ModuleRules
 		get { return Path.GetFullPath(Path.Combine(PluginRootDirectory, "ThirdParty/")); }
 	}
 
+	protected string BinariesDir
+	{
+		get { return Path.Combine(PluginRootDirectory, "Binaries"); }
+	}
+
 	protected List<string> OpenCVModules = new List<string>()
 	{
 		"opencv_core",
 		"opencv_highgui",
 		"opencv_calib3d",	// camera calibration
+		"opencv_features2d", // cv::SimpleBlobDetector for calibration
 		"opencv_videoio",	// VideoCapture
 		"opencv_aruco",		// Aruco markers
 		"opencv_imgcodecs",	// imwrite
@@ -44,9 +50,6 @@ public class AugmentedUnreality : ModuleRules
 
 	public AugmentedUnreality(TargetInfo Target)
 	{
-		//Console.WriteLine("A " + Path.GetDirectoryName("AugmentedUnreality"));
-		Console.WriteLine("B " + RulesCompiler.GetModuleFilename(this.GetType().Name));
-
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",
@@ -57,20 +60,20 @@ public class AugmentedUnreality : ModuleRules
 		});
 
 		LoadOpenCV(Target);
+		LoadOpenCVWrapper(Target);
 	}
 
 	public void LoadOpenCV(TargetInfo Target)
 	{
 		string opencv_dir = Path.Combine(ThirdPartyPath, "opencv");
-		var binaries_dir = Path.Combine(PluginRootDirectory, "Binaries");
-
+		
 		// Include OpenCV headers
 		PublicIncludePaths.Add(Path.Combine(opencv_dir, "include"));
 
 		// Libraries are platform-dependent
 		if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			Console.WriteLine("AUR: Libraries for Win64");
+			Console.WriteLine("AUR: OpenCV for Win64");
 
 			// Static linking
 			var opencv_lib_dir = Path.Combine(opencv_dir, "lib", "Win64");
@@ -80,16 +83,16 @@ public class AugmentedUnreality : ModuleRules
 
 			// Dynamic libraries
 			// The DLLs need to be in Binaries/Win64 anyway, so let us keep them there instead of ThirdParty/opencv
-			var binaries_platform_dir = Path.Combine(binaries_dir, "Win64");
+			var binaries_platform_dir = Path.Combine(BinariesDir, "Win64");
 			PublicDelayLoadDLLs.AddRange(
-				OpenCVModules.ConvertAll(m => Path.Combine(binaries_platform_dir, m + "310" + ".dll"))
+				OpenCVModules.ConvertAll(m => Path.Combine(binaries_platform_dir, m + "310" + "d" + ".dll"))
 			);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux )
 		{
-			Console.WriteLine("AUR: Libraries for Linux");
+			Console.WriteLine("AUR: OpenCV for Linux");
 
-			var binaries_platform_dir = Path.Combine(binaries_dir, "Linux");
+			var binaries_platform_dir = Path.Combine(BinariesDir, "Linux");
 			PublicAdditionalLibraries.AddRange(
 				OpenCVModules.ConvertAll(m => Path.Combine(binaries_platform_dir, m + ".so"))
 			);
@@ -97,6 +100,46 @@ public class AugmentedUnreality : ModuleRules
 		else
 		{
 			Console.WriteLine("AUR: No prebuilt binaries for OpenCV on platform "+Target.Platform);
+		}
+	}
+
+	public void LoadOpenCVWrapper(TargetInfo Target)
+	{
+		string opencv_wrapper_dir = Path.Combine(ThirdPartyPath, "opencv_wrapper");
+
+		// Include OpenCVWrapper headers
+		PublicIncludePaths.Add(Path.Combine(opencv_wrapper_dir, "include"));
+
+		// Libraries are platform-dependent
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			Console.WriteLine("AUR: OpenCVWrapper for Win64");
+
+			// Static linking
+			var opencv_wrapper_lib_dir = Path.Combine(opencv_wrapper_dir, "lib", "Win64");
+			PublicAdditionalLibraries.Add(
+				Path.Combine(opencv_wrapper_lib_dir, "OpenCVWrapper.lib")
+			);
+
+			// Dynamic libraries
+			// The DLLs need to be in Binaries/Win64 anyway, so let us keep them there instead of ThirdParty/opencv
+			var binaries_platform_dir = Path.Combine(BinariesDir, "Win64");
+			PublicDelayLoadDLLs.Add(
+				Path.Combine(binaries_platform_dir, "OpenCVWrapper.dll")
+			);
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			Console.WriteLine("AUR: OpenCVWrapper for Linux");
+
+			var binaries_platform_dir = Path.Combine(BinariesDir, "Win64");
+			PublicDelayLoadDLLs.Add(
+				Path.Combine(binaries_platform_dir, "OpenCVWrapper.so")
+			);
+		}
+		else
+		{
+			Console.WriteLine("AUR: No prebuilt binaries for OpenCVWrapper on platform " + Target.Platform);
 		}
 	}
 }

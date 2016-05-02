@@ -47,12 +47,15 @@ void UAURVideoScreenBase::Initialize(UAURDriver* Driver)
 			UE_LOG(LogAUR, Error, TEXT("UAURVideoScreenBase::Initialize VideoDriver->GetWorld is null"));
 		}
 
-		this->InitDynamicTexture();
+		this->ScreenMaterial = this->FindScreenMaterial();
 
-		if (this->bSetSizeAutomatically)
+		if (!this->ScreenMaterial)
 		{
-			this->InitScreenSize();
+			UE_LOG(LogAUR, Error, TEXT("AVideoDisplaySurface::InitDynamicMaterial(): cannot find the material with proper texture parameter"));
+			return;
 		}
+
+		
 
 		UE_LOG(LogAUR, Log, TEXT("UAURVideoScreenBase initialized"));
 	}
@@ -62,7 +65,7 @@ void UAURVideoScreenBase::Initialize(UAURDriver* Driver)
 	}
 }
 
-UMaterialInstanceDynamic* UAURVideoScreenBase::FindVideoMaterial()
+UMaterialInstanceDynamic* UAURVideoScreenBase::FindScreenMaterial()
 {
 	// Iterate over materials to find the reference to the dynamic texture
 	// so that its content can be written to later.
@@ -89,14 +92,6 @@ UMaterialInstanceDynamic* UAURVideoScreenBase::FindVideoMaterial()
 
 void UAURVideoScreenBase::InitDynamicTexture()
 {
-	auto video_material = this->FindVideoMaterial();
-
-	if (!video_material)
-	{
-		UE_LOG(LogAUR, Error, TEXT("AVideoDisplaySurface::InitDynamicMaterial(): cannot find the material with proper texture parameter"));
-		return;
-	}
-
 	// Create transient texture to be able to draw on it
 	FIntPoint resolution;
 	float fov, aspect_ratio;
@@ -114,7 +109,7 @@ void UAURVideoScreenBase::InitDynamicTexture()
 		this->DynamicTexture->UpdateResource();
 
 		// Use this transient texture as argument for the material
-		video_material->SetTextureParameterValue(FName("VideoTexture"), this->DynamicTexture);
+		this->ScreenMaterial->SetTextureParameterValue(FName("VideoTexture"), this->DynamicTexture);
 
 		/**
 		To make a dynamic texture update, we need to specify the texture region which is being updated.
@@ -141,6 +136,14 @@ void UAURVideoScreenBase::InitDynamicTexture()
 		this->TextureUpdateParameters.Texture2DResource = (FTexture2DResource*)this->DynamicTexture->Resource;
 		this->TextureUpdateParameters.RegionDefinition = whole_texture_region;
 		this->TextureUpdateParameters.Driver = this->VideoDriver;
+	}
+
+
+
+
+	if (this->bSetSizeAutomatically)
+	{
+		this->InitScreenSize();
 	}
 }
 
@@ -171,18 +174,19 @@ void UAURVideoScreenBase::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 	if (this->bIsActive && this->VideoDriver)
 	{
-		this->UpdateDynamicTexture();
+		auto res = this->VideoDriver->Resolution;
+
+		if (!this->DynamicTexture || res.X != this->DynamicTexture->GetSizeX() || res.Y != this->DynamicTexture->GetSizeY())
+		{
+			this->InitDynamicTexture();
+		}
+
+		this->DisplayNextFrame();
 	}
 }
 
-void UAURVideoScreenBase::UpdateDynamicTexture()
+void UAURVideoScreenBase::DisplayNextFrame()
 {
-	//We always keep our data in this buffer
-	//uint8* DestinationImageBuffer = (uint8*)VideoFrameData.GetData();
-
-	// Get image from camera
-	//VideoSource->GetFrameImage(DestinationImageBuffer);
-
 	/**
 	The general code for updating UE's dynamic texture:
 	https://wiki.unrealengine.com/Dynamic_Textures
@@ -191,11 +195,7 @@ void UAURVideoScreenBase::UpdateDynamicTexture()
 	We will have just one constant region definition at this->WholeTextureRegion.
 	**/
 
-	//this->TextureUpdateParameters.Texture2DResource = (FTexture2DResource*)this->VideoTexture->Resource;
-
 	//******************************************************************************************************************************
-	// if(this->VideoDriver->IsNewFrameAvailable()
-
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		UpdateTextureRenderCommand,
 		FTextureUpdateParameters*, UpdateParameters, &this->TextureUpdateParameters,

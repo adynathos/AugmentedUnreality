@@ -20,12 +20,13 @@ limitations under the License.
 
 UAURDriver::UAURDriver()
 	: bPerformOrientationTracking(true)
-	, TranslationScale(1.0)
-	, SceneCenterInTrackerCoordinates(0, 0, 0)
+	, CalibrationFilePath("AugmentedUnreality/Calibration/camera.xml")
+	, CalibrationFallbackFilePath("AugmentedUnreality/Calibration/default.xml")
 	, SmoothingFilterInstance(nullptr)
 	, Resolution(1920, 1080)
 	, CameraFov(50)
 	, CameraAspectRatio(1920.0 / 1080.0)
+	, Status(EAURDriverStatus::DS_Disconnected)
 {
 }
 
@@ -46,6 +47,15 @@ void UAURDriver::Shutdown()
 {
 }
 
+void UAURDriver::StartCalibration()
+{
+	UE_LOG(LogAUR, Error, TEXT("UAURDriver::StartCalibration: This driver does not have calibration implemented"))
+}
+
+void UAURDriver::CancelCalibration()
+{
+}
+
 void UAURDriver::GetCameraParameters(FIntPoint & resolution, float & field_of_view_angle, float & aspect_ratio_x_to_y)
 {
 	resolution = this->Resolution;
@@ -58,7 +68,7 @@ FAURVideoFrame * UAURDriver::GetFrame()
 	return nullptr;
 }
 
-bool UAURDriver::IsNewFrameAvailable()
+bool UAURDriver::IsNewFrameAvailable() const
 {
 	return false;
 }
@@ -71,7 +81,7 @@ FTransform UAURDriver::GetOrientation()
 	return out_orientation;
 }
 
-float UAURDriver::GetLastOrientationUpdateTime()
+float UAURDriver::GetLastOrientationUpdateTime() const
 {
 	FTransform out_orientation;
 	float out_update_time;
@@ -79,7 +89,7 @@ float UAURDriver::GetLastOrientationUpdateTime()
 	return out_update_time;
 }
 
-float UAURDriver::GetTimeSinceLastOrientationUpdate()
+float UAURDriver::GetTimeSinceLastOrientationUpdate() const
 {
 	if (this->WorldReference)
 	{
@@ -91,18 +101,18 @@ float UAURDriver::GetTimeSinceLastOrientationUpdate()
 	}
 }
 
-void UAURDriver::GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime)
+void UAURDriver::GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime) const
 {
 	OutOrientation = this->CurrentOrientation;
 	OutUpdateTime = this->LastOrientationUpdateTime;
 }
 
-bool UAURDriver::IsNewOrientationAvailable()
+bool UAURDriver::IsNewOrientationAvailable() const
 {
 	return false;
 }
 
-FString UAURDriver::GetDiagnosticText()
+FString UAURDriver::GetDiagnosticText() const
 {
 	return "Not implemented";
 }
