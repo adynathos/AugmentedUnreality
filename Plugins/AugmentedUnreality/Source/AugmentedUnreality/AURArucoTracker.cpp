@@ -39,17 +39,6 @@ void FAURArucoTracker::SetCameraProperties(FOpenCVCameraProperties const & camer
 	this->ArucoAPI.SetCameraProperties(camera_properties.CameraMatrix, camera_properties.DistortionCoefficients);
 }
 
-/**
-If the vectors manipulated by cv::aruco::detectMarkers are deleted (if there was some marker detected),
-there is a crash in "delete".
-To prevent crash on "delete", DELIBERATELY LEAK THE VECTORS.
-*/
-// Known problem:
-// https://answers.unrealengine.com/questions/36777/crash-with-opencvfindcontour.html
-// http://answers.opencv.org/question/67152/strange-crashes-during-deallocation-of-stdvector-vs2015-windows-7/
-std::vector<std::vector< cv::Point2f > > MarkerCorners;
-std::vector<int> MarkerIds;
-
 bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_transform)
 {
 	// Translation and rotation reported by detector
@@ -71,8 +60,6 @@ void FAURArucoTracker::ConvertTransformToUnreal(cv::Vec3d const& opencv_translat
 {
 	FVector rotation_axis = ConvertOpenCvVectorToUnreal(opencv_rotation);
 	FVector cv_translation = ConvertOpenCvVectorToUnreal(opencv_translation);
-
-	//UE_LOG(LogAUR, Log, TEXT("AURArucoTracker: transform: %s %s"), *cv_translation.ToString(), *rotation_axis.ToString())
 
 	float angle = rotation_axis.Size();
 	rotation_axis.Normalize();
