@@ -16,7 +16,7 @@ limitations under the License.
 
 #pragma once
 
-#include "OpenCV_includes.h"
+#include "AUROpenCV.h"
 
 #include "AUROpenCVCalibration.generated.h"
 
@@ -25,7 +25,16 @@ struct FOpenCVCameraProperties
 {
 	GENERATED_BODY()
 
+	/** Camera matrix in form:
+		f_x,	0,		center_x;
+		0,		f_y,	center_y;
+		0,		0		1;
+	
+		During the calibration we will assume
+		that f_x == f_y.
+	*/
 	cv::Mat CameraMatrix;
+
 	cv::Mat DistortionCoefficients;
 
 	// Parameters of the marker image to use.
@@ -39,10 +48,21 @@ struct FOpenCVCameraProperties
 	FVector2D FOV;
 
 	FOpenCVCameraProperties()
-		: CameraMatrix(cv::Mat::eye(3, 3, CV_64FC1))
-		, DistortionCoefficients(cv::Mat::zeros(5, 1, CV_64FC1))
-		, FOV(50., 50.)
+		: FOV(50., 50.)
 	{
+		// Default camera matrix:
+		// f = 900
+		// res = 800x600
+		CameraMatrix.create(3, 3, CV_64FC1);
+		CameraMatrix.setTo(0.0);
+		double f = 900.0;
+		CameraMatrix.at<double>(0, 0) = f;
+		CameraMatrix.at<double>(1, 1) = f;
+		CameraMatrix.at<double>(0, 2) = 400.0;
+		CameraMatrix.at<double>(1, 2) = 300.0;
+
+		DistortionCoefficients.create(5, 1, CV_64FC1);
+		DistortionCoefficients.setTo(0);
 	}
 
 	/**
@@ -57,6 +77,9 @@ struct FOpenCVCameraProperties
 	 */
 	bool SaveToFile(FString const& file_path) const;
 
+	/** Calucalte FOV from CameraMatrix */
+	void DeriveFOV(FIntPoint const resolution);
+
 	void PrintToLog() const;
 
 protected:
@@ -65,6 +88,56 @@ protected:
 	static const char* KEY_FOV;
 };
 
-class FOpenCVCameraCalibration
+/*
+	OpenCV camera calibration using the asymmetric circles 4x11 pattern.
+*/
+class FOpenCVCameraCalibrationProcess
 {
+public:
+	FOpenCVCameraCalibrationProcess();
+	
+	// Prepare for a new calibration, clear any the process if it is in progress.
+	void Reset();
+
+	// Try using a new frame. Time is given so that there is appropriate interval 
+	// between consecutive captured frames.
+	bool ProcessFrame(cv::Mat& frame, float time_now);
+
+	bool IsFinished() const
+	{
+		return FramesCollected == FramesNeeded;
+	}
+
+	float GetProgress() const
+	{
+		return float(FramesCollected) / float(FramesNeeded);
+	}
+
+	FOpenCVCameraProperties const& GetCameraProperties() const 
+	{
+		return CameraProperties;
+	}
+
+protected:
+	// Number of frames to be captured before calibration is calculated.
+	int32 FramesNeeded;
+
+	// Time between capturing consecutive frames
+	float MinInterval;
+
+	// Number of rows / columns in the pattern.
+	cv::Size PatternSize;
+
+	int32 CalibrationFlags;
+
+	// Distance between rows/columns
+	float SquareSize; 
+
+	std::vector<cv::Mat> DetectedPointSets;
+	int32 FramesCollected;
+	float LastFrameTime;
+
+	FOpenCVCameraProperties CameraProperties;
+
+	void CalculateCalibration(FIntPoint const resolution);
 };

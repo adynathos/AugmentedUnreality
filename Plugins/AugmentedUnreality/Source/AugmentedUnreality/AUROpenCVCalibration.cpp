@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "AugmentedUnreality.h"
 #include "AUROpenCVCalibration.h"
+#include <sstream>
 
 const char* FOpenCVCameraProperties::KEY_CAMERA_MATRIX = "CameraMatrix";
 const char* FOpenCVCameraProperties::KEY_DISTORTION = "DistortionCoefficients";
@@ -48,45 +49,6 @@ bool FOpenCVCameraProperties::LoadFromFile(FString const & file_path)
 		return false;
 	}
 
-	/*
-	uint16 config_video_width = 0;
-	uint16 config_video_height = 0;
-
-	std::stringstream param_ss;
-
-	// these keys are case-sensitive
-	cam_param_file["image_Width"] >> config_video_width;
-	cam_param_file["image_Height"] >> config_video_height;
-	cam_param_file["Distortion_Coefficients"] >> this->CameraDistortionCoefficients;
-	cam_param_file["Camera_Matrix"] >> this->CameraMatrix;
-
-	// Extract useful camera parameters
-	double fovx, fovy, focalLength, aspectRatio;
-	cv::Point2d principalPoint;
-
-	cv::calibrationMatrixValues(this->CameraMatrix, cv::Size(config_video_width, config_video_height), 1, 1,
-		fovx, fovy, focalLength, principalPoint, aspectRatio);
-
-	this->CameraPixelRatio = aspectRatio;
-	this->CameraFov = fovx;
-
-	this->Tracker.SetCameraParameters(this->CameraMatrix, this->CameraDistortionCoefficients);
-
-	param_ss << '\n'
-		<< "width: " << config_video_width << '\n'
-		<< "height: " << config_video_height << '\n'
-		<< "fovx: " << fovx << '\n'
-		<< "fovy: " << fovy << '\n'
-		<< "f: " << focalLength << '\n'
-		<< "aspect ratio: " << aspectRatio << '\n';
-	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Camera parameters %s"), UTF8_TO_TCHAR(param_ss.str().c_str()))
-
-
-
-
-		UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Failed to load config file %s"), *this->CalibrationFilePath)
-	*/
-
 	return true;
 }
 
@@ -108,38 +70,133 @@ bool FOpenCVCameraProperties::SaveToFile(FString const & file_path) const
 	return true;
 }
 
+void FOpenCVCameraProperties::DeriveFOV(FIntPoint const resolution)
+{
+	/*
+		CameraMatrix(0, 0) is f_x in "pixels" because "real" units cancel out: 
+			x_img_pix = x_real / z_real * f_pix
+		We fix the aspect ratio to 1, so f_x == f_y == f
+
+		So an image plane of size (resX, resY) is located f away from camera center.
+		So to calculate FOV from camera matrix
+			tan(FovX/2) = (resX / 2) / f
+	*/
+
+	double fov_x, fov_y, focal_length, aspect_ratio;
+	cv::Point2d principal_point;
+
+	cv::calibrationMatrixValues(this->CameraMatrix, cv::Size(resolution.X, resolution.Y), 1, 1,
+		fov_x, fov_y, focal_length, principal_point, aspect_ratio);
+
+	FOV.X = fov_x;
+	FOV.Y = fov_y;
+
+	std::stringstream param_ss;
+	param_ss << "Extracting from CameraMatrix:\n"
+		<< "Resolution: " << resolution.X << 'x' << resolution.Y << '\n'
+		<< "FOV horizontal: " << FOV.X << '\n'
+		<< "FOV vertical: " << FOV.Y << '\n'
+		<< "Camera matrix: " << CameraMatrix << '\n'
+		<< "Distortion coefficients: " << DistortionCoefficients << '\n';
+
+	UE_LOG(LogAUR, Log, TEXT("OpenCVCameraProperties: %s"), UTF8_TO_TCHAR(param_ss.str().c_str()))
+}
+
 void FOpenCVCameraProperties::PrintToLog() const
 {
 	std::stringstream param_ss;
 
-	param_ss << '\n'
-		//	<< "width: " << config_video_width << '\n'
-		//	<< "height: " << config_video_height << '\n'
-		<< "FOV horizontal: " << FOV.X << '\n'
-		<< "FOV vertical: " << FOV.Y << '\n'
-		;
-	//	<< "f: " << focalLength << '\n'
-	//	<< "aspect ratio: " << aspectRatio << '\n';
-	UE_LOG(LogAUR, Log, TEXT("OpenCVCameraProperties: Camera properties %s"), UTF8_TO_TCHAR(param_ss.str().c_str()))
+	
 }
 
-/**
-if (false)
+FOpenCVCameraCalibrationProcess::FOpenCVCameraCalibrationProcess()
+	: FramesNeeded(25)
+	, MinInterval(0.75)
+	, PatternSize(4, 11)
+	, SquareSize(1.7) // cm if printed on A4 paper
+	, CalibrationFlags(
+		cv::CALIB_FIX_K4 | 
+		cv::CALIB_FIX_K5 | 
+		cv::CALIB_FIX_PRINCIPAL_POINT |
+		cv::CALIB_ZERO_TANGENT_DIST |
+		cv::CALIB_FIX_ASPECT_RATIO
+	)
 {
-	calibration_detected_points.clear();
-	bool found = cv::findCirclesGrid(CapturedFrame, calibration_board_size, calibration_detected_points, cv::CALIB_CB_ASYMMETRIC_GRID);
-	//bool found = findChessboardCorners(CapturedFrame, calibration_board_size, calibration_detected_points, cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_FAST_CHECK | cv::CALIB_CB_NORMALIZE_IMAGE);
+	Reset();
+}
+
+void FOpenCVCameraCalibrationProcess::Reset()
+{
+	FramesCollected = 0;
+	LastFrameTime = 0;
+	DetectedPointSets.clear();
+}
+
+bool FOpenCVCameraCalibrationProcess::ProcessFrame(cv::Mat& frame, float time_now)
+{
+	cv::Mat new_calib_points;
+
+	bool found = cv::findCirclesGrid(frame, PatternSize, new_calib_points, cv::CALIB_CB_ASYMMETRIC_GRID);
 
 	if (found)
 	{
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Found calibration markers"))
+		// Draw to show that we have found the points
+		cv::drawChessboardCorners(frame, PatternSize, new_calib_points, found);
+		
+		// Store the captured frame if enough time has passed since the last was captured
+		if (time_now >= LastFrameTime + MinInterval)
+		{
+			DetectedPointSets.push_back(new_calib_points);
+			FramesCollected += 1;
+			LastFrameTime = time_now;
 
-			// If we create a temporary Mat from the 
-			cv::drawChessboardCorners(CapturedFrame, calibration_board_size, calibration_detected_points, found);
+			UE_LOG(LogAUR, Log, TEXT("FOpenCVCameraCalibrationProcess: Recorded %d/%d"), FramesCollected, FramesNeeded)
+
+			// Have enough frames, finish the calibration
+			if (FramesCollected >= FramesNeeded)
+			{
+				this->CalculateCalibration(FIntPoint(frame.size().width, frame.size().height));
+			}
+		}
 	}
-	else
+
+	return found;
+}
+
+void FOpenCVCameraCalibrationProcess::CalculateCalibration(FIntPoint const resolution)
+{
+	// Calculate points in the pattern
+	std::vector< std::vector< cv::Point3f > > object_points(1);
+	for (int8 col = 0; col < PatternSize.height; col++)
 	{
-		UE_LOG(LogAUR, Log, TEXT("No"))
+		for (int8 row = 0; row < PatternSize.width; row++)
+		{
+			object_points[0].push_back(cv::Point3f(
+				SquareSize * float(2 * row + col % 2),
+				SquareSize * float(col),
+				0));
+		}
+	}
+	object_points.resize(DetectedPointSets.size(), object_points[0]);
+
+	FOpenCVVectorOfMat r_vecs, t_vecs;
+
+	try 
+	{
+		cv::setIdentity(CameraProperties.CameraMatrix);
+		CameraProperties.DistortionCoefficients.setTo(0.0);
+
+		// the error is root-square-mean 
+		double calibration_error = cv::calibrateCamera(object_points, DetectedPointSets, cv::Size(resolution.X, resolution.Y),
+			CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients, *r_vecs, *t_vecs,
+			CalibrationFlags);
+
+		UE_LOG(LogAUR, Log, TEXT("FOpenCVCameraCalibrationProcess: Calibration finished, error: %lf"), calibration_error)
+
+		CameraProperties.DeriveFOV(resolution);
+	}
+	catch (std::exception& exc)
+	{
+		UE_LOG(LogAUR, Error, TEXT("CalculateCalibration: exception\n    %s"), UTF8_TO_TCHAR(exc.what()))
 	}
 }
-*/
