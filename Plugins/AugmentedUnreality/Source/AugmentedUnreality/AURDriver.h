@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "Object.h"
 class UAURSmoothingFilter;
+class FAURDriver;
 #include "AURDriver.generated.h"
 
 USTRUCT(BlueprintType)
@@ -71,6 +72,7 @@ class UAURDriver : public UObject
 	GENERATED_BODY()
 
 public:
+
 	/** Settings */
 
 	/** Location of the file containing calibration data for this camera,
@@ -248,11 +250,4 @@ protected:
 		IPlatformFile & filesystem = FPlatformFileManager::Get().GetPlatformFile();
 		filesystem.CreateDirectoryTree(*FPaths::GetPath(FilePath));
 	}
-
-public:
-	struct BGR_Color {
-		uint8 B;
-		uint8 G;
-		uint8 R;
-	};
 };

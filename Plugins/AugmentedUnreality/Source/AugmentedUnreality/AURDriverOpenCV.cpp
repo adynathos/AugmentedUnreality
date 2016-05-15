@@ -207,30 +207,26 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 			// ---------------------------
 			// Create the frame to publish
 
-			// Camera image is in BGR format
-			BGR_Color* src_pixels = (BGR_Color*)CapturedFrame.data;
-
 			// Frame to fill is in RGBA format
-			FColor* dest_pixels = Driver->WorkerFrame->Image.GetData();
+			FColor* dest_pixel_ptr = Driver->WorkerFrame->Image.GetData();
 
-			int32 pixel_count = Driver->Resolution.X * Driver->Resolution.Y;
-			for (int32 pixel_idx = 0; pixel_idx < pixel_count; pixel_idx++)
+			auto frame_size = CapturedFrame.size();
+			for (int32 pixel_y = 0; pixel_y < frame_size.height; pixel_y++)
 			{
-				BGR_Color* src_pix = &src_pixels[pixel_idx];
-				FColor* dest_pix = &dest_pixels[pixel_idx];
+				for (int32 pixel_x = 0; pixel_x < frame_size.width; pixel_x++)
+				{
+					cv::Vec3b& src_pixel = CapturedFrame.at<cv::Vec3b>(pixel_x, pixel_y);
 
-				dest_pix->R = src_pix->R;
-				dest_pix->G = src_pix->G;
-				dest_pix->B = src_pix->B;
+					// Captured image is in BGR format
+					dest_pixel_ptr->R = src_pixel.val[2];
+					dest_pixel_ptr->G = src_pixel.val[1];
+					dest_pixel_ptr->B = src_pixel.val[0];
+
+					dest_pixel_ptr++;
+				}
 			}
 
-			{
-				FScopeLock(&Driver->FrameLock);
-
-				// Put the generated frame as available frame
-				std::swap(Driver->WorkerFrame, Driver->AvailableFrame);
-				Driver->bNewFrameReady = true;
-			}
+			Driver->StoreWorkerFrame();
 		}
 	}
 
