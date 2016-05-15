@@ -16,7 +16,7 @@ limitations under the License.
 
 #pragma once
 
-#include "AURDriver.h"
+#include "AURDriverThreaded.h"
 #include <vector>
 #include "AUROpenCV.h"
 #include "AUROpenCVCalibration.h"
@@ -28,7 +28,7 @@ limitations under the License.
  *
  */
 UCLASS(Blueprintable, BlueprintType)
-class UAURDriverOpenCV : public UAURDriver
+class UAURDriverOpenCV : public UAURDriverThreaded
 {
 	GENERATED_BODY()
 
@@ -48,7 +48,6 @@ public:
 	UAURDriverOpenCV();
 
 	virtual void Initialize() override;
-	virtual void Shutdown() override;
 
 	virtual FIntPoint GetResolution() const override;
 	virtual FVector2D GetFieldOfView() const override;
@@ -57,10 +56,6 @@ public:
 	virtual void StartCalibration() override;
 	virtual void CancelCalibration() override;
 
-	virtual FAURVideoFrame* GetFrame() override;
-	virtual bool IsNewFrameAvailable() const override;
-	virtual bool IsNewOrientationAvailable() const override;
-	virtual FTransform GetOrientation() override;
 	virtual FString GetDiagnosticText() const override;
 
 protected:
@@ -72,27 +67,12 @@ protected:
 	// Marker tracking
 	FAURArucoTracker Tracker;
 
-	// Threaded capture model
-	FAURVideoFrame* WorkerFrame; // the frame processed by worker thread
-	FAURVideoFrame* AvailableFrame; // the frame ready to be published
-	FAURVideoFrame* PublishedFrame; // the frame currently held by tje game
-
-	FAURVideoFrame FrameInstances[3];
-
-	FCriticalSection FrameLock; // mutex which needs to be obtained before manipulating the frame pointers
-	FThreadSafeBool bNewFrameReady; // is there a new frame in AvailableFrame
-
-	FCriticalSection OrientationLock; // mutex which needs to be obtained before using CameraOrientation variable.
-	FThreadSafeBool bNewOrientationReady;
-
-	/**
-		Adds thread safety to the storing operation
-	*/
-	virtual void StoreNewOrientation(FTransform const & measurement);
+	FString DiagnosticText;
 
 	void LoadCalibration();
 	void OnCalibrationFinished();
-	void InitializeWorker();
+	
+	virtual FRunnable* CreateWorker() override;
 
 	/**
 	 * cv::VideoCapture::read blocks untill a new frame is available.
@@ -124,10 +104,4 @@ protected:
 
 		cv::Mat CapturedFrame;
 	};
-
-	TUniquePtr<FWorkerRunnable> Worker;
-	TUniquePtr<FRunnableThread> WorkerThread;
-
-	///=============================================
-	FString DiagnosticText;
 };

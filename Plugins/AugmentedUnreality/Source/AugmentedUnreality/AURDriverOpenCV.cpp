@@ -26,36 +26,17 @@ limitations under the License.
 
 UAURDriverOpenCV::UAURDriverOpenCV()
 	: CameraIndex(0)
-	, bNewFrameReady(false)
-	, bNewOrientationReady(false)
 {
 	this->CameraProperties.SetResolution(this->Resolution);
 }
 
 void UAURDriverOpenCV::Initialize()
 {
-	Super::Initialize();
-
-	this->bNewFrameReady = false;
-	this->bNewOrientationReady = false;
-
 	this->LoadCalibration();
 	this->Tracker.SetSettings(this->TrackerSettings);
+	this->CameraProperties.SetResolution(this->Resolution);
 
-	this->WorkerFrame = &this->FrameInstances[0];
-	this->AvailableFrame = &this->FrameInstances[1];
-	this->PublishedFrame = &this->FrameInstances[2];
-
-	this->InitializeWorker();
-}
-
-void UAURDriverOpenCV::StoreNewOrientation(FTransform const & measurement)
-{
-	// Mutex of orientation vars
-	FScopeLock(&this->OrientationLock);
-
-	Super::StoreNewOrientation(measurement);
-	this->bNewOrientationReady = true;
+	Super::Initialize();
 }
 
 void UAURDriverOpenCV::LoadCalibration()
@@ -99,27 +80,9 @@ void UAURDriverOpenCV::OnCalibrationFinished()
 	this->CameraProperties.SaveToFile(this->GetCalibrationFileFullPath());
 }
 
-void UAURDriverOpenCV::InitializeWorker()
+FRunnable * UAURDriverOpenCV::CreateWorker()
 {
-	this->Worker.Reset(new FWorkerRunnable(this));
-	this->WorkerThread.Reset(FRunnableThread::Create(this->Worker.Get(), TEXT("a"), 0, TPri_Normal));
-}
-
-void UAURDriverOpenCV::Shutdown()
-{
-	if (this->Worker.IsValid())
-	{
-		this->Worker->Stop();
-
-		if (this->WorkerThread.IsValid())
-		{
-			this->WorkerThread->WaitForCompletion();
-		}
-
-		// Destroy
-		this->WorkerThread.Reset(nullptr);
-		this->Worker.Reset(nullptr);
-	}
+	return new FWorkerRunnable(this);
 }
 
 FIntPoint UAURDriverOpenCV::GetResolution() const
@@ -151,47 +114,6 @@ void UAURDriverOpenCV::CancelCalibration()
 
 	this->CalibrationProcess.Reset();
 	this->bCalibrationInProgress = false;
-}
-
-FAURVideoFrame* UAURDriverOpenCV::GetFrame()
-{
-	// If there is a new frame produced
-	if(this->bNewFrameReady)
-	{
-		// Manipulating frame pointers
-		FScopeLock lock(&this->FrameLock);
-
-		// Put the new ready frame in PublishedFrame
-		std::swap(this->AvailableFrame, this->PublishedFrame);
-
-		this->bNewFrameReady = false;
-	}
-	// if there is no new frame, return the old one again
-
-	return this->PublishedFrame;
-}
-
-bool UAURDriverOpenCV::IsNewFrameAvailable() const
-{
-	return this->bNewFrameReady;
-}
-
-bool UAURDriverOpenCV::IsNewOrientationAvailable() const
-{
-	return this->bNewOrientationReady;
-}
-
-FTransform UAURDriverOpenCV::GetOrientation()
-{
-	// Accessing orientation
-	FScopeLock lock(&this->OrientationLock);
-
-	this->bNewOrientationReady = false;
-
-	//UE_LOG(LogAUR, Log, TEXT("UAURDriver::GetOrientation: %s %s"), 
-	//	*CurrentOrientation.ToString(), CurrentOrientation.IsValid()? TEXT("VALID") : TEXT("NOT V"))
-
-	return this->CurrentOrientation;
 }
 
 FString UAURDriverOpenCV::GetDiagnosticText() const
@@ -230,9 +152,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 		this->Driver->Resolution.X = VideoCapture.get(CV_CAP_PROP_FRAME_WIDTH);
 		this->Driver->Resolution.Y = VideoCapture.get(CV_CAP_PROP_FRAME_HEIGHT);
 
-		this->Driver->WorkerFrame->SetResolution(this->Driver->Resolution);
-		this->Driver->AvailableFrame->SetResolution(this->Driver->Resolution);
-		this->Driver->PublishedFrame->SetResolution(this->Driver->Resolution);
+		this->Driver->SetFrameResolution(this->Driver->Resolution);
 
 		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Using camera resolution %d x %d"), this->Driver->Resolution.X, this->Driver->Resolution.Y)
 	}
