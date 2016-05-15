@@ -36,7 +36,7 @@ void FAURArucoTracker::SetSettings(FArucoTrackerSettings const& settings)
 void FAURArucoTracker::SetCameraProperties(FOpenCVCameraProperties const & camera_properties)
 {
 	//this->CameraProperties = camera_properties;
-	this->ArucoAPI.SetCameraProperties(camera_properties.CameraMatrix, camera_properties.DistortionCoefficients);
+	this->ArucoAPI.SetCameraProperties((camera_properties.CameraMatrix), (camera_properties.DistortionCoefficients));
 }
 
 bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_transform)
@@ -45,7 +45,7 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_tra
 	cv::Vec3d rotation_raw, translation_raw;
 
 	bool found = ArucoAPI.DetectMarkers(image, translation_raw, rotation_raw);
-	if(!found)	
+	if(!found)
 	{
 		return false;
 	}
@@ -95,7 +95,7 @@ void FAURArucoTracker::UpdateMarkerDefinition(FArucoGridBoardDefinition const & 
 
 	// save image to file
 	FString board_image_filename = FPaths::GameSavedDir() / definition.SavedFileName;
-	
+
 	// ensure directory exists
 	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(board_image_filename));
 

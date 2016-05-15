@@ -17,7 +17,7 @@ limitations under the License.
 #pragma once
 
 #include "AUROpenCVCalibration.h"
-#include "OpenCV_includes.h"
+#include "AUROpenCV.h"
 #include <OpenCVWrapper.h>
 
 #include "AURArucoTracker.generated.h"
@@ -146,11 +146,8 @@ public:
 		return FVector(cv_vector[1], cv_vector[0], cv_vector[2]);
 	}
 
-protected:
+private:
 	FArucoTrackerSettings Settings;
-
-	// Camera information
-	//FOpenCVCameraProperties CameraProperties;
 
 	// Marker information
 	ArucoWrapper ArucoAPI;

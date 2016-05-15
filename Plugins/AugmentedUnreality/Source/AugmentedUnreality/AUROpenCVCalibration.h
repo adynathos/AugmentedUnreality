@@ -25,30 +25,30 @@ struct FOpenCVCameraProperties
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraCalibration)
+	FIntPoint Resolution;
+
 	/** Camera matrix in form:
 		f_x,	0,		center_x;
 		0,		f_y,	center_y;
 		0,		0		1;
 	
 		During the calibration we will assume
-		that f_x == f_y.
+		that f_x == f_y,
+		center_x = res_x/2
+		center_y = res_y/2
 	*/
 	cv::Mat CameraMatrix;
 
 	cv::Mat DistortionCoefficients;
 
-	// Parameters of the marker image to use.
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraCalibration)
-	//FIntPoint Resolution;
-
-	//float CameraPixelRatio;
-
-	// Field of view, X is horizontal, Y is vertical
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraCalibration)
+	// Field of view, X is horizontal, Y is vertical,
+	// calculated from CameraMatrix and Resolution.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraCalibration)
 	FVector2D FOV;
 
 	FOpenCVCameraProperties()
-		: FOV(50., 50.)
+		: Resolution(800, 600)
 	{
 		// Default camera matrix:
 		// f = 900
@@ -58,11 +58,13 @@ struct FOpenCVCameraProperties
 		double f = 900.0;
 		CameraMatrix.at<double>(0, 0) = f;
 		CameraMatrix.at<double>(1, 1) = f;
-		CameraMatrix.at<double>(0, 2) = 400.0;
-		CameraMatrix.at<double>(1, 2) = 300.0;
+		CameraMatrix.at<double>(0, 2) = 0.5 * double(Resolution.X);
+		CameraMatrix.at<double>(1, 2) = 0.5 * double(Resolution.Y);
 
 		DistortionCoefficients.create(5, 1, CV_64FC1);
 		DistortionCoefficients.setTo(0);
+
+		DeriveFOV();
 	}
 
 	/**
@@ -77,15 +79,18 @@ struct FOpenCVCameraProperties
 	 */
 	bool SaveToFile(FString const& file_path) const;
 
+	/** Change the resolution, trying to preserve the FOV */
+	void SetResolution(FIntPoint const& new_resolution);
+
 	/** Calucalte FOV from CameraMatrix */
-	void DeriveFOV(FIntPoint const resolution);
+	void DeriveFOV();
 
 	void PrintToLog() const;
 
 protected:
+	static const char* KEY_RESOLUTION;
 	static const char* KEY_CAMERA_MATRIX;
 	static const char* KEY_DISTORTION;
-	static const char* KEY_FOV;
 };
 
 /*
@@ -139,5 +144,5 @@ protected:
 
 	FOpenCVCameraProperties CameraProperties;
 
-	void CalculateCalibration(FIntPoint const resolution);
+	void CalculateCalibration();
 };

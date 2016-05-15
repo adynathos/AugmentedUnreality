@@ -37,8 +37,8 @@ public:
 	 *	- FOV of the camera
 	 *	- aspect ratio
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AugmentedReality)
-	bool bSetSizeAutomatically;
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	void SetSizeForFOV(float FOV_Horizontal);
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	void Initialize(UAURDriver* Driver);
@@ -46,6 +46,8 @@ public:
 	UAURVideoScreenBase(const FObjectInitializer & ObjectInitializer);
 
 	/* UActorComponent */
+	virtual void Activate(bool bReset = false) override;
+	virtual void Deactivate() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction) override;
 	/* end UActorComponent */
 
@@ -59,15 +61,17 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
 	UMaterialInstanceDynamic* ScreenMaterial;
 
-	/**
-	 * Initializes the mechanisms related to updating a dynamic texture.
-	 */
-	void InitDynamicTexture();
+	FIntPoint Resolution;
 
 	/**
-	 * Calculate the mesh scale based on the distance to camera.
+	 * Initializes the mechanisms related to updating a dynamic texture with a given resolution
 	 */
-	void InitScreenSize();
+	void SetResolution(FIntPoint resolution);
+
+	/**
+	 * Updates the vertical size of the screen based on aspect ratio
+	 */
+	void UpdateAspectRatio();
 
 	/**
 	 * Display the frame received from the driver on the dynamic texture

@@ -23,10 +23,10 @@ UAURDriver::UAURDriver()
 	, CalibrationFilePath("AugmentedUnreality/Calibration/camera.xml")
 	, CalibrationFallbackFilePath("AugmentedUnreality/Calibration/default.xml")
 	, SmoothingFilterInstance(nullptr)
-	, Resolution(1920, 1080)
-	, CameraFov(50)
-	, CameraAspectRatio(1920.0 / 1080.0)
-	, Status(EAURDriverStatus::DS_Disconnected)
+	, Resolution(800, 600)
+	, bConnected(false)
+	, bCalibrated(false)
+	, bCalibrationInProgress(false)
 {
 }
 
@@ -47,6 +47,26 @@ void UAURDriver::Shutdown()
 {
 }
 
+bool UAURDriver::IsConnected() const
+{
+	return false;
+}
+
+bool UAURDriver::IsCalibrated() const
+{
+	return this->bCalibrated;
+}
+
+bool UAURDriver::IsCalibrationInProgress() const
+{
+	return this->bCalibrationInProgress;
+}
+
+float UAURDriver::GetCalibrationProgress() const
+{
+	return 0.0f;
+}
+
 void UAURDriver::StartCalibration()
 {
 	UE_LOG(LogAUR, Error, TEXT("UAURDriver::StartCalibration: This driver does not have calibration implemented"))
@@ -56,11 +76,14 @@ void UAURDriver::CancelCalibration()
 {
 }
 
-void UAURDriver::GetCameraParameters(FIntPoint & resolution, float & field_of_view_angle, float & aspect_ratio_x_to_y)
+FIntPoint UAURDriver::GetResolution() const
 {
-	resolution = this->Resolution;
-	field_of_view_angle = this->CameraFov;
-	aspect_ratio_x_to_y = this->CameraAspectRatio;
+	return this->Resolution;
+}
+
+FVector2D UAURDriver::GetFieldOfView() const
+{
+	return FVector2D(50., 50.);
 }
 
 FAURVideoFrame * UAURDriver::GetFrame()
@@ -75,18 +98,12 @@ bool UAURDriver::IsNewFrameAvailable() const
 
 FTransform UAURDriver::GetOrientation()
 {
-	FTransform out_orientation;
-	float out_update_time;
-	this->GetOrientationAndUpdateTime(out_orientation, out_update_time);
-	return out_orientation;
+	return this->CurrentOrientation;
 }
 
 float UAURDriver::GetLastOrientationUpdateTime() const
 {
-	FTransform out_orientation;
-	float out_update_time;
-	this->GetOrientationAndUpdateTime(out_orientation, out_update_time);
-	return out_update_time;
+	return this->LastOrientationUpdateTime;
 }
 
 float UAURDriver::GetTimeSinceLastOrientationUpdate() const
@@ -101,10 +118,10 @@ float UAURDriver::GetTimeSinceLastOrientationUpdate() const
 	}
 }
 
-void UAURDriver::GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime) const
+void UAURDriver::GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime)
 {
-	OutOrientation = this->CurrentOrientation;
-	OutUpdateTime = this->LastOrientationUpdateTime;
+	OutOrientation = this->GetOrientation();
+	OutUpdateTime = this->GetLastOrientationUpdateTime();
 }
 
 bool UAURDriver::IsNewOrientationAvailable() const

@@ -18,7 +18,7 @@ limitations under the License.
 
 #include "AURDriver.h"
 #include <vector>
-#include "OpenCV_includes.h"
+#include "AUROpenCV.h"
 #include "AUROpenCVCalibration.h"
 #include "AURArucoTracker.h"
 
@@ -49,6 +49,14 @@ public:
 
 	virtual void Initialize() override;
 	virtual void Shutdown() override;
+
+	virtual FIntPoint GetResolution() const override;
+	virtual FVector2D GetFieldOfView() const override;
+	
+	virtual float GetCalibrationProgress() const override;
+	virtual void StartCalibration() override;
+	virtual void CancelCalibration() override;
+
 	virtual FAURVideoFrame* GetFrame() override;
 	virtual bool IsNewFrameAvailable() const override;
 	virtual bool IsNewOrientationAvailable() const override;
@@ -58,6 +66,8 @@ public:
 protected:
 	// Camera calibration
 	FOpenCVCameraProperties CameraProperties;
+	FCriticalSection CalibrationLock;
+	FOpenCVCameraCalibrationProcess CalibrationProcess;
 
 	// Marker tracking
 	FAURArucoTracker Tracker;
@@ -81,6 +91,7 @@ protected:
 	virtual void StoreNewOrientation(FTransform const & measurement);
 
 	void LoadCalibration();
+	void OnCalibrationFinished();
 	void InitializeWorker();
 
 	/**

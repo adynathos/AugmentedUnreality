@@ -18,9 +18,9 @@ limitations under the License.
 #include "AUROpenCVCalibration.h"
 #include <sstream>
 
+const char* FOpenCVCameraProperties::KEY_RESOLUTION = "Resolution";
 const char* FOpenCVCameraProperties::KEY_CAMERA_MATRIX = "CameraMatrix";
 const char* FOpenCVCameraProperties::KEY_DISTORTION = "DistortionCoefficients";
-const char* FOpenCVCameraProperties::KEY_FOV = "FieldOfView";
 
 bool FOpenCVCameraProperties::LoadFromFile(FString const & file_path)
 {
@@ -33,15 +33,18 @@ bool FOpenCVCameraProperties::LoadFromFile(FString const & file_path)
 			return false;
 		}
 
+		std::vector<int32> res;
+		cam_param_file[KEY_RESOLUTION] >> res;
+		if (res.size() == 2)
+		{
+			Resolution.X = FPlatformMath::RoundToInt(res[0]);
+			Resolution.Y = FPlatformMath::RoundToInt(res[1]);
+		}
+
 		cam_param_file[KEY_CAMERA_MATRIX] >> CameraMatrix;
 		cam_param_file[KEY_DISTORTION] >> DistortionCoefficients;
 
-		std::vector<double> fovs;
-		cam_param_file[KEY_FOV] >> fovs;
-		if (fovs.size() == 2)
-		{
-			FOV.Set(fovs[0], fovs[1]);
-		}
+
 	}
 	catch (std::exception& exc)
 	{
@@ -63,14 +66,36 @@ bool FOpenCVCameraProperties::SaveToFile(FString const & file_path) const
 		return false;
 	}
 
+	cam_param_file << KEY_RESOLUTION << std::vector<int32>{ Resolution.X, Resolution.Y };
 	cam_param_file << KEY_CAMERA_MATRIX << CameraMatrix;
 	cam_param_file << KEY_DISTORTION << DistortionCoefficients;
-	cam_param_file << KEY_FOV << std::vector<double>{ FOV.X, FOV.Y };
-
+	
 	return true;
 }
 
-void FOpenCVCameraProperties::DeriveFOV(FIntPoint const resolution)
+void FOpenCVCameraProperties::SetResolution(FIntPoint const & new_resolution)
+{
+	double resolution_new_to_old = 1.0;
+	if (Resolution.X > 0)
+	{
+		resolution_new_to_old = double(new_resolution.X) / double(Resolution.X);
+	}
+	Resolution = new_resolution;
+
+	// Scale focal distance by the same factor the resolution changed
+	double current_f = CameraMatrix.at<double>(0, 0);
+	double new_f = current_f * resolution_new_to_old;
+
+	// Set focal distance
+	CameraMatrix.at<double>(0, 0) = new_f;
+	CameraMatrix.at<double>(1, 1) = new_f;
+
+	// Set center of image
+	CameraMatrix.at<double>(0, 2) = 0.5 * double(new_resolution.X);
+	CameraMatrix.at<double>(1, 2) = 0.5 * double(new_resolution.Y);
+}
+
+void FOpenCVCameraProperties::DeriveFOV()
 {
 	/*
 		CameraMatrix(0, 0) is f_x in "pixels" because "real" units cancel out: 
@@ -85,28 +110,26 @@ void FOpenCVCameraProperties::DeriveFOV(FIntPoint const resolution)
 	double fov_x, fov_y, focal_length, aspect_ratio;
 	cv::Point2d principal_point;
 
-	cv::calibrationMatrixValues(this->CameraMatrix, cv::Size(resolution.X, resolution.Y), 1, 1,
+	// given the resX, resY and f, calculate fov
+	cv::calibrationMatrixValues(this->CameraMatrix, cv::Size(Resolution.X, Resolution.Y), 1, 1,
 		fov_x, fov_y, focal_length, principal_point, aspect_ratio);
 
 	FOV.X = fov_x;
 	FOV.Y = fov_y;
-
-	std::stringstream param_ss;
-	param_ss << "Extracting from CameraMatrix:\n"
-		<< "Resolution: " << resolution.X << 'x' << resolution.Y << '\n'
-		<< "FOV horizontal: " << FOV.X << '\n'
-		<< "FOV vertical: " << FOV.Y << '\n'
-		<< "Camera matrix: " << CameraMatrix << '\n'
-		<< "Distortion coefficients: " << DistortionCoefficients << '\n';
-
-	UE_LOG(LogAUR, Log, TEXT("OpenCVCameraProperties: %s"), UTF8_TO_TCHAR(param_ss.str().c_str()))
 }
 
 void FOpenCVCameraProperties::PrintToLog() const
 {
 	std::stringstream param_ss;
 
+	param_ss << "\n"
+		<< "Resolution: " << Resolution.X << 'x' << Resolution.Y << '\n'
+		<< "FOV horizontal: " << FOV.X << '\n'
+		<< "FOV vertical: " << FOV.Y << '\n'
+		<< "Camera matrix: " << CameraMatrix << '\n'
+		<< "Distortion coefficients: " << DistortionCoefficients << '\n';
 	
+	UE_LOG(LogAUR, Log, TEXT("OpenCVCameraProperties: %s"), UTF8_TO_TCHAR(param_ss.str().c_str()))
 }
 
 FOpenCVCameraCalibrationProcess::FOpenCVCameraCalibrationProcess()
@@ -136,6 +159,11 @@ bool FOpenCVCameraCalibrationProcess::ProcessFrame(cv::Mat& frame, float time_no
 {
 	cv::Mat new_calib_points;
 
+	// Derive resolution from the given frame
+	auto frame_size = frame.size();
+	CameraProperties.SetResolution(FIntPoint(frame_size.width, frame_size.height));
+
+	// Detect point positions in the given frame
 	bool found = cv::findCirclesGrid(frame, PatternSize, new_calib_points, cv::CALIB_CB_ASYMMETRIC_GRID);
 
 	if (found)
@@ -155,7 +183,7 @@ bool FOpenCVCameraCalibrationProcess::ProcessFrame(cv::Mat& frame, float time_no
 			// Have enough frames, finish the calibration
 			if (FramesCollected >= FramesNeeded)
 			{
-				this->CalculateCalibration(FIntPoint(frame.size().width, frame.size().height));
+				this->CalculateCalibration();
 			}
 		}
 	}
@@ -163,7 +191,7 @@ bool FOpenCVCameraCalibrationProcess::ProcessFrame(cv::Mat& frame, float time_no
 	return found;
 }
 
-void FOpenCVCameraCalibrationProcess::CalculateCalibration(FIntPoint const resolution)
+void FOpenCVCameraCalibrationProcess::CalculateCalibration()
 {
 	// Calculate points in the pattern
 	std::vector< std::vector< cv::Point3f > > object_points(1);
@@ -187,13 +215,14 @@ void FOpenCVCameraCalibrationProcess::CalculateCalibration(FIntPoint const resol
 		CameraProperties.DistortionCoefficients.setTo(0.0);
 
 		// the error is root-square-mean 
-		double calibration_error = cv::calibrateCamera(object_points, DetectedPointSets, cv::Size(resolution.X, resolution.Y),
+		double calibration_error = cv::calibrateCamera(object_points, DetectedPointSets, cv::Size(CameraProperties.Resolution.X, CameraProperties.Resolution.Y),
 			CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients, *r_vecs, *t_vecs,
 			CalibrationFlags);
 
 		UE_LOG(LogAUR, Log, TEXT("FOpenCVCameraCalibrationProcess: Calibration finished, error: %lf"), calibration_error)
 
-		CameraProperties.DeriveFOV(resolution);
+		CameraProperties.DeriveFOV();
+		CameraProperties.PrintToLog();
 	}
 	catch (std::exception& exc)
 	{

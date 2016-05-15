@@ -20,12 +20,12 @@ limitations under the License.
 
 UAURVideoScreenBase::UAURVideoScreenBase(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
-	, bSetSizeAutomatically(true)
+	, Resolution(100, 100)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	this->bTickInEditor = false;
 	this->bAutoRegister = true;
-	this->bAutoActivate = true;
+	this->bAutoActivate = false; // activates when Initialize is called
 
 	this->SetEnableGravity(false);
 	this->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -55,9 +55,11 @@ void UAURVideoScreenBase::Initialize(UAURDriver* Driver)
 			return;
 		}
 
-		
+		//this->SetResolution(VideoDriver->Resolution);
 
 		UE_LOG(LogAUR, Log, TEXT("UAURVideoScreenBase initialized"));
+
+		this->Activate();
 	}
 	else
 	{
@@ -90,19 +92,17 @@ UMaterialInstanceDynamic* UAURVideoScreenBase::FindScreenMaterial()
 	return nullptr;
 }
 
-void UAURVideoScreenBase::InitDynamicTexture()
+void UAURVideoScreenBase::SetResolution(FIntPoint resolution)
 {
-	// Create transient texture to be able to draw on it
-	FIntPoint resolution;
-	float fov, aspect_ratio;
-	this->VideoDriver->GetCameraParameters(resolution, fov, aspect_ratio);
+	this->Resolution = resolution;
 
+	// Create transient texture to be able to draw on it
 	this->DynamicTexture = UTexture2D::CreateTransient(resolution.X, resolution.Y);
 
 	if (!this->DynamicTexture)
 	{
 		UE_LOG(LogAUR, Error, TEXT("AVideoDisplaySurface::InitDynamicMaterial(): failed to create dynamic texture"));
-		this->VideoDriver = nullptr;
+		this->Deactivate();
 	}
 	else
 	{
@@ -138,34 +138,49 @@ void UAURVideoScreenBase::InitDynamicTexture()
 		this->TextureUpdateParameters.Driver = this->VideoDriver;
 	}
 
-
-
-
-	if (this->bSetSizeAutomatically)
-	{
-		this->InitScreenSize();
-	}
+	// the X size is tied to FOV, so scale Y with respect to X
+	this->SetRelativeScale3D(FVector(RelativeScale3D.X, RelativeScale3D.X * (float)Resolution.Y / (float)Resolution.X, 1));
 }
 
-void UAURVideoScreenBase::InitScreenSize()
+void UAURVideoScreenBase::SetSizeForFOV(float FOV_Horizontal)
 {
 	// Get camera parameters
-	FIntPoint cam_resolution;
-	float cam_fov, cam_aspect_ratio;
-	this->VideoDriver->GetCameraParameters(cam_resolution, cam_fov, cam_aspect_ratio);
+	//FIntPoint cam_resolution;
+	//float cam_fov, cam_aspect_ratio;
+	//this->VideoDriver->GetCameraParameters(cam_resolution, cam_fov, cam_aspect_ratio);
 
 	// Get local position
 	float distance_to_origin = this->GetRelativeTransform().GetLocation().Size();
 
 	// Try to adjust size so that it fills the whole screen
-	float width = distance_to_origin * 2.0 * FMath::Tan(FMath::DegreesToRadians(0.5 * cam_fov));
-	float height = width / cam_aspect_ratio;
-
-	FString msg = "UAURVideoScreenBase::InitScreenSize() " + FString::SanitizeFloat(width) + " x " + FString::SanitizeFloat(height);
-	UE_LOG(LogAUR, Log, TEXT("%s"), *msg)
+	float width = distance_to_origin * 2.0 * FMath::Tan(FMath::DegreesToRadians(0.5 * FOV_Horizontal));
+	float height = width * (float)Resolution.Y / (float)Resolution.X;
 
 	// The texture size is 100x100
 	this->SetRelativeScale3D(FVector(width / 100.0, height / 100.0, 1));
+
+	FString msg = "UAURVideoScreenBase::InitScreenSize(" + FString::SanitizeFloat(FOV_Horizontal) + ") " 
+		+ FString::SanitizeFloat(this->RelativeScale3D.X) + " x " + FString::SanitizeFloat(this->RelativeScale3D.Y);
+	UE_LOG(LogAUR, Log, TEXT("%s"), *msg)
+}
+
+void UAURVideoScreenBase::Activate(bool bReset)
+{
+	if (this->VideoDriver)
+	{
+		UE_LOG(LogAUR, Log, TEXT("UAURVideoScreenBase activates"));
+		Super::Activate(bReset);
+	}
+	else
+	{
+		UE_LOG(LogAUR, Error, TEXT("UAURVideoScreenBase::Activate: Have no Driver to display, will not activate"));
+	}
+}
+
+void UAURVideoScreenBase::Deactivate()
+{
+	this->VideoDriver = nullptr;
+	Super::Deactivate();
 }
 
 void UAURVideoScreenBase::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction)
@@ -178,23 +193,26 @@ void UAURVideoScreenBase::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 		if (!this->DynamicTexture || res.X != this->DynamicTexture->GetSizeX() || res.Y != this->DynamicTexture->GetSizeY())
 		{
-			this->InitDynamicTexture();
+			this->SetResolution(res);
 		}
 
 		this->DisplayNextFrame();
+	}
+	else
+	{
+		UE_LOG(LogAUR, Warning, TEXT("UAURVideoScreenBase::TickComponent: ticking but neither active nor has video driver"));
 	}
 }
 
 void UAURVideoScreenBase::DisplayNextFrame()
 {
 	/**
-	The general code for updating UE's dynamic texture:
-	https://wiki.unrealengine.com/Dynamic_Textures
-	However, in case of a camera, we always update the whole image instead of chosen regions.
-	Therefore, we can drop the multi-region-related code from the example.
-	We will have just one constant region definition at this->WholeTextureRegion.
+		The general code for updating UE's dynamic texture:
+		https://wiki.unrealengine.com/Dynamic_Textures
+		However, in case of a camera, we always update the whole image instead of chosen regions.
+		Therefore, we can drop the multi-region-related code from the example.
+		We will have just one constant region definition at this->WholeTextureRegion.
 	**/
-
 	//******************************************************************************************************************************
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		UpdateTextureRenderCommand,

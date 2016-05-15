@@ -17,19 +17,8 @@ limitations under the License.
 #pragma once
 
 #include "Object.h"
-
-#include <string>
-
 class UAURSmoothingFilter;
 #include "AURDriver.generated.h"
-
-UENUM(BlueprintType)
-enum class EAURDriverStatus : uint8
-{
-	DS_Disconnected	UMETA(DisplayName = "Disconnected"),
-	DS_Tracking		UMETA(DisplayName = "Tracking"),
-	DS_Calibration	UMETA(DisplayName = "Calibration")
-};
 
 USTRUCT(BlueprintType)
 struct FAURVideoFrame
@@ -107,17 +96,9 @@ public:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
 	UAURSmoothingFilter* SmoothingFilterInstance;
 
-	/** Camera resolution */
+	/** Desired (but not guaranteed) camera resolution */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	FIntPoint Resolution;
-
-	/** Camera horizontal field-of-view */
-	UPROPERTY(BlueprintReadOnly, Category = AugmentedReality)
-	float CameraFov;
-
-	/** Camera image width/height */
-	UPROPERTY(BlueprintReadOnly, Category = AugmentedReality)
-	float CameraAspectRatio;
 
 	UAURDriver();
 
@@ -148,11 +129,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual void Shutdown();
 
+	// Is the camera connected and working.
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual bool IsCalibrated() const
-	{
-		return false;
-	}
+	virtual bool IsConnected() const;
+
+	/** 
+	 * True if the specific calibration file for this camera has been found,
+	 * False if it uses default fallback file.
+	 */
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual bool IsCalibrated() const;
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual bool IsCalibrationInProgress() const;
+
+	/**
+	 * 0.0 <= progress <= 1.0 - calibration in progress
+	 */
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual float GetCalibrationProgress() const;
 
 	/**
 	 * Attempt to calibrate the camera by observing a known pattern from different
@@ -164,11 +159,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual void CancelCalibration();
 
-	/**
-	 * FOV of the camera, available only after Initialize().
-	 */
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual void GetCameraParameters(FIntPoint & camera_resolution, float & field_of_view_angle, float & aspect_ratio_x_to_y);
+	virtual FIntPoint GetResolution() const;
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual FVector2D GetFieldOfView() const;
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	void GetCameraParameters(FIntPoint & camera_resolution, FVector2D field_of_view) const 
+	{
+		camera_resolution = this->GetResolution();
+		field_of_view = this->GetFieldOfView();
+	}
 
 	/**
 	 * Returns a pointer to FAURVideoFrame containing the current camera frame.
@@ -186,17 +188,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual bool IsNewFrameAvailable() const;
 
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	EAURDriverStatus GetStatus() const
-	{
-		return this->Status;
-	}
-
 	/** Provide the camera orientation and last update time
 	The other accessor functions will by default call this
 	*/
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual void GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime) const;
+	virtual void GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime);
 
 	/**
 	 * Get the current position and rotation of the camera.
@@ -217,12 +213,14 @@ public:
 	virtual FString GetDiagnosticText() const;
 
 protected:
-	/** Driver state */
-	EAURDriverStatus Status;
+	uint32 bConnected : 1;
 
 	/** Tracking state */
 	FTransform CurrentOrientation;
 	float LastOrientationUpdateTime;
+
+	uint32 bCalibrated : 1;
+	uint32 bCalibrationInProgress : 1;
 
 	/** Reference to UWorld for time measurement */
 	UWorld* WorldReference;

@@ -29,13 +29,13 @@ UAURDriverOpenCV::UAURDriverOpenCV()
 	, bNewFrameReady(false)
 	, bNewOrientationReady(false)
 {
+	this->CameraProperties.SetResolution(this->Resolution);
 }
 
 void UAURDriverOpenCV::Initialize()
 {
 	Super::Initialize();
 
-	this->Status = EAURDriverStatus::DS_Disconnected;
 	this->bNewFrameReady = false;
 	this->bNewOrientationReady = false;
 
@@ -64,10 +64,12 @@ void UAURDriverOpenCV::LoadCalibration()
 	if (this->CameraProperties.LoadFromFile(calib_file_path))
 	{
 		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Calibration loaded from %s"), *calib_file_path)
+		this->bCalibrated = true;
 	}
 	else
 	{
 		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Failed to load calibration from %s"), *calib_file_path)
+		this->bCalibrated = false;
 	}
 
 	calib_file_path = this->GetCalibrationFallbackFileFullPath();
@@ -80,12 +82,21 @@ void UAURDriverOpenCV::LoadCalibration()
 		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Failed to load fallback calibration from %s"), *calib_file_path)
 	}
 
+	if (this->CameraProperties.Resolution != this->Resolution)
+	{
+		UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: The resolution in the calibration file is different than the desired resolution of the driver. Trying to convert."))
+		this->CameraProperties.SetResolution(this->Resolution);
+	}
 	this->CameraProperties.PrintToLog();
-
 	this->Tracker.SetCameraProperties(this->CameraProperties);
+}
 
-	this->CameraFov = this->CameraProperties.FOV.X;
-	this->CameraAspectRatio = this->Resolution.X / this->Resolution.Y;
+void UAURDriverOpenCV::OnCalibrationFinished()
+{
+	this->CameraProperties = this->CalibrationProcess.GetCameraProperties();
+	this->bCalibrated = true;
+	this->bCalibrationInProgress = false;
+	this->CameraProperties.SaveToFile(this->GetCalibrationFileFullPath());
 }
 
 void UAURDriverOpenCV::InitializeWorker()
@@ -109,6 +120,37 @@ void UAURDriverOpenCV::Shutdown()
 		this->WorkerThread.Reset(nullptr);
 		this->Worker.Reset(nullptr);
 	}
+}
+
+FIntPoint UAURDriverOpenCV::GetResolution() const
+{
+	return this->CameraProperties.Resolution;
+}
+
+FVector2D UAURDriverOpenCV::GetFieldOfView() const
+{
+	return this->CameraProperties.FOV;
+}
+
+float UAURDriverOpenCV::GetCalibrationProgress() const
+{
+	return this->CalibrationProcess.GetProgress();
+}
+
+void UAURDriverOpenCV::StartCalibration()
+{
+	FScopeLock lock(&this->CalibrationLock);
+
+	this->CalibrationProcess.Reset();
+	this->bCalibrationInProgress = true;
+}
+
+void UAURDriverOpenCV::CancelCalibration()
+{
+	FScopeLock lock(&this->CalibrationLock);
+
+	this->CalibrationProcess.Reset();
+	this->bCalibrationInProgress = false;
 }
 
 FAURVideoFrame* UAURDriverOpenCV::GetFrame()
@@ -145,6 +187,9 @@ FTransform UAURDriverOpenCV::GetOrientation()
 	FScopeLock lock(&this->OrientationLock);
 
 	this->bNewOrientationReady = false;
+
+	//UE_LOG(LogAUR, Log, TEXT("UAURDriver::GetOrientation: %s %s"), 
+	//	*CurrentOrientation.ToString(), CurrentOrientation.IsValid()? TEXT("VALID") : TEXT("NOT V"))
 
 	return this->CurrentOrientation;
 }
@@ -184,7 +229,6 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 		// Find the resolution used by the camera
 		this->Driver->Resolution.X = VideoCapture.get(CV_CAP_PROP_FRAME_WIDTH);
 		this->Driver->Resolution.Y = VideoCapture.get(CV_CAP_PROP_FRAME_HEIGHT);
-		this->Driver->CameraAspectRatio = (float)this->Driver->Resolution.X / (float)this->Driver->Resolution.Y;// / this->Driver->CameraPixelRatio;
 
 		this->Driver->WorkerFrame->SetResolution(this->Driver->Resolution);
 		this->Driver->AvailableFrame->SetResolution(this->Driver->Resolution);
@@ -200,14 +244,6 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 
 	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Worker thread start"))
 
-		Driver->DiagnosticText = "START";
-
-	//cv::Size calibration_board_size(11, 8);
-	//cv::Size calibration_board_size(9, 6);
-	cv::Size calibration_board_size(4, 11); //11 rows with 4 circles each
-	std::vector<cv::Point2d> calibration_image_points;
-	std::vector<cv::Point2d> calibration_detected_points;
-
 	while (this->bContinue)
 	{
 		// get a new frame from camera - this blocks untill the next frame is available
@@ -221,12 +257,22 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 				frame_size.width, frame_size.height, Driver->Resolution.X, Driver->Resolution.Y);
 		}
 		else
-		{			
-			/**
-			 * Tracking markers and relative position with respect to them
-			 */
+		{
+			if (Driver->IsCalibrationInProgress()) // calibration
+			{
+				FScopeLock(&Driver->CalibrationLock);
+				Driver->CalibrationProcess.ProcessFrame(CapturedFrame, Driver->WorldReference->RealTimeSeconds);
+
+				if (Driver->CalibrationProcess.IsFinished())
+				{
+					Driver->OnCalibrationFinished();
+				}
+			}
 			if (this->Driver->bPerformOrientationTracking)
 			{
+				/**
+				* Tracking markers and relative position with respect to them
+				*/
 				FTransform camera_transform;
 				bool markers_detected = Driver->Tracker.DetectMarkers(CapturedFrame, camera_transform);
 
@@ -267,6 +313,8 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 			}
 		}
 	}
+
+	Driver->bConnected = false;
 
 	// Exiting the loop means the program ends, so release camera
 	this->VideoCapture.release();
