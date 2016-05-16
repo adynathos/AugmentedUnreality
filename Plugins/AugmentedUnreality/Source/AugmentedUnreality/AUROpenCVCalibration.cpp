@@ -44,7 +44,7 @@ bool FOpenCVCameraProperties::LoadFromFile(FString const & file_path)
 		cam_param_file[KEY_CAMERA_MATRIX] >> CameraMatrix;
 		cam_param_file[KEY_DISTORTION] >> DistortionCoefficients;
 
-
+		this->DeriveFOV();
 	}
 	catch (std::exception& exc)
 	{
