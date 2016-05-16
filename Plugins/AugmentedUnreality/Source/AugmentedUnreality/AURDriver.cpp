@@ -49,7 +49,7 @@ void UAURDriver::Shutdown()
 
 bool UAURDriver::IsConnected() const
 {
-	return false;
+	return this->bConnected;
 }
 
 bool UAURDriver::IsCalibrated() const

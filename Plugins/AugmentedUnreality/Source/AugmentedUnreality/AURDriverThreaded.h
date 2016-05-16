@@ -68,4 +68,10 @@ protected:
 
 	// Resizes frames to fit the resolution
 	void SetFrameResolution(FIntPoint const& new_res);
+
+	// Call the delegates from game thread
+	void NotifyConnectionStatusChange();
+	void NotifyCameraParametersChange();
+	void NotifyCalibrationStatusChange();
+
 };

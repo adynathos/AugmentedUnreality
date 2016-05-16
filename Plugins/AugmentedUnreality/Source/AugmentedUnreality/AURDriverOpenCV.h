@@ -69,9 +69,10 @@ protected:
 
 	FString DiagnosticText;
 
-	void LoadCalibration();
+	void LoadCalibrationFile();
 	void OnCalibrationFinished();
-	
+	void OnCameraPropertiesChange();
+
 	virtual FRunnable* CreateWorker() override;
 
 	/**

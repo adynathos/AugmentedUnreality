@@ -32,14 +32,14 @@ UAURDriverOpenCV::UAURDriverOpenCV()
 
 void UAURDriverOpenCV::Initialize()
 {
-	this->LoadCalibration();
+	this->LoadCalibrationFile();
 	this->Tracker.SetSettings(this->TrackerSettings);
 	this->CameraProperties.SetResolution(this->Resolution);
 
 	Super::Initialize();
 }
 
-void UAURDriverOpenCV::LoadCalibration()
+void UAURDriverOpenCV::LoadCalibrationFile()
 {
 	FString calib_file_path = this->GetCalibrationFileFullPath();
 	if (this->CameraProperties.LoadFromFile(calib_file_path))
@@ -67,9 +67,9 @@ void UAURDriverOpenCV::LoadCalibration()
 	{
 		UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: The resolution in the calibration file is different than the desired resolution of the driver. Trying to convert."))
 		this->CameraProperties.SetResolution(this->Resolution);
-	}
-	this->CameraProperties.PrintToLog();
-	this->Tracker.SetCameraProperties(this->CameraProperties);
+	}	
+
+	this->OnCameraPropertiesChange();
 }
 
 void UAURDriverOpenCV::OnCalibrationFinished()
@@ -78,6 +78,25 @@ void UAURDriverOpenCV::OnCalibrationFinished()
 	this->bCalibrated = true;
 	this->bCalibrationInProgress = false;
 	this->CameraProperties.SaveToFile(this->GetCalibrationFileFullPath());
+
+	// Notify about the change
+	this->OnCameraPropertiesChange();
+
+	// Notify about calibration end
+	this->NotifyCalibrationStatusChange();
+}
+
+void UAURDriverOpenCV::OnCameraPropertiesChange()
+{
+	this->CameraProperties.PrintToLog();
+
+	// Give the camera matrix to the tracker
+	this->Tracker.SetCameraProperties(this->CameraProperties);
+
+	// Allocate proper frame sizes
+	this->SetFrameResolution(this->GetResolution());
+
+	this->NotifyCameraParametersChange();
 }
 
 FRunnable * UAURDriverOpenCV::CreateWorker()
@@ -106,6 +125,8 @@ void UAURDriverOpenCV::StartCalibration()
 
 	this->CalibrationProcess.Reset();
 	this->bCalibrationInProgress = true;
+
+	this->NotifyCalibrationStatusChange();
 }
 
 void UAURDriverOpenCV::CancelCalibration()
@@ -114,6 +135,8 @@ void UAURDriverOpenCV::CancelCalibration()
 
 	this->CalibrationProcess.Reset();
 	this->bCalibrationInProgress = false;
+
+	this->NotifyCalibrationStatusChange();
 }
 
 FString UAURDriverOpenCV::GetDiagnosticText() const
@@ -149,12 +172,23 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 		VideoCapture.set(CV_CAP_PROP_FRAME_HEIGHT, this->Driver->Resolution.Y);
 
 		// Find the resolution used by the camera
-		this->Driver->Resolution.X = VideoCapture.get(CV_CAP_PROP_FRAME_WIDTH);
-		this->Driver->Resolution.Y = VideoCapture.get(CV_CAP_PROP_FRAME_HEIGHT);
+		FIntPoint camera_res;
+		camera_res.X = FPlatformMath::RoundToInt(VideoCapture.get(CV_CAP_PROP_FRAME_WIDTH));
+		camera_res.Y = FPlatformMath::RoundToInt(VideoCapture.get(CV_CAP_PROP_FRAME_HEIGHT));
 
-		this->Driver->SetFrameResolution(this->Driver->Resolution);
+		if (camera_res != this->Driver->Resolution)
+		{
+			UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Camera returned resolution %d x %d even though %d x %d was requested"),
+				camera_res.X, camera_res.Y, this->Driver->Resolution.X, this->Driver->Resolution.Y)			
+		}
+		this->Driver->Resolution = camera_res;
 
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Using camera resolution %d x %d"), this->Driver->Resolution.X, this->Driver->Resolution.Y)
+		// this will allocate the frame with proper size
+		this->Driver->OnCameraPropertiesChange();
+
+		// Announce the fact that connection is established
+		Driver->bConnected = true;
+		Driver->NotifyConnectionStatusChange();
 	}
 	else
 	{
@@ -211,11 +245,11 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 			FColor* dest_pixel_ptr = Driver->WorkerFrame->Image.GetData();
 
 			auto frame_size = CapturedFrame.size();
-			for (int32 pixel_y = 0; pixel_y < frame_size.height; pixel_y++)
+			for (int32 pixel_r = 0; pixel_r < CapturedFrame.rows; pixel_r++)
 			{
-				for (int32 pixel_x = 0; pixel_x < frame_size.width; pixel_x++)
+				for (int32 pixel_c = 0; pixel_c < CapturedFrame.cols; pixel_c++)
 				{
-					cv::Vec3b& src_pixel = CapturedFrame.at<cv::Vec3b>(pixel_x, pixel_y);
+					cv::Vec3b& src_pixel = CapturedFrame.at<cv::Vec3b>(pixel_r, pixel_c);
 
 					// Captured image is in BGR format
 					dest_pixel_ptr->R = src_pixel.val[2];
@@ -231,9 +265,13 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 	}
 
 	Driver->bConnected = false;
+	Driver->NotifyConnectionStatusChange();
 
 	// Exiting the loop means the program ends, so release camera
-	this->VideoCapture.release();
+	if (VideoCapture.isOpened())
+	{
+		this->VideoCapture.release();
+	}
 
 	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Worker thread ends"))
 

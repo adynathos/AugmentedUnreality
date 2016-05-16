@@ -17,6 +17,7 @@ limitations under the License.
 #include "AugmentedUnreality.h"
 #include "AURDriverThreaded.h"
 #include <utility> // swap
+#include "Async.h"
 
 UAURDriverThreaded::UAURDriverThreaded()
 	: bNewFrameReady(false)
@@ -127,4 +128,28 @@ void UAURDriverThreaded::SetFrameResolution(FIntPoint const & new_res)
 	{
 		this->FrameInstances[idx].SetResolution(new_res);
 	}
+}
+
+void UAURDriverThreaded::NotifyConnectionStatusChange()
+{
+	AsyncTask(ENamedThreads::GameThread, [this]() {
+		UE_LOG(LogAUR, Log, TEXT("NotifyConnectionStatusChange"))
+		this->OnConnectionStatusChange.Broadcast(this);
+	});
+}
+
+void UAURDriverThreaded::NotifyCameraParametersChange()
+{
+	AsyncTask(ENamedThreads::GameThread, [this]() {
+		UE_LOG(LogAUR, Log, TEXT("NotifyCameraParametersChange"))
+			this->OnCameraParametersChange.Broadcast(this);
+	});
+}
+
+void UAURDriverThreaded::NotifyCalibrationStatusChange()
+{
+	AsyncTask(ENamedThreads::GameThread, [this]() {
+		UE_LOG(LogAUR, Log, TEXT("NotifyCalibrationStatusChange"))
+			this->OnCalibrationStatusChange.Broadcast(this);
+	});
 }

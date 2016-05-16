@@ -18,7 +18,6 @@ limitations under the License.
 
 #include "Object.h"
 class UAURSmoothingFilter;
-class FAURDriver;
 #include "AURDriver.generated.h"
 
 USTRUCT(BlueprintType)
@@ -63,6 +62,10 @@ struct FAURVideoFrame
 	}
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverConnectionStatusChange, UAURDriver*, Driver);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCameraParametersChange, UAURDriver*, Driver);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCalibrationStatusChange, UAURDriver*, Driver);
+
 /**
  * Represents a way of connecting to a camera.
  */
@@ -72,7 +75,6 @@ class UAURDriver : public UObject
 	GENERATED_BODY()
 
 public:
-
 	/** Settings */
 
 	/** Location of the file containing calibration data for this camera,
@@ -101,6 +103,18 @@ public:
 	/** Desired (but not guaranteed) camera resolution */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	FIntPoint Resolution;
+
+	/** Called when the connection to camera is established or lost */
+	UPROPERTY(BlueprintAssignable)
+	FAURDriverConnectionStatusChange OnConnectionStatusChange;
+
+	/** Called when the resolution or FOV changes */
+	UPROPERTY(BlueprintAssignable)
+	FAURDriverCameraParametersChange OnCameraParametersChange;
+
+	/** Called when calibration starts or ends */
+	UPROPERTY(BlueprintAssignable)
+	FAURDriverCalibrationStatusChange OnCalibrationStatusChange;
 
 	UAURDriver();
 
