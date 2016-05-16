@@ -44,6 +44,8 @@ public class AugmentedUnreality : ModuleRules
 		"opencv_features2d", // cv::SimpleBlobDetector for calibration
 		"opencv_videoio",	// VideoCapture
 		"opencv_aruco",		// Aruco markers
+        "opencv_imgproc",   // Aruco needs this
+        "opencv_flann",     // Aruco needs this
 		"opencv_imgcodecs",	// imwrite
 		"opencv_video"		// Kalman filter, suprisingly it is in modules/video/...
 	};
