@@ -40,7 +40,8 @@ void UAURDriverThreaded::Initialize()
 	if (to_run)
 	{
 		this->Worker.Reset(to_run);
-		this->WorkerThread.Reset(FRunnableThread::Create(to_run, TEXT("AUR_Capture_Thread"), 0, TPri_Normal));
+		FString thread_name = this->GetName() + "_CameraCaptureThread";
+		this->WorkerThread.Reset(FRunnableThread::Create(to_run, *thread_name, 0, TPri_Normal));
 	}
 }
 
