@@ -182,6 +182,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 				camera_res.X, camera_res.Y, this->Driver->Resolution.X, this->Driver->Resolution.Y)			
 		}
 		this->Driver->Resolution = camera_res;
+		this->Driver->CameraProperties.SetResolution(this->Driver->Resolution);
 
 		// this will allocate the frame with proper size
 		this->Driver->OnCameraPropertiesChange();
