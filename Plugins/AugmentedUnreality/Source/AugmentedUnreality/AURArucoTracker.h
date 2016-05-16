@@ -111,7 +111,7 @@ struct FArucoTrackerSettings
 	FArucoTrackerSettings()
 		: bDisplayMarkers(false)
 		, SceneCenterInTrackerCoordinates(0., 0., 0.)
-		, TranslationScale(1.)
+		, TranslationScale(2.5)
 	{
 	}
 };
