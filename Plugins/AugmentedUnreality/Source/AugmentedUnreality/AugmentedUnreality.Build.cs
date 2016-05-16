@@ -63,10 +63,23 @@ public class AugmentedUnreality : ModuleRules
 		LoadOpenCVWrapper(Target);
 	}
 
+	protected string PlatformString(TargetInfo Target)
+	{
+		if (Target.Platform == UnrealTargetPlatform.Win64) {return "Win64";}
+		if (Target.Platform == UnrealTargetPlatform.Win32) {return "Win32";}
+		if (Target.Platform == UnrealTargetPlatform.Linux) {return "Linux";}
+		return "Unknown";
+	}
+
+	protected string BinariesDirForTarget(TargetInfo Target)
+	{
+		return Path.Combine(BinariesDir, PlatformString(Target));
+	}
+
 	public void LoadOpenCV(TargetInfo Target)
 	{
 		string opencv_dir = Path.Combine(ThirdPartyPath, "opencv");
-		
+
 		// Include OpenCV headers
 		PublicIncludePaths.Add(Path.Combine(opencv_dir, "include"));
 
@@ -83,18 +96,16 @@ public class AugmentedUnreality : ModuleRules
 
 			// Dynamic libraries
 			// The DLLs need to be in Binaries/Win64 anyway, so let us keep them there instead of ThirdParty/opencv
-			var binaries_platform_dir = Path.Combine(BinariesDir, "Win64");
 			PublicDelayLoadDLLs.AddRange(
-				OpenCVModules.ConvertAll(m => Path.Combine(binaries_platform_dir, m + "310" + "d" + ".dll"))
+				OpenCVModules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), m + "310" + ".dll"))
 			);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux )
 		{
 			Console.WriteLine("AUR: OpenCV for Linux");
 
-			var binaries_platform_dir = Path.Combine(BinariesDir, "Linux");
 			PublicAdditionalLibraries.AddRange(
-				OpenCVModules.ConvertAll(m => Path.Combine(binaries_platform_dir, m + ".so"))
+				OpenCVModules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), m + ".so"))
 			);
 		}
 		else
@@ -123,18 +134,16 @@ public class AugmentedUnreality : ModuleRules
 
 			// Dynamic libraries
 			// The DLLs need to be in Binaries/Win64 anyway, so let us keep them there instead of ThirdParty/opencv
-			var binaries_platform_dir = Path.Combine(BinariesDir, "Win64");
 			PublicDelayLoadDLLs.Add(
-				Path.Combine(binaries_platform_dir, "OpenCVWrapper.dll")
+				Path.Combine(BinariesDirForTarget(Target), "OpenCVWrapper.dll")
 			);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
 			Console.WriteLine("AUR: OpenCVWrapper for Linux");
 
-			var binaries_platform_dir = Path.Combine(BinariesDir, "Win64");
 			PublicDelayLoadDLLs.Add(
-				Path.Combine(binaries_platform_dir, "OpenCVWrapper.so")
+				Path.Combine(BinariesDirForTarget(Target), "OpenCVWrapper.so")
 			);
 		}
 		else

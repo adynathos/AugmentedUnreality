@@ -15,7 +15,11 @@ limitations under the License.
 */
 #pragma once
 
-#include "OpenCVWrapper_Export.h"
+#ifdef _WIN32
+	#include "OpenCVWrapper_Export.h"
+#else
+	#define OpenCVWrapper_EXPORT
+#endif
 #include <opencv2/aruco.hpp>
 #include <memory>
 
@@ -36,7 +40,7 @@ public:
 	~ArucoWrapper();
 
 	void SetMarkerDefinition(int32_t DictionaryId, int32_t GridWidth, int32_t GridHeight, int32_t MarkerSize, int32_t SeparationSize);
-	cv::Mat const& GetMarkerImage() const 
+	cv::Mat const& GetMarkerImage() const
 	{
 		return Data->BoardImage;
 	}
