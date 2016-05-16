@@ -42,9 +42,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	int32 CameraIndex;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	uint32 bHighlightMarkers : 1;
-
 	UAURDriverOpenCV();
 
 	virtual void Initialize() override;
