@@ -44,8 +44,8 @@ public class AugmentedUnreality : ModuleRules
 		"opencv_features2d", // cv::SimpleBlobDetector for calibration
 		"opencv_videoio",	// VideoCapture
 		"opencv_aruco",		// Aruco markers
-        "opencv_imgproc",   // Aruco needs this
-        "opencv_flann",     // Aruco needs this
+		"opencv_imgproc",   // Aruco needs this
+		"opencv_flann",     // Aruco needs this
 		"opencv_imgcodecs",	// imwrite
 		"opencv_video"		// Kalman filter, suprisingly it is in modules/video/...
 	};
@@ -114,6 +114,9 @@ public class AugmentedUnreality : ModuleRules
 		{
 			Console.WriteLine("AUR: No prebuilt binaries for OpenCV on platform "+Target.Platform);
 		}
+
+		// Force execption handling across all modules.
+		UEBuildConfiguration.bForceEnableExceptions = true;
 	}
 
 	public void LoadOpenCVWrapper(TargetInfo Target)
@@ -144,9 +147,10 @@ public class AugmentedUnreality : ModuleRules
 		{
 			Console.WriteLine("AUR: OpenCVWrapper for Linux");
 
-			PublicDelayLoadDLLs.Add(
-				Path.Combine(BinariesDirForTarget(Target), "OpenCVWrapper.so")
-			);
+			var wrapper_lib_file = Path.Combine (BinariesDirForTarget (Target), "OpenCVWrapper.so");
+
+			PublicAdditionalLibraries.Add(wrapper_lib_file);
+			PublicDelayLoadDLLs.Add(wrapper_lib_file);
 		}
 		else
 		{
