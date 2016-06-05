@@ -1,4 +1,4 @@
-build
+build*
 include
 lib
 !CMakeLists.txt
