@@ -39,6 +39,80 @@ void UAURDriverOpenCV::Initialize()
 	Super::Initialize();
 }
 
+bool UAURDriverOpenCV::CreateCameraCapture()
+{
+	if (CameraConnectionString.IsEmpty())
+	{
+		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open camera with index %d"), CameraIndex);
+		CameraCapture.open(this->CameraIndex);
+
+		if (CameraCapture.isOpened())
+		{
+			// Use the resolution specified
+			CameraCapture.set(CV_CAP_PROP_FRAME_WIDTH, this->Resolution.X);
+			CameraCapture.set(CV_CAP_PROP_FRAME_HEIGHT, this->Resolution.Y);
+		}
+	}
+	else
+	{
+		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open camera address: [%s]"), *CameraConnectionString);
+		CameraCapture.open(TCHAR_TO_UTF8(*CameraConnectionString), cv::CAP_GSTREAMER);
+	}
+
+	return CameraCapture.isOpened();
+}
+
+
+
+bool UAURDriverOpenCV::ConnectToCamera()
+{
+	bool result = CreateCameraCapture();
+
+	if (!result) {
+		UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Failed to open VideoCapture"))
+			return false;
+	}
+
+	// Find the resolution used by the camera
+	FIntPoint camera_res;
+	camera_res.X = FPlatformMath::RoundToInt(CameraCapture.get(CV_CAP_PROP_FRAME_WIDTH));
+	camera_res.Y = FPlatformMath::RoundToInt(CameraCapture.get(CV_CAP_PROP_FRAME_HEIGHT));
+
+	if (camera_res.X <= 0 || camera_res.Y <= 0)
+	{
+		UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Can not determine resolution now - camera returned resolution %d x %d"),
+			camera_res.X, camera_res.Y)
+	}
+	else if (camera_res != Resolution)
+	{
+		UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Camera returned resolution %d x %d even though %d x %d was requested"),
+			camera_res.X, camera_res.Y, Resolution.X, Resolution.Y)
+
+		Resolution = camera_res;
+		CameraProperties.SetResolution(camera_res);
+	}
+
+	// this will allocate the frame with proper size
+	OnCameraPropertiesChange();
+
+	// Announce the fact that connection is established
+	bConnected = true;
+	NotifyConnectionStatusChange();
+
+	return true;
+}
+
+void UAURDriverOpenCV::DisconnectCamera()
+{
+	if (CameraCapture.isOpened())
+	{
+		this->CameraCapture.release();
+	}
+
+	bConnected = false;
+	NotifyConnectionStatusChange();
+}
+
 void UAURDriverOpenCV::LoadCalibrationFile()
 {
 	FString calib_file_path = this->GetCalibrationFileFullPath();
@@ -67,7 +141,7 @@ void UAURDriverOpenCV::LoadCalibrationFile()
 	{
 		UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: The resolution in the calibration file is different than the desired resolution of the driver. Trying to convert."))
 		this->CameraProperties.SetResolution(this->Resolution);
-	}	
+	}
 
 	this->OnCameraPropertiesChange();
 }
@@ -160,59 +234,44 @@ bool UAURDriverOpenCV::FWorkerRunnable::Init()
 
 uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 {
+	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Worker thread start"))
+
 	// Start the video capture
-
-	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open camera with index %d"), this->Driver->CameraIndex);
-
-	this->VideoCapture = cv::VideoCapture(this->Driver->CameraIndex);
-	if (VideoCapture.isOpened())
+	if (!this->Driver->ConnectToCamera())
 	{
-		// Use the resolution specified
-		VideoCapture.set(CV_CAP_PROP_FRAME_WIDTH, this->Driver->Resolution.X);
-		VideoCapture.set(CV_CAP_PROP_FRAME_HEIGHT, this->Driver->Resolution.Y);
-
-		// Find the resolution used by the camera
-		FIntPoint camera_res;
-		camera_res.X = FPlatformMath::RoundToInt(VideoCapture.get(CV_CAP_PROP_FRAME_WIDTH));
-		camera_res.Y = FPlatformMath::RoundToInt(VideoCapture.get(CV_CAP_PROP_FRAME_HEIGHT));
-
-		if (camera_res != this->Driver->Resolution)
-		{
-			UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Camera returned resolution %d x %d even though %d x %d was requested"),
-				camera_res.X, camera_res.Y, this->Driver->Resolution.X, this->Driver->Resolution.Y)			
-		}
-		this->Driver->Resolution = camera_res;
-		this->Driver->CameraProperties.SetResolution(this->Driver->Resolution);
-
-		// this will allocate the frame with proper size
-		this->Driver->OnCameraPropertiesChange();
-
-		// Announce the fact that connection is established
-		Driver->bConnected = true;
-		Driver->NotifyConnectionStatusChange();
-	}
-	else
-	{
-		UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Failed to open VideoCapture"))
+		// if connection failed, do not run the main loop
 		this->bContinue = false;
 	}
-
-	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Worker thread start"))
 
 	while (this->bContinue)
 	{
 		// get a new frame from camera - this blocks untill the next frame is available
-		VideoCapture >> CapturedFrame;
+		Driver->CameraCapture >> CapturedFrame;
 
 		// compare the frame size to the size we expect from capture parameters
 		auto frame_size = CapturedFrame.size();
-		if (frame_size.width != Driver->Resolution.X || frame_size.height != Driver->Resolution.Y) 
+		if (frame_size.width <= 0 || frame_size.height <= 0)
 		{
-			UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Camera returned a frame with unexpected size: %dx%d instead of %dx%d"),
-				frame_size.width, frame_size.height, Driver->Resolution.X, Driver->Resolution.Y);
+			UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Camera returned frame of wrong size: %dx%d"),
+				frame_size.width, frame_size.height);
 		}
 		else
 		{
+			// Adjust the frame size if the camera returned a frame of different size than anticipated
+			if (frame_size.width != Driver->Resolution.X || frame_size.height != Driver->Resolution.Y)
+			{
+				FIntPoint new_camera_res(frame_size.width, frame_size.height);
+
+				UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Adjusting resolution to match the frame returned by camera: %dx%d (previously %dx%d)"),
+					new_camera_res.X, new_camera_res.Y, Driver->Resolution.X, Driver->Resolution.Y);
+
+				Driver->Resolution = new_camera_res;
+				Driver->CameraProperties.SetResolution(new_camera_res);
+
+				// this will allocate the frame with proper size
+				Driver->OnCameraPropertiesChange();
+			}
+
 			if (Driver->IsCalibrationInProgress()) // calibration
 			{
 				FScopeLock(&Driver->CalibrationLock);
@@ -265,15 +324,8 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 		}
 	}
 
-	Driver->bConnected = false;
-	Driver->NotifyConnectionStatusChange();
-
 	// Exiting the loop means the program ends, so release camera
-	if (VideoCapture.isOpened())
-	{
-		this->VideoCapture.release();
-	}
-
+	Driver->DisconnectCamera();
 	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Worker thread ends"))
 
 	return 0;

@@ -39,8 +39,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	FArucoTrackerSettings TrackerSettings;
 
+	/*
+	 * ID of camera to capture video from. Used if CameraConnectionString is empty.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	int32 CameraIndex;
+
+	/*
+	 * Connection string for GStreamer, leave empty to use CameraIndex
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
+	FString CameraConnectionString;
 
 	UAURDriverOpenCV();
 
@@ -56,6 +65,9 @@ public:
 	virtual FString GetDiagnosticText() const override;
 
 protected:
+	// Connection to the camera
+	cv::VideoCapture CameraCapture;
+
 	// Camera calibration
 	FOpenCVCameraProperties CameraProperties;
 	FCriticalSection CalibrationLock;
@@ -65,6 +77,20 @@ protected:
 	FAURArucoTracker Tracker;
 
 	FString DiagnosticText;
+
+	// Creates a cv::CameraCapture with the right index/address,
+	// Override to change the address.
+	// This operation is often blocking, call from separate thread.
+	virtual bool CreateCameraCapture();
+
+	// Attempts to open a connection to the camera.
+	// Calls CreateCameraCapture.
+	// This operation is often blocking, call from separate thread.
+	// Returns true on success.
+	bool ConnectToCamera();
+
+	// Release the connection when program ends.
+	void DisconnectCamera();
 
 	void LoadCalibrationFile();
 	void OnCalibrationFinished();
@@ -96,9 +122,6 @@ protected:
 
 		// Set to false to stop the thread
 		FThreadSafeBool bContinue;
-
-		// Connection to the camera
-		cv::VideoCapture VideoCapture;
 
 		cv::Mat CapturedFrame;
 	};
