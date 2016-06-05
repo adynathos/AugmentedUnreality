@@ -20,7 +20,7 @@ limitations under the License.
 #include <vector>
 #include "AUROpenCV.h"
 #include "AUROpenCVCalibration.h"
-#include "AURArucoTracker.h"
+#include "tracking/AURArucoTracker.h"
 
 #include "AURDriverOpenCV.generated.h"
 

@@ -100,5 +100,5 @@ void FAURArucoTracker::UpdateMarkerDefinition(FArucoGridBoardDefinition const & 
 	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(board_image_filename));
 
 	cv::imwrite(TCHAR_TO_UTF8(*board_image_filename), ArucoAPI.GetMarkerImage());
-	UE_LOG(LogAUR, Log, TEXT("AURArucoTracker: Saved marker image to: %s"), *board_image_filename)
+	UE_LOG(LogAUR, Log, TEXT("AURArucoTracker: Saved marker image to: %s"), *board_image_filename);
 }
