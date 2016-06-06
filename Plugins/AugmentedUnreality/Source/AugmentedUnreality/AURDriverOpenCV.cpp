@@ -125,16 +125,16 @@ void UAURDriverOpenCV::LoadCalibrationFile()
 	{
 		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Failed to load calibration from %s"), *calib_file_path)
 		this->bCalibrated = false;
-	}
 
-	calib_file_path = this->GetCalibrationFallbackFileFullPath();
-	if (this->CameraProperties.LoadFromFile(calib_file_path))
-	{
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Fallback calibration loaded from %s"), *calib_file_path)
-	}
-	else
-	{
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Failed to load fallback calibration from %s"), *calib_file_path)
+		calib_file_path = this->GetCalibrationFallbackFileFullPath();
+		if (this->CameraProperties.LoadFromFile(calib_file_path))
+		{
+			UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Fallback calibration loaded from %s"), *calib_file_path)
+		}
+		else
+		{
+			UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Failed to load fallback calibration from %s"), *calib_file_path)
+		}
 	}
 
 	if (this->CameraProperties.Resolution != this->Resolution)
