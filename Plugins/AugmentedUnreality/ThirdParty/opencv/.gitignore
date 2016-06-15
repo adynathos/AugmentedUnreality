@@ -1,0 +1,11 @@
+
+build
+include/*
+lib
+src/opencv
+
+src/opencv_contrib/*
+!src/opencv_contrib/modules
+src/opencv_contrib/modules/*
+!src/opencv_contrib/modules/aur_allocator
+!src/opencv_contrib/modules/aur_allocator/CMakeLists.txt
