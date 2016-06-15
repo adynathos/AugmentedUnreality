@@ -23,22 +23,33 @@ limitations under the License.
 
 FAURArucoTracker::FAURArucoTracker()
 {
-	this->SetSettings(this->Settings);
+	//this->SetSettings(this->Settings);
 }
 
 void FAURArucoTracker::SetSettings(FArucoTrackerSettings const& settings)
 {
 	this->Settings = settings;
-	this->UpdateMarkerDefinition(this->Settings.BoardDefinition);
-	this->ArucoAPI.SetDisplayMarkers(settings.bDisplayMarkers);
+	//this->UpdateMarkerDefinition(this->Settings.BoardDefinition);
+
+	/*
+	if (Settings.BoardDefinitionClass)
+	{
+		this->UpdateBoardDefinition(Settings.BoardDefinitionClass.GetDefaultObject());
+	}
+	else
+	{
+		UE_LOG(LogAUR, Error, TEXT("AURArucoTracker No board definition"));
+	}
+	*/
 }
 
 void FAURArucoTracker::SetCameraProperties(FOpenCVCameraProperties const & camera_properties)
 {
-	//this->CameraProperties = camera_properties;
-	this->ArucoAPI.SetCameraProperties((camera_properties.CameraMatrix), (camera_properties.DistortionCoefficients));
+	this->CameraProperties = camera_properties;
+	//this->ArucoAPI.SetCameraProperties((camera_properties.CameraMatrix), (camera_properties.DistortionCoefficients));
 }
 
+/**
 bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_transform)
 {
 	// Translation and rotation reported by detector
@@ -54,12 +65,76 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_tra
 	ConvertTransformToUnreal(translation_raw, rotation_raw, out_camera_transform);
 
 	return true;
+}*/
+
+bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_transform)
+{
+/*
+	if(!Board)
+	{
+		UE_LOG(LogAUR, Error, TEXT("AURArucoTracker::DetectMarkers: no board definition"));
+		return false;
+	}
+*/
+	// Translation and rotation reported by detector
+	cv::Vec3d rotation_raw, translation_raw;
+
+	// http://docs.opencv.org/3.1.0/db/da9/tutorial_aruco_board_detection.html
+	try
+	{
+		auto MarkerCorners = cv::aur_allocator::allocate_vector2_Point2f();
+		auto MarkerIds = cv::aur_allocator::allocate_vector_int();
+
+		cv::aruco::detectMarkers(image, cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(Board.DictionaryId)),
+			*MarkerCorners, *MarkerIds);
+
+		// we cannot see any markers at all
+		if (MarkerIds->size() <= 0)
+		{
+			return false;
+		}
+
+		if (Settings.bDisplayMarkers)
+		{
+			cv::aruco::drawDetectedMarkers(image, *MarkerCorners, *MarkerIds);
+		}
+
+		// determine translation and rotation + write to output
+		int number_of_markers = cv::aruco::estimatePoseBoard(*MarkerCorners, *MarkerIds,
+			Board.GetArucoBoard(), CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
+			rotation_raw, translation_raw);
+
+		// the markers do not fit
+		if (number_of_markers <= 0)
+		{
+			return false;
+		}
+
+		if (Settings.bDisplayMarkers)
+		{
+			cv::aruco::drawAxis(image, CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
+				rotation_raw, translation_raw, 10);
+		}
+
+		cv::aur_allocator::external_delete(MarkerCorners);
+		cv::aur_allocator::external_delete(MarkerIds);
+	}
+	catch (std::exception& exc)
+	{
+		std::cout << "Exception in ArucoWrapper::DetectMarkers:\n" << exc.what() << '\n';
+		return false;
+	}
+
+	// calculate camera translation
+	ConvertTransformToUnreal(translation_raw, rotation_raw, out_camera_transform);
+
+	return true;
 }
 
 void FAURArucoTracker::ConvertTransformToUnreal(cv::Vec3d const& opencv_translation, cv::Vec3d const& opencv_rotation, FTransform & out_transform) const
 {
-	FVector rotation_axis = ConvertOpenCvVectorToUnreal(opencv_rotation);
-	FVector cv_translation = ConvertOpenCvVectorToUnreal(opencv_translation);
+	FVector rotation_axis = FAUROpenCV::ConvertOpenCvVectorToUnreal(opencv_rotation);
+	FVector cv_translation = FAUROpenCV::ConvertOpenCvVectorToUnreal(opencv_translation);
 
 	float angle = rotation_axis.Size();
 	rotation_axis.Normalize();
@@ -89,16 +164,57 @@ void FAURArucoTracker::ConvertTransformToUnreal(cv::Vec3d const& opencv_translat
 	out_transform.SetComponents(ue_rotation, ue_translation, FVector(1, 1, 1));
 }
 
+/*
 void FAURArucoTracker::UpdateMarkerDefinition(FArucoGridBoardDefinition const & definition)
 {
 	ArucoAPI.SetMarkerDefinition(definition.DictionaryId, definition.GridWidth, definition.GridHeight, definition.MarkerSize, definition.SeparationSize);
 
 	// save image to file
-	FString board_image_filename = FPaths::GameSavedDir() / definition.SavedFileName;
+	FString board_image_dir = FPaths::GameSavedDir() / definition.SavedFileDir;
 
 	// ensure directory exists
-	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(board_image_filename));
+	//FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(board_image_filename));
+	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*board_image_dir);
 
-	cv::imwrite(TCHAR_TO_UTF8(*board_image_filename), ArucoAPI.GetMarkerImage());
-	UE_LOG(LogAUR, Log, TEXT("AURArucoTracker: Saved marker image to: %s"), *board_image_filename);
+	size_t marker_count = ArucoAPI.GetMarkerCount();
+	for (int idx = 0; idx < marker_count; idx++)
+	{
+		FString filename = board_image_dir / "marker_" + FString::FromInt(idx) + ".png";
+		cv::imwrite(TCHAR_TO_UTF8(*filename), ArucoAPI.GetMarkerImage(idx));
+		UE_LOG(LogAUR, Log, TEXT("AURArucoTracker: Saved marker image to: %s"), *filename);
+	}
+}
+*/
+
+void FAURArucoTracker::UpdateBoardDefinition(AAURMarkerBoardDefinitionBase * board_definition_object)
+{
+	UE_LOG(LogAUR, Log, TEXT("AURArucoTracker::UpdateBoardDefinition"));
+
+	if (!board_definition_object)
+	{
+		UE_LOG(LogAUR, Error, TEXT("AURArucoTracker::UpdateBoardDefinition board_definition_object is null"));
+		return;
+	}
+
+	board_definition_object->WriteToBoard(&Board);
+
+	FString board_image_dir = FPaths::GameSavedDir() / board_definition_object->SavedFileDir;
+	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*board_image_dir);
+
+	/*
+	try
+	{
+		size_t marker_count = board->GetMarkerImages().size();
+		for (int idx = 0; idx < marker_count; idx++)
+		{
+			FString filename = board_image_dir / "marker_" + FString::FromInt(idx) + ".png";
+			cv::imwrite(TCHAR_TO_UTF8(*filename), board->GetMarkerImages()[idx]);
+			UE_LOG(LogAUR, Log, TEXT("AURArucoTracker: Saved marker image to: %s"), *filename);
+		}
+	}
+	catch (std::exception& exc)
+	{
+		UE_LOG(LogAUR, Error, TEXT("AURArucoTracker::UpdateBoardDefinition: exception when saving\n    %s"), UTF8_TO_TCHAR(exc.what()))
+	}
+	*/
 }

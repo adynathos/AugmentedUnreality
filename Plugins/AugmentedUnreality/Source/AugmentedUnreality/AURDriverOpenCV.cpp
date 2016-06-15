@@ -26,8 +26,15 @@ limitations under the License.
 
 UAURDriverOpenCV::UAURDriverOpenCV()
 	: CameraIndex(0)
+	, TrackingBoardDefinition(nullptr)
 {
 	this->CameraProperties.SetResolution(this->Resolution);
+}
+
+void UAURDriverOpenCV::SetTrackingBoardDefinition(AAURMarkerBoardDefinitionBase * board_definition)
+{
+	TrackingBoardDefinition = board_definition;
+	Tracker.UpdateBoardDefinition(TrackingBoardDefinition);
 }
 
 void UAURDriverOpenCV::Initialize()
@@ -305,6 +312,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 			FColor* dest_pixel_ptr = Driver->WorkerFrame->Image.GetData();
 
 			auto frame_size = CapturedFrame.size();
+
 			for (int32 pixel_r = 0; pixel_r < CapturedFrame.rows; pixel_r++)
 			{
 				for (int32 pixel_c = 0; pixel_c < CapturedFrame.cols; pixel_c++)

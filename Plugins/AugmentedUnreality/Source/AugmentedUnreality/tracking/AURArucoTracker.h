@@ -18,7 +18,7 @@ limitations under the License.
 
 #include "AUROpenCVCalibration.h"
 #include "AUROpenCV.h"
-#include <OpenCVWrapper.h>
+#include "AURMarkerBoardDefinitionBase.h"
 
 #include "AURArucoTracker.generated.h"
 
@@ -29,7 +29,7 @@ struct FArucoGridBoardDefinition
 
 	// Where to store the marker image, relative to FPaths::GameSavedDir()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	FString SavedFileName;
+	FString SavedFileDir;
 
 	// Size of the grid in X direction
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
@@ -71,7 +71,7 @@ struct FArucoGridBoardDefinition
 	int32 DictionaryId;
 
 	FArucoGridBoardDefinition()
-		: SavedFileName("AugmentedUnreality/Markers/marker.png")
+		: SavedFileDir("AugmentedUnreality/Markers")
 		, GridWidth(1)
 		, GridHeight(2)
 		, MarkerSize(400)
@@ -85,6 +85,9 @@ USTRUCT(BlueprintType)
 struct FArucoTrackerSettings
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
+	TSubclassOf<AAURMarkerBoardDefinitionBase> BoardDefinitionClass;
 
 	// Parameters of the marker image to use.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
@@ -137,23 +140,17 @@ public:
 	*/
 	bool DetectMarkers(cv::Mat& image, FTransform & out_camera_transform);
 
-	// OpenCV vectors use different handedness.
-	static FVector ConvertOpenCvVectorToUnreal(cv::Vec3f const& cv_vector)
-	{
-		// UE.x = CV.y
-		// UE.y = CV.x
-		// UE.z = CV.z
-		return FVector(cv_vector[1], cv_vector[0], cv_vector[2]);
-	}
+	void UpdateBoardDefinition(AAURMarkerBoardDefinitionBase* board_definition_object);
 
 private:
 	FArucoTrackerSettings Settings;
 
 	// Marker information
-	ArucoWrapper ArucoAPI;
+	FFreeFormBoardData Board;
+	FOpenCVCameraProperties CameraProperties;
 
 	void ConvertTransformToUnreal(cv::Vec3d const& opencv_translation, cv::Vec3d const& opencv_rotation, FTransform & out_transform) const;
 
 	// Creates a default aruco board and saves a copy to a file.
-	void UpdateMarkerDefinition(FArucoGridBoardDefinition const & BoardDefinition);
+	//void UpdateMarkerDefinition(FArucoGridBoardDefinition const & BoardDefinition);
 };

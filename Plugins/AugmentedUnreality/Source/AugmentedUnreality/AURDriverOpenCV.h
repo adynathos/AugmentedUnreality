@@ -51,6 +51,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	FString CameraConnectionString;
 
+	UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
+	AAURMarkerBoardDefinitionBase* TrackingBoardDefinition;
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	void SetTrackingBoardDefinition(AAURMarkerBoardDefinitionBase* board_definition);
+
 	UAURDriverOpenCV();
 
 	virtual void Initialize() override;
