@@ -39,7 +39,7 @@ public class AugmentedUnreality : ModuleRules
 	protected List<string> OpenCVModules = new List<string>()
 	{
 		"opencv_core",
-		"opencv_highgui",
+		"opencv_aur_allocator",
 		"opencv_calib3d",	// camera calibration
 		"opencv_features2d", // cv::SimpleBlobDetector for calibration
 		"opencv_videoio",	// VideoCapture
@@ -64,7 +64,6 @@ public class AugmentedUnreality : ModuleRules
 		});
 
 		LoadOpenCV(Target);
-		LoadOpenCVWrapper(Target);
 
 		Console.WriteLine("Include headers from directories:");
 		PublicIncludePaths.ForEach(m => Console.WriteLine("	" + m));
@@ -109,7 +108,12 @@ public class AugmentedUnreality : ModuleRules
 			var suffix = OpenCVVersion;
 			if(IsDebug(Target))
 			{
+				Console.WriteLine("AUR: Debug");
 				suffix += "d";
+			}
+			else
+			{
+				Console.WriteLine("AUR: Not debug");
 			}
 
 			// Static linking
@@ -140,44 +144,5 @@ public class AugmentedUnreality : ModuleRules
 
 		// Force execption handling across all modules.
 		UEBuildConfiguration.bForceEnableExceptions = true;
-	}
-
-	public void LoadOpenCVWrapper(TargetInfo Target)
-	{
-		string opencv_wrapper_dir = Path.Combine(ThirdPartyPath, "opencv_wrapper");
-
-		// Include OpenCVWrapper headers
-		PublicIncludePaths.Add(Path.Combine(opencv_wrapper_dir, "include"));
-
-		// Libraries are platform-dependent
-		if (Target.Platform == UnrealTargetPlatform.Win64)
-		{
-			Console.WriteLine("AUR: OpenCVWrapper for Win64");
-
-			// Static linking
-			var opencv_wrapper_lib_dir = Path.Combine(opencv_wrapper_dir, "lib", "Win64");
-			PublicAdditionalLibraries.Add(
-				Path.Combine(opencv_wrapper_lib_dir, "OpenCVWrapper.lib")
-			);
-
-			// Dynamic libraries
-			// The DLLs need to be in Binaries/Win64 anyway, so let us keep them there instead of ThirdParty/opencv
-			PublicDelayLoadDLLs.Add(
-				Path.Combine(BinariesDirForTarget(Target), "OpenCVWrapper.dll")
-			);
-		}
-		else if (Target.Platform == UnrealTargetPlatform.Linux)
-		{
-			Console.WriteLine("AUR: OpenCVWrapper for Linux");
-
-			var wrapper_lib_file = Path.Combine (BinariesDirForTarget(Target), "lib" + "OpenCVWrapper.so");
-
-			PublicAdditionalLibraries.Add(wrapper_lib_file);
-			PublicDelayLoadDLLs.Add(wrapper_lib_file);
-		}
-		else
-		{
-			Console.WriteLine("AUR: No prebuilt binaries for OpenCVWrapper on platform " + Target.Platform);
-		}
 	}
 }
