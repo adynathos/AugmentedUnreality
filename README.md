@@ -95,17 +95,17 @@ The pre-built package was built with UE4.11.2.
 The following problems have been solved in this plugin,
 if you want to learn about these topics, please see:
 
-- [Including external libraries in UE4](https://github.com/adynathos/AugmentedUnreality/blob/master/Plugins/AugmentedUnreality/Source/AugmentedUnreality/AugmentedUnreality.Build.cs)
+- [Including external libraries in UE4](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AugmentedUnreality.Build.cs)
 - Multi-threading in UE4 
-[1](https://github.com/adynathos/AugmentedUnreality/blob/master/Plugins/AugmentedUnreality/Source/AugmentedUnreality/AURDriverThreaded.h)
-[2](https://github.com/adynathos/AugmentedUnreality/blob/master/Plugins/AugmentedUnreality/Source/AugmentedUnreality/AURDriverThreaded.cpp)
-[3](https://github.com/adynathos/AugmentedUnreality/blob/master/Plugins/AugmentedUnreality/Source/AugmentedUnreality/AURDriverOpenCV.h)
-[4](https://github.com/adynathos/AugmentedUnreality/blob/master/Plugins/AugmentedUnreality/Source/AugmentedUnreality/AURDriverOpenCV.h)
+[1](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverThreaded.h)
+[2](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverThreaded.cpp)
+[3](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverOpenCV.h)
+[4](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverOpenCV.h)
 - Performing OpenCV camera calibration
 [OpenCV tutorial](http://docs.opencv.org/3.1.0/d4/d94/tutorial_camera_calibration.html)
-[integration 1](https://github.com/adynathos/AugmentedUnreality/blob/master/Plugins/AugmentedUnreality/Source/AugmentedUnreality/AUROpenCVCalibration.h)
-[integration 2](https://github.com/adynathos/AugmentedUnreality/blob/master/Plugins/AugmentedUnreality/Source/AugmentedUnreality/AUROpenCVCalibration.cpp)
+[integration 1](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AUROpenCVCalibration.h)
+[integration 2](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AUROpenCVCalibration.cpp)
 - Drawing on dynamic textures
 [UE tutorial](https://wiki.unrealengine.com/Dynamic_Textures) (a bit old)
-[our adaptation](https://github.com/adynathos/AugmentedUnreality/blob/master/Plugins/AugmentedUnreality/Source/AugmentedUnreality/AURVideoScreenBase.cpp)
-- [Conversion between OpenCV's and Unreal's coordinate systems](https://github.com/adynathos/AugmentedUnreality/blob/master/Plugins/AugmentedUnreality/Source/AugmentedUnreality/AURArucoTracker.cpp)
+[our adaptation](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURVideoScreenBase.cpp)
+- [Conversion between OpenCV's and Unreal's coordinate systems](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURArucoTracker.cpp)
