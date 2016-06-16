@@ -1,5 +1,5 @@
 =====================================================================================
-The license for AugmentedUnreality plugin and related example project
+The license for AugmentedUnreality plugin
 =====================================================================================
 
 Copyright 2016 Krzysztof Lis

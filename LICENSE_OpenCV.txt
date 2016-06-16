@@ -1,5 +1,5 @@
 =====================================================================================
-The license for OpenCV library located in Plugins/AugmentedReality/ThirdParty/opencv
+The license for OpenCV library located in ThirdParty/opencv
 =====================================================================================
 
 By downloading, copying, installing or using the software you agree to this license.
