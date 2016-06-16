@@ -23,6 +23,8 @@ set(OPENCV_MODULES
 	"opencv_highgui"
 	"opencv_aruco"
 	"opencv_imgcodecs"
+	"opencv_imgproc"
+	"opencv_aur_allocator"
 )
 
 if(WIN32)
