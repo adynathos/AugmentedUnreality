@@ -139,7 +139,8 @@ void UAURVideoScreenBase::SetResolution(FIntPoint resolution)
 	}
 
 	// the X size is tied to FOV, so scale Y with respect to X
-	this->SetRelativeScale3D(FVector(RelativeScale3D.X, RelativeScale3D.X * (float)Resolution.Y / (float)Resolution.X, 1));
+	// With the new texture, the XY placement of texture is swapped
+	this->SetRelativeScale3D(FVector(RelativeScale3D.Y * (float)Resolution.Y / (float)Resolution.X, RelativeScale3D.Y, 1));
 }
 
 void UAURVideoScreenBase::SetSizeForFOV(float FOV_Horizontal)
@@ -157,7 +158,10 @@ void UAURVideoScreenBase::SetSizeForFOV(float FOV_Horizontal)
 	float height = width * (float)Resolution.Y / (float)Resolution.X;
 
 	// The texture size is 100x100
-	this->SetRelativeScale3D(FVector(width / 100.0, height / 100.0, 1));
+	//this->SetRelativeScale3D(FVector(width / 100.0, height / 100.0, 1));
+	// With the new texture, the XY placement of texture is swapped
+	this->SetRelativeScale3D(FVector(height / 100.0, width / 100.0, 1));
+
 
 	FString msg = "UAURVideoScreenBase::InitScreenSize(" + FString::SanitizeFloat(FOV_Horizontal) + ") " 
 		+ FString::SanitizeFloat(this->RelativeScale3D.X) + " x " + FString::SanitizeFloat(this->RelativeScale3D.Y);
