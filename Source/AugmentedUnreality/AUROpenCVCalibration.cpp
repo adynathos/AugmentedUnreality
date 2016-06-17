@@ -194,6 +194,7 @@ bool FOpenCVCameraCalibrationProcess::ProcessFrame(cv::Mat& frame, float time_no
 void FOpenCVCameraCalibrationProcess::CalculateCalibration()
 {
 	// Calculate points in the pattern
+	// OpenCV does not write to the vector, so it can be created/deleted here
 	std::vector< std::vector< cv::Point3f > > object_points(1);
 	for (int8 col = 0; col < PatternSize.height; col++)
 	{
@@ -207,7 +208,8 @@ void FOpenCVCameraCalibrationProcess::CalculateCalibration()
 	}
 	object_points.resize(DetectedPointSets.size(), object_points[0]);
 
-	FOpenCVVectorOfMat r_vecs, t_vecs;
+	// OpenCV writes directoy to those vectors, so they need to be allocated/deleted outside AUR binary
+	cv::aur_allocator::OpenCvWrapper< std::vector<cv::Mat> > r_vecs, t_vecs;
 
 	try 
 	{

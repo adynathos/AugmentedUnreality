@@ -30,12 +30,12 @@ public:
 
 	cv::aruco::Board const& GetArucoBoard() const
 	{
-		return *ArucoBoard;
+		return ArucoBoard;
 	}
 
 	cv::aruco::Dictionary const& GetArucoDictionary() const
 	{
-		return *Dictionary;
+		return ArucoDictionary;
 	}
 
 	std::vector<cv::Mat> const & GetMarkerImages() const
@@ -48,14 +48,21 @@ public:
 
 	cv::Mat RenderMarker(int id, uint32_t marker_side, uint32_t margin);
 
-	uint32_t DictionaryId;
-
 protected:
-
 	std::vector<cv::Mat> Pages;
 
-	cv::aruco::Board* ArucoBoard;
-	cv::aruco::Dictionary* Dictionary;
+	/**
+		The board is constructed in AUR binary, without GridBoard::create,
+		so it can be deleted in AUR binary too.
+	**/
+	cv::aruco::Board ArucoBoard;
+	
+	/**
+		A full copy of the dictionary returned by cv::ArUco is stored here
+		so that we avoid the crash-inducing Ptr<Dictionary>
+	**/
+	cv::aruco::Dictionary ArucoDictionary;
+	uint32_t DictionaryId;
 };
 
 

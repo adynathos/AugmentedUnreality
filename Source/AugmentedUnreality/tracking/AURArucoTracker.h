@@ -151,6 +151,11 @@ private:
 
 	void ConvertTransformToUnreal(cv::Vec3d const& opencv_translation, cv::Vec3d const& opencv_rotation, FTransform & out_transform) const;
 
+	// OpenCV writes directoy to those vectors, so they need to be allocated/deleted outside AUR binary
+	cv::aur_allocator::OpenCvWrapper< std::vector<int> > FoundMarkerIds;
+	// OpenCV writes directoy to those vectors, so they need to be allocated/deleted outside AUR binary
+	cv::aur_allocator::OpenCvWrapper< std::vector< std::vector<cv::Point2f> > > FoundMarkerCorners;
+
 	// Creates a default aruco board and saves a copy to a file.
 	//void UpdateMarkerDefinition(FArucoGridBoardDefinition const & BoardDefinition);
 };

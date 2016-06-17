@@ -22,36 +22,34 @@ const float INCH = 2.54f;
 
 FFreeFormBoardData::FFreeFormBoardData()
 {
-	ArucoBoard = cv::aur_allocator::allocate_aruco_board();
 }
 
 FFreeFormBoardData::~FFreeFormBoardData()
 {
-	cv::aur_allocator::external_delete(ArucoBoard);
 }
 
 void FFreeFormBoardData::Clear()
 {
-	ArucoBoard->ids.clear();
-	ArucoBoard->objPoints.clear();
+	ArucoBoard.ids.clear();
+	ArucoBoard.objPoints.clear();
 }
 
 void FFreeFormBoardData::SetDictionaryId(uint32_t dict_id)
 {
 	DictionaryId = dict_id;
-	//Dictionary.reset(new cv::aruco::Dictionary(cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(DictionaryId))));
+	ArucoDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(DictionaryId));
 }
 
 void FFreeFormBoardData::AddMarker(FMarkerDefinitionData const & marker_def)
 {
-	ArucoBoard->ids.push_back(marker_def.MarkerId);
+	ArucoBoard.ids.push_back(marker_def.MarkerId);
 
 	std::vector<cv::Point3f> corners(4);
 	for (int idx = 0; idx < 4; idx++)
 	{
 		corners[idx] = cv::Point3f(FAUROpenCV::ConvertUnrealVectorToOpenCv(marker_def.Corners[idx]));
 	}
-	ArucoBoard->objPoints.push_back(corners);
+	ArucoBoard.objPoints.push_back(corners);
 }
 
 void FFreeFormBoardData::DrawMarkers(float marker_size_cm, uint32_t dpi, float margin_cm, cv::Size2f page_size_cm)
@@ -96,7 +94,7 @@ cv::Mat FFreeFormBoardData::RenderMarker(int id, uint32_t marker_side, uint32_t 
 	cv::Mat canvas(cv::Size(canvas_side, canvas_side), CV_8UC1, cv::Scalar(255));
 
 	cv::Mat img_marker;
-	ArucoBoard->dictionary.drawMarker(id, marker_side, img_marker, 1);
+	GetArucoDictionary().drawMarker(id, marker_side, img_marker, 1);
 	img_marker.copyTo(canvas.rowRange(margin, marker_side + margin).colRange(margin, marker_side + margin));
 
 	std::string name = std::to_string(DictionaryId) + '.' + std::to_string(id);

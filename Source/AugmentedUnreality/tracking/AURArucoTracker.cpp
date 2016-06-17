@@ -82,25 +82,22 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_tra
 	// http://docs.opencv.org/3.1.0/db/da9/tutorial_aruco_board_detection.html
 	try
 	{
-		auto MarkerCorners = cv::aur_allocator::allocate_vector2_Point2f();
-		auto MarkerIds = cv::aur_allocator::allocate_vector_int();
-
-		cv::aruco::detectMarkers(image, cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(Board.DictionaryId)),
-			*MarkerCorners, *MarkerIds);
+		cv::aruco::detectMarkers(image, Board.GetArucoDictionary(),
+			*FoundMarkerCorners, *FoundMarkerIds);
 
 		// we cannot see any markers at all
-		if (MarkerIds->size() <= 0)
+		if (FoundMarkerIds->size() <= 0)
 		{
 			return false;
 		}
 
 		if (Settings.bDisplayMarkers)
 		{
-			cv::aruco::drawDetectedMarkers(image, *MarkerCorners, *MarkerIds);
+			cv::aruco::drawDetectedMarkers(image, *FoundMarkerCorners, *FoundMarkerIds);
 		}
 
 		// determine translation and rotation + write to output
-		int number_of_markers = cv::aruco::estimatePoseBoard(*MarkerCorners, *MarkerIds,
+		int number_of_markers = cv::aruco::estimatePoseBoard(*FoundMarkerCorners, *FoundMarkerIds,
 			Board.GetArucoBoard(), CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
 			rotation_raw, translation_raw);
 
@@ -115,9 +112,6 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_tra
 			cv::aruco::drawAxis(image, CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
 				rotation_raw, translation_raw, 10);
 		}
-
-		cv::aur_allocator::external_delete(MarkerCorners);
-		cv::aur_allocator::external_delete(MarkerIds);
 	}
 	catch (std::exception& exc)
 	{

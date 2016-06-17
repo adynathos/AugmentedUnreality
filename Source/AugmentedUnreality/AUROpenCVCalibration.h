@@ -17,7 +17,6 @@ limitations under the License.
 #pragma once
 
 #include "AUROpenCV.h"
-
 #include "AUROpenCVCalibration.generated.h"
 
 USTRUCT(BlueprintType)
