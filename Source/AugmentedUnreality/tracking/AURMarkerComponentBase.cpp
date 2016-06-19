@@ -85,7 +85,8 @@ FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
 	{
 		// Runtime/Core/Public/Math/Transform.h:
 		// C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
-		transform_this_to_actor = parent_comp->GetRelativeTransform() * transform_this_to_actor;
+		// (we want the parent-most transform done first)
+		transform_this_to_actor *= parent_comp->GetRelativeTransform();
 	}
 	
 	// Transform the corners

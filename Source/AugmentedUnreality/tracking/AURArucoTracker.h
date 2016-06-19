@@ -23,75 +23,9 @@ limitations under the License.
 #include "AURArucoTracker.generated.h"
 
 USTRUCT(BlueprintType)
-struct FArucoGridBoardDefinition
-{
-	GENERATED_BODY()
-
-	// Where to store the marker image, relative to FPaths::GameSavedDir()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	FString SavedFileDir;
-
-	// Size of the grid in X direction
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	int32 GridWidth;
-
-	// Size of the grid in Y direction
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	int32 GridHeight;
-
-	// Size of the marker in pixels.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	int32 MarkerSize;
-	
-	// Space between markers in pixels.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	int32 SeparationSize;
-
-	/**
-	Id of the predefined marker dictionary. Choices:
-	DICT_4X4_50 = 0,
-	DICT_4X4_100,
-	DICT_4X4_250,
-	DICT_4X4_1000,
-	DICT_5X5_50,
-	DICT_5X5_100,
-	DICT_5X5_250,
-	DICT_5X5_1000,
-	DICT_6X6_50,
-	DICT_6X6_100,
-	DICT_6X6_250,
-	DICT_6X6_1000,
-	DICT_7X7_50,
-	DICT_7X7_100,
-	DICT_7X7_250,
-	DICT_7X7_1000,
-	DICT_ARUCO_ORIGINAL
-	**/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	int32 DictionaryId;
-
-	FArucoGridBoardDefinition()
-		: SavedFileDir("AugmentedUnreality/Markers")
-		, GridWidth(1)
-		, GridHeight(2)
-		, MarkerSize(400)
-		, SeparationSize(100)
-		, DictionaryId(1)
-	{
-	}
-};
-
-USTRUCT(BlueprintType)
 struct FArucoTrackerSettings
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	TSubclassOf<AAURMarkerBoardDefinitionBase> BoardDefinitionClass;
-
-	// Parameters of the marker image to use.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	FArucoGridBoardDefinition BoardDefinition;
 
 	/**
 	*	Scale of the tracking coordinates:
@@ -100,21 +34,13 @@ struct FArucoTrackerSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	float TranslationScale;
 
-	/**
-	*	Desired center of scene in tracker coorindates.
-	*	Will be subtracted from the measured position.
-	*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	FVector SceneCenterInTrackerCoordinates;
-
 	// Whether the marker outlines should be displayed on the screen
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
 	uint32 bDisplayMarkers : 1;
 
 	FArucoTrackerSettings()
 		: bDisplayMarkers(false)
-		, SceneCenterInTrackerCoordinates(0., 0., 0.)
-		, TranslationScale(2.5)
+		, TranslationScale(1.0)
 	{
 	}
 };
@@ -146,7 +72,7 @@ private:
 	FArucoTrackerSettings Settings;
 
 	// Marker information
-	FFreeFormBoardData Board;
+	TSharedPtr<FFreeFormBoardData> BoardData;
 	FOpenCVCameraProperties CameraProperties;
 
 	void ConvertTransformToUnreal(cv::Vec3d const& opencv_translation, cv::Vec3d const& opencv_rotation, FTransform & out_transform) const;

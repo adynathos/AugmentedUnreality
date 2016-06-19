@@ -24,17 +24,13 @@ FFreeFormBoardData::FFreeFormBoardData()
 {
 }
 
-FFreeFormBoardData::~FFreeFormBoardData()
-{
-}
-
 void FFreeFormBoardData::Clear()
 {
 	ArucoBoard.ids.clear();
 	ArucoBoard.objPoints.clear();
 }
 
-void FFreeFormBoardData::SetDictionaryId(uint32_t dict_id)
+void FFreeFormBoardData::SetDictionaryId(uint32 dict_id)
 {
 	DictionaryId = dict_id;
 	ArucoDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(DictionaryId));
@@ -44,15 +40,19 @@ void FFreeFormBoardData::AddMarker(FMarkerDefinitionData const & marker_def)
 {
 	ArucoBoard.ids.push_back(marker_def.MarkerId);
 
+	UE_LOG(LogAUR, Log, TEXT("Marker %d"), marker_def.MarkerId);
+
 	std::vector<cv::Point3f> corners(4);
 	for (int idx = 0; idx < 4; idx++)
 	{
 		corners[idx] = cv::Point3f(FAUROpenCV::ConvertUnrealVectorToOpenCv(marker_def.Corners[idx]));
+		UE_LOG(LogAUR, Log, TEXT("	C %s -> (%f %f %f)"), *marker_def.Corners[idx].ToString(), corners[idx].x, corners[idx].y, corners[idx].z);
 	}
 	ArucoBoard.objPoints.push_back(corners);
 }
 
-void FFreeFormBoardData::DrawMarkers(float marker_size_cm, uint32_t dpi, float margin_cm, cv::Size2f page_size_cm)
+/*
+void FFreeFormBoardData::DrawMarkers(float marker_size_cm, uint32 dpi, float margin_cm, cv::Size2f page_size_cm)
 {
 	float pixels_per_cm = float(dpi) / INCH;
 	cv::Size page_size_pix(
@@ -60,26 +60,8 @@ void FFreeFormBoardData::DrawMarkers(float marker_size_cm, uint32_t dpi, float m
 		(int)std::round(pixels_per_cm*(page_size_cm.height - margin_cm))
 	);
 
-	uint32_t marker_pixels = (uint32_t)std::round(pixels_per_cm*marker_size_cm);
-	uint32_t margin_pixels = (uint32_t)std::round(pixels_per_cm*margin_cm);
-
-	//cv::Mat img_out(page_size_pix, CV_8UC1);
-	//img_out.setTo(255);
-
-	//int marker_side = std::min(page_size_pix.width, page_size_pix.height) - 2*margin_pixels;
-
-	//cv::Mat img_marker;
-	//dictionary.drawMarker(ids[0], marker_side, img_marker, 1);
-	//cv::putText(img_marker, "1", cv::Point(10, 10), cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 10.0, cv::Scalar::all(125));
-
-	//img_marker.copyTo(img_out.rowRange(margin_pixels, margin_pixels+marker_side).colRange(margin_pixels, margin_pixels+marker_side));
-
-	//cv::putText(img_out, "1", cv::Point(margin_pixels, margin_pixels + marker_side + 10), 
-	//	cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 4.0, cv::Scalar(125), 3);
-
-	//Pages.resize(1);
-	//Pages[0] = img_marker;
-	//putText(_image, s.str(), cent, FONT_HERSHEY_SIMPLEX, 0.5, textColor, 2);
+	uint32 marker_pixels = (uint32)std::round(pixels_per_cm*marker_size_cm);
+	uint32 margin_pixels = (uint32)std::round(pixels_per_cm*margin_cm);
 
 	Pages.clear();
 	for (int id = 0; id < 10; id++)
@@ -87,29 +69,10 @@ void FFreeFormBoardData::DrawMarkers(float marker_size_cm, uint32_t dpi, float m
 		Pages.push_back(RenderMarker(id, marker_pixels, margin_pixels));
 	}
 }
-
-cv::Mat FFreeFormBoardData::RenderMarker(int id, uint32_t marker_side, uint32_t margin)
-{
-	uint32_t canvas_side = marker_side + 2 * margin;
-	cv::Mat canvas(cv::Size(canvas_side, canvas_side), CV_8UC1, cv::Scalar(255));
-
-	cv::Mat img_marker;
-	GetArucoDictionary().drawMarker(id, marker_side, img_marker, 1);
-	img_marker.copyTo(canvas.rowRange(margin, marker_side + margin).colRange(margin, marker_side + margin));
-
-	std::string name = std::to_string(DictionaryId) + '.' + std::to_string(id);
-
-	cv::rectangle(canvas, cv::Point(0, 0), cv::Point(canvas_side - 1, canvas_side - 1), cv::Scalar(125), 4);
-
-	// putText takes bottom-left corner of text
-	cv::putText(canvas, name, cv::Point(6, canvas_side - 8),
-		cv::FONT_HERSHEY_SCRIPT_SIMPLEX, 4.0, cv::Scalar(125), 3);
-
-	return canvas;
-}
+*/
 
 AAURMarkerBoardDefinitionBase::AAURMarkerBoardDefinitionBase()
-	: SavedFileDir("AugmentedUnreality/Markers")
+	: MarkerFileDir("AugmentedUnreality/Markers")
 	, DictionaryId(cv::aruco::DICT_4X4_100)
 	//, AutomaticMarkerIds(true)
 {
@@ -117,10 +80,15 @@ AAURMarkerBoardDefinitionBase::AAURMarkerBoardDefinitionBase()
 	SetActorTickEnabled(false);
 }
 
-void AAURMarkerBoardDefinitionBase::WriteToBoard(FFreeFormBoardData * board) const
+void AAURMarkerBoardDefinitionBase::BuildBoardData()
 {
-	board->Clear();
-	board->SetDictionaryId(DictionaryId);
+	if (!BoardData.IsValid())
+	{
+		BoardData = TSharedPtr<FFreeFormBoardData>(new FFreeFormBoardData);
+	}
+
+	BoardData->Clear();
+	BoardData->SetDictionaryId(DictionaryId);
 
 	TInlineComponentArray<UAURMarkerComponentBase*, 32> marker_components;
 	GetComponents(marker_components);
@@ -129,9 +97,84 @@ void AAURMarkerBoardDefinitionBase::WriteToBoard(FFreeFormBoardData * board) con
 
 	for (auto & marker : marker_components)
 	{
-		UE_LOG(LogAUR, Log, TEXT("Adding marker %s"), *marker->GetName());
-		board->AddMarker(marker->GetDefinition());
+		BoardData->AddMarker(marker->GetDefinition());
 	}
+}
+
+TSharedPtr<FFreeFormBoardData> AAURMarkerBoardDefinitionBase::GetBoardData()
+{
+	if (!BoardData.IsValid())
+	{
+		BuildBoardData();
+	}
+
+	return BoardData;
+}
+
+void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dpi)
+{
+	if (output_dir.IsEmpty())
+	{
+		output_dir = FPaths::GameSavedDir() / MarkerFileDir / GetName();
+	}
+
+	BuildBoardData();
+	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*output_dir);
+
+	float pixels_per_cm = float(dpi) / INCH;
+
+	FString name_base = output_dir / "marker_" + FString::FromInt(DictionaryId) + "_";
+
+	try
+	{
+		TInlineComponentArray<UAURMarkerComponentBase*, 32> marker_components;
+		GetComponents(marker_components);
+
+		UE_LOG(LogAUR, Log, TEXT("Board def %s found %d markers"), *GetName(), marker_components.Num());
+
+		for (auto & marker : marker_components)
+		{
+			FString filename = name_base + FString::FromInt(marker->Id) + ".png";
+
+			int32 canvas_pixels = (int32)std::round(pixels_per_cm*marker->BoardSizeCm);
+			int32 margin_pixels = (int32)std::round(pixels_per_cm*marker->MarginCm);
+
+			cv::imwrite(TCHAR_TO_UTF8(*filename), RenderMarker(marker->Id, canvas_pixels, margin_pixels));
+
+			UE_LOG(LogAUR, Log, TEXT("AURArucoTracker: Saved marker image to: %s"), *filename);
+		}
+	}
+	catch (std::exception& exc)
+	{
+		UE_LOG(LogAUR, Error, TEXT("AURArucoTracker::UpdateBoardDefinition: exception when saving\n    %s"), UTF8_TO_TCHAR(exc.what()))
+	}
+}
+
+cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side, int32 margin)
+{
+	int32 marker_side = canvas_side - 2 * margin;
+
+	if (marker_side <= 0)
+	{
+		UE_LOG(LogAUR, Error, TEXT("AURArucoTracker::RenderMarker: margin is bigger than half of square size"))
+		return cv::Mat(canvas_side, canvas_side, CV_8UC1, cv::Scalar(255));
+	}
+	
+	cv::Mat canvas(cv::Size(canvas_side, canvas_side), CV_8UC1, cv::Scalar(255));
+
+	cv::Mat img_marker;
+	BoardData->GetArucoDictionary().drawMarker(id, marker_side, img_marker, 1);
+	img_marker.copyTo(canvas.rowRange(margin, marker_side + margin).colRange(margin, marker_side + margin));
+
+	std::string name = std::to_string(DictionaryId) + '.' + std::to_string(id);
+
+	cv::rectangle(canvas, cv::Point(0, 0), cv::Point(canvas_side - 1, canvas_side - 1), cv::Scalar(125), 4);
+
+	// putText takes bottom-left corner of text
+	cv::putText(canvas, name, cv::Point(6, canvas_side - 8),
+		cv::FONT_HERSHEY_SCRIPT_SIMPLEX, canvas_side / 200.0, cv::Scalar(125), 3);
+
+	return canvas;
 }
 
 /*
@@ -140,7 +183,7 @@ void AAURMarkerBoardDefinitionBase::PostInitializeComponents()
 	Super::PostInitializeComponents();
 	UE_LOG(LogAUR, Warning, TEXT("AAURMarkerBoardDefinitionBase::PostInitializeComponents"));
 
-	
+
 	if (AutomaticMarkerIds)
 	{
 		AssignAutomaticMarkerIds();

@@ -19,11 +19,14 @@ limitations under the License.
 #include "AURMarkerComponentBase.h"
 #include "AURMarkerBoardDefinitionBase.generated.h"
 
+/**
+	Description of a set of AR markers, in a format needed by the tracker library.
+	Usually created from a board definition BP.
+**/
 class FFreeFormBoardData
 {
 public:
 	FFreeFormBoardData();
-	~FFreeFormBoardData();
 	void Clear();
 	void SetDictionaryId(uint32_t dict_id);
 	void AddMarker(FMarkerDefinitionData const & marker_def);
@@ -46,8 +49,6 @@ public:
 	// Default size is A4 landscape.
 	void DrawMarkers(float marker_size_cm = 8.0f, uint32_t dpi = 300, float margin_cm = 2.0f, cv::Size2f page_size_cm = cv::Size2f(29.7f, 21.0f));
 
-	cv::Mat RenderMarker(int id, uint32_t marker_side, uint32_t margin);
-
 protected:
 	std::vector<cv::Mat> Pages;
 
@@ -65,10 +66,8 @@ protected:
 	uint32_t DictionaryId;
 };
 
-
 /**
- * Actor blueprint representing a spatial configuration
- * of ArUco markers.
+ * Actor blueprint representing a spatial configuration of ArUco markers.
  */
 UCLASS(Abstract, Blueprintable, BlueprintType)
 class AAURMarkerBoardDefinitionBase : public AActor
@@ -76,10 +75,9 @@ class AAURMarkerBoardDefinitionBase : public AActor
 	GENERATED_BODY()
 
 public:
-
 	// Where to store the marker image, relative to FPaths::GameSavedDir()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	FString SavedFileDir;
+	FString MarkerFileDir;
 
 	/**
 		Id of the predefined marker dictionary. Choices:
@@ -112,12 +110,25 @@ public:
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ArucoTracking)
 	//bool AutomaticMarkerIds;
 
+	/**
+		Save all markers to image files.
+		By default saves to FPaths::GameSavedDir()/this->MarkerFileDir/this->GetName()
+	**/
+	UFUNCTION(BlueprintCallable, Category = ArucoTracking)
+	void SaveMarkerFiles(FString output_dir = "", int32 dpi=150);
+
 	AAURMarkerBoardDefinitionBase();
 
-	void WriteToBoard(FFreeFormBoardData* board) const;
+	void BuildBoardData();
+
+	TSharedPtr<FFreeFormBoardData> GetBoardData();
 
 	//virtual void PostInitializeComponents() override;
 
 protected:
+	TSharedPtr<FFreeFormBoardData> BoardData;
+
 	void AssignAutomaticMarkerIds();
+
+	cv::Mat RenderMarker(int32 id, int32 canvas_side, int32 margin);
 };

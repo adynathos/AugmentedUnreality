@@ -18,7 +18,7 @@ limitations under the License.
 #include "AURMarkerComponentBase.generated.h"
 
 struct FMarkerDefinitionData {
-	int32_t MarkerId;
+	int32 MarkerId;
 
 	FVector Corners[4];
 
