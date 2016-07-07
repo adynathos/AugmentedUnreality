@@ -46,7 +46,7 @@ def main(args):
 		includes_src = pp(install_src, 'include')
 		includes_dest = pp(opencv_root, 'include')
 		copy_tree(includes_src, includes_dest)
-		
+
 	def copy_libs():
 		print('-- Libs --')
 		if args.platform == 'Win64':
@@ -61,6 +61,12 @@ def main(args):
 			static_lib_dest = pp(opencv_root, 'lib', args.platform)
 			for mod in modules:
 				copy_single(pp(static_lib_src, mod + '310.lib'), static_lib_dest)
+
+		elif args.platform == 'Linux':
+			shared_lib_src = pp(build_src, 'lib')
+			shared_lib_dest = binaries_dest
+			for mod in modules:
+				copy_single(pp(shared_lib_src, 'lib' + mod + '.so.3.1.0'), pp(shared_lib_dest, 'lib' + mod + '.so'))
 
 	if args.include_files:
 		copy_includes()

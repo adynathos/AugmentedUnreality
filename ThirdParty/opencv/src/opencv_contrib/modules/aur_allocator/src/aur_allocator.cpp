@@ -67,18 +67,18 @@ OpenCvWrapper<WrappedType>::~OpenCvWrapper()
 
 // Instantiate for the types we will be using in AUR
 // These instantiations will be in the shared library
-template CV_EXPORTS class OpenCvWrapper< std::vector<int> >;
+template class CV_EXPORTS OpenCvWrapper< std::vector<int> >;
 
-template CV_EXPORTS class OpenCvWrapper< cv::Mat >;
-template CV_EXPORTS class OpenCvWrapper< std::vector<cv::Mat> >;
+template class CV_EXPORTS OpenCvWrapper< cv::Mat >;
+template class CV_EXPORTS OpenCvWrapper< std::vector<cv::Mat> >;
 
-template CV_EXPORTS class OpenCvWrapper< VectorOfPoint2f >;
-template CV_EXPORTS class OpenCvWrapper< std::vector<VectorOfPoint2f> >;
+template class CV_EXPORTS OpenCvWrapper< VectorOfPoint2f >;
+template class CV_EXPORTS OpenCvWrapper< std::vector<VectorOfPoint2f> >;
 
-template CV_EXPORTS class OpenCvWrapper< VectorOfPoint3f >;
-template CV_EXPORTS class OpenCvWrapper< std::vector<VectorOfPoint3f> >;
+template class CV_EXPORTS OpenCvWrapper< VectorOfPoint3f >;
+template class CV_EXPORTS OpenCvWrapper< std::vector<VectorOfPoint3f> >;
 
-template CV_EXPORTS class OpenCvWrapper< cv::aruco::Board >;
-template CV_EXPORTS class OpenCvWrapper< cv::aruco::Dictionary >;
+template class CV_EXPORTS OpenCvWrapper< cv::aruco::Board >;
+template class CV_EXPORTS OpenCvWrapper< cv::aruco::Dictionary >;
 }
 }
