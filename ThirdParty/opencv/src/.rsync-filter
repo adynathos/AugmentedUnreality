@@ -1,0 +1,10 @@
+# Filter for files to be included into distributed package
+
+# Add:
++ opencv_contrib
++ opencv_contrib/modules
++ opencv_contrib/modules/aur_allocator
++ opencv_contrib/modules/aur_allocator/**
+
+# Ignore everything else
+- *

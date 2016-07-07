@@ -1,0 +1,4 @@
+# Filter for files to be included into distributed package
+
+# ignore:
+- build
