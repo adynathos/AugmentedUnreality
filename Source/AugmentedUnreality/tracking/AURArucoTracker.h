@@ -39,8 +39,8 @@ struct FArucoTrackerSettings
 	uint32 bDisplayMarkers : 1;
 
 	FArucoTrackerSettings()
-		: bDisplayMarkers(false)
-		, TranslationScale(1.0)
+		: TranslationScale(1.0)
+		, bDisplayMarkers(false)
 	{
 	}
 };

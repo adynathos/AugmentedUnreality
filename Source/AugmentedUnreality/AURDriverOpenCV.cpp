@@ -311,8 +311,6 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 			// Frame to fill is in RGBA format
 			FColor* dest_pixel_ptr = Driver->WorkerFrame->Image.GetData();
 
-			auto frame_size = CapturedFrame.size();
-
 			for (int32 pixel_r = 0; pixel_r < CapturedFrame.rows; pixel_r++)
 			{
 				for (int32 pixel_c = 0; pixel_c < CapturedFrame.cols; pixel_c++)

@@ -132,10 +132,10 @@ protected:
 	// Number of rows / columns in the pattern.
 	cv::Size PatternSize;
 
-	int32 CalibrationFlags;
-
 	// Distance between rows/columns
-	float SquareSize; 
+	float SquareSize;
+
+	int32 CalibrationFlags;
 
 	std::vector<cv::Mat> DetectedPointSets;
 	int32 FramesCollected;

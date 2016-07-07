@@ -19,9 +19,9 @@ limitations under the License.
 #include "AURSmoothingFilter.h"
 
 UAURDriver::UAURDriver()
-	: bPerformOrientationTracking(true)
-	, CalibrationFilePath("AugmentedUnreality/Calibration/camera.xml")
+	: CalibrationFilePath("AugmentedUnreality/Calibration/camera.xml")
 	, CalibrationFallbackFilePath("AugmentedUnreality/Calibration/default.xml")
+	, bPerformOrientationTracking(true)
 	, SmoothingFilterInstance(nullptr)
 	, Resolution(800, 600)
 	, bConnected(false)
