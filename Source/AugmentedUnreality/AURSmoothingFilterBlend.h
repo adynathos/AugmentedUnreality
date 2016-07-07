@@ -29,6 +29,7 @@ class UAURSmoothingFilterBlend : public UAURSmoothingFilter
 	GENERATED_BODY()
 
 public:
+	// Value in range (0, 1), the higher, the more smoothed
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	float SmoothingStrength;
 

@@ -24,7 +24,7 @@ UAURSmoothingFilterBlend::UAURSmoothingFilterBlend()
 
 void UAURSmoothingFilterBlend::Measurement(FTransform const & MeasuredTransform)
 {
-	this->CurrentTransform.BlendWith(MeasuredTransform, this->SmoothingStrength);
+	this->CurrentTransform.BlendWith(MeasuredTransform, (1.0 - this->SmoothingStrength));
 }
 
 FTransform UAURSmoothingFilterBlend::GetCurrentTransform() const
