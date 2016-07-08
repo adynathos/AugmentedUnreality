@@ -56,8 +56,8 @@ bool UAURDriverOpenCV::CreateCameraCapture()
 		if (CameraCapture.isOpened())
 		{
 			// Use the resolution specified
-			CameraCapture.set(CV_CAP_PROP_FRAME_WIDTH, this->Resolution.X);
-			CameraCapture.set(CV_CAP_PROP_FRAME_HEIGHT, this->Resolution.Y);
+			CameraCapture.set(cv::CAP_PROP_FRAME_WIDTH, this->Resolution.X);
+			CameraCapture.set(cv::CAP_PROP_FRAME_HEIGHT, this->Resolution.Y);
 		}
 	}
 	else
@@ -82,8 +82,13 @@ bool UAURDriverOpenCV::ConnectToCamera()
 
 	// Find the resolution used by the camera
 	FIntPoint camera_res;
-	camera_res.X = FPlatformMath::RoundToInt(CameraCapture.get(CV_CAP_PROP_FRAME_WIDTH));
-	camera_res.Y = FPlatformMath::RoundToInt(CameraCapture.get(CV_CAP_PROP_FRAME_HEIGHT));
+	camera_res.X = FPlatformMath::RoundToInt(CameraCapture.get(cv::CAP_PROP_FRAME_WIDTH));
+	camera_res.Y = FPlatformMath::RoundToInt(CameraCapture.get(cv::CAP_PROP_FRAME_HEIGHT));
+
+	// Show the reported FPS
+	double camera_fps = CameraCapture.get(cv::CAP_PROP_FPS);
+
+	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Reported FPS: %lf"), camera_fps)
 
 	if (camera_res.X <= 0 || camera_res.Y <= 0)
 	{
