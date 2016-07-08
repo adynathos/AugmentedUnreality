@@ -58,7 +58,7 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_tra
 			return false;
 		}
 
-		if (Settings.bDisplayMarkers)
+		if (Settings.bDisplayDetectedMarkers)
 		{
 			cv::aruco::drawDetectedMarkers(image, *FoundMarkerCorners, *FoundMarkerIds);
 		}
@@ -74,7 +74,7 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image, FTransform & out_camera_tra
 			return false;
 		}
 
-		if (Settings.bDisplayMarkers)
+		if (Settings.bDisplayDetectedMarkers)
 		{
 			cv::aruco::drawAxis(image, CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
 				rotation_raw, translation_raw, 10);

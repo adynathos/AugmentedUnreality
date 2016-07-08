@@ -36,11 +36,11 @@ struct FArucoTrackerSettings
 
 	// Whether the marker outlines should be displayed on the screen
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	uint32 bDisplayMarkers : 1;
+	uint32 bDisplayDetectedMarkers : 1;
 
 	FArucoTrackerSettings()
 		: TranslationScale(1.0)
-		, bDisplayMarkers(false)
+		, bDisplayDetectedMarkers(false)
 	{
 	}
 };
