@@ -150,6 +150,7 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 	}
 }
 
+//cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side, int32 margin, float size_cm)
 cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side, int32 margin)
 {
 	int32 marker_side = canvas_side - 2 * margin;
@@ -170,9 +171,27 @@ cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side,
 
 	cv::rectangle(canvas, cv::Point(0, 0), cv::Point(canvas_side - 1, canvas_side - 1), cv::Scalar(125), 4);
 
+	// Texts
+	const int text_margin = 8;
+	const double font_size = canvas_side / 200.0;
+	const int font_line_width = std::round(font_size);
+	const int font_index = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
+	const cv::Scalar font_color(125);
+
 	// putText takes bottom-left corner of text
+	// text: id
 	cv::putText(canvas, name, cv::Point(6, canvas_side - 8),
-		cv::FONT_HERSHEY_SCRIPT_SIMPLEX, canvas_side / 200.0, cv::Scalar(125), 3);
+		font_index, font_size, font_color, font_line_width);
+
+	// text: size
+	/*
+	if (size_cm > 0.0)
+	{
+		std::string description_size = "size " + std::to_string(size_cm) + " cm";
+		cv::putText(canvas, description_size, cv::Point(canvas_side-50, canvas_side - 8),
+			font_index, font_size, font_color, font_line_width);	
+	}
+	*/
 
 	return canvas;
 }

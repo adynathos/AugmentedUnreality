@@ -130,5 +130,7 @@ protected:
 
 	void AssignAutomaticMarkerIds();
 
+	// size_cm is used only for displaying the text showing 
+	//cv::Mat RenderMarker(int32 id, int32 canvas_side, int32 margin, float size_cm = 0.0);
 	cv::Mat RenderMarker(int32 id, int32 canvas_side, int32 margin);
 };
