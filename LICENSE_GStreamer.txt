@@ -1,0 +1,7 @@
+
+This distribution includes binaries of GStreamer in Binaries/Win64
+
+GStreamer is licensed under LGPL:
+http://www.gnu.org/licenses/lgpl-3.0-standalone.html
+
+According to the license, we only link dynamically with the library.
