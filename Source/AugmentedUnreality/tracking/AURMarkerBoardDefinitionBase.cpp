@@ -20,7 +20,8 @@ limitations under the License.
 
 const float INCH = 2.54f;
 
-FFreeFormBoardData::FFreeFormBoardData()
+FFreeFormBoardData::FFreeFormBoardData(AAURMarkerBoardDefinitionBase* board_actor)
+	: BoardActor(board_actor)
 {
 }
 
@@ -74,6 +75,8 @@ void FFreeFormBoardData::DrawMarkers(float marker_size_cm, uint32 dpi, float mar
 AAURMarkerBoardDefinitionBase::AAURMarkerBoardDefinitionBase()
 	: MarkerFileDir("AugmentedUnreality/Markers")
 	, DictionaryId(cv::aruco::DICT_4X4_100)
+	, ActorToMove(nullptr)
+	//, UsedAsViewpointOrigin(false)
 	//, AutomaticMarkerIds(true)
 {
 	PrimaryActorTick.bStartWithTickEnabled = false;
@@ -84,7 +87,7 @@ void AAURMarkerBoardDefinitionBase::BuildBoardData()
 {
 	if (!BoardData.IsValid())
 	{
-		BoardData = TSharedPtr<FFreeFormBoardData>(new FFreeFormBoardData);
+		BoardData = TSharedPtr<FFreeFormBoardData>(new FFreeFormBoardData(this));
 	}
 
 	BoardData->Clear();
@@ -123,8 +126,6 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 
 	float pixels_per_cm = float(dpi) / INCH;
 
-	FString name_base = output_dir / "marker_" + FString::FromInt(DictionaryId) + "_";
-
 	try
 	{
 		TInlineComponentArray<UAURMarkerComponentBase*, 32> marker_components;
@@ -134,19 +135,19 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 
 		for (auto & marker : marker_components)
 		{
-			FString filename = name_base + FString::FromInt(marker->Id) + ".png";
-
+			FString filename = output_dir / FString::Printf(TEXT("marker_%d_%02d.png"), DictionaryId, marker->Id);
+				
 			int32 canvas_pixels = (int32)std::round(pixels_per_cm*marker->BoardSizeCm);
 			int32 margin_pixels = (int32)std::round(pixels_per_cm*marker->MarginCm);
 
 			cv::imwrite(TCHAR_TO_UTF8(*filename), RenderMarker(marker->Id, canvas_pixels, margin_pixels));
 
-			UE_LOG(LogAUR, Log, TEXT("AURArucoTracker: Saved marker image to: %s"), *filename);
+			UE_LOG(LogAUR, Log, TEXT("AAURMarkerBoardDefinitionBase::SaveMarkerFiles: Saved marker image to: %s"), *filename);
 		}
 	}
 	catch (std::exception& exc)
 	{
-		UE_LOG(LogAUR, Error, TEXT("AURArucoTracker::UpdateBoardDefinition: exception when saving\n    %s"), UTF8_TO_TCHAR(exc.what()))
+		UE_LOG(LogAUR, Error, TEXT("AAURMarkerBoardDefinitionBase::SaveMarkerFiles: exception when saving\n    %s"), UTF8_TO_TCHAR(exc.what()))
 	}
 }
 
@@ -157,7 +158,7 @@ cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side,
 
 	if (marker_side <= 0)
 	{
-		UE_LOG(LogAUR, Error, TEXT("AURArucoTracker::RenderMarker: margin is bigger than half of square size"))
+		UE_LOG(LogAUR, Error, TEXT("AAURMarkerBoardDefinitionBase::RenderMarker: margin is bigger than half of square size"))
 		return cv::Mat(canvas_side, canvas_side, CV_8UC1, cv::Scalar(255));
 	}
 	
@@ -167,20 +168,20 @@ cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side,
 	BoardData->GetArucoDictionary().drawMarker(id, marker_side, img_marker, 1);
 	img_marker.copyTo(canvas.rowRange(margin, marker_side + margin).colRange(margin, marker_side + margin));
 
-	std::string name = std::to_string(DictionaryId) + '.' + std::to_string(id);
+	FString name = FString::Printf(TEXT("%d.%02d"), DictionaryId, id);
 
-	cv::rectangle(canvas, cv::Point(0, 0), cv::Point(canvas_side - 1, canvas_side - 1), cv::Scalar(125), 4);
+	cv::rectangle(canvas, cv::Point(0, 0), cv::Point(canvas_side - 1, canvas_side - 1), cv::Scalar(200), 4);
 
 	// Texts
 	const int text_margin = 8;
-	const double font_size = canvas_side / 200.0;
+	const double font_size = margin / 30.0;
 	const int font_line_width = std::round(font_size);
 	const int font_index = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
-	const cv::Scalar font_color(125);
+	const cv::Scalar font_color(175);
 
 	// putText takes bottom-left corner of text
 	// text: id
-	cv::putText(canvas, name, cv::Point(6, canvas_side - 8),
+	cv::putText(canvas, TCHAR_TO_UTF8(*name), cv::Point(6, canvas_side - 8),
 		font_index, font_size, font_color, font_line_width);
 
 	// text: size
@@ -209,6 +210,23 @@ void AAURMarkerBoardDefinitionBase::PostInitializeComponents()
 	}
 }
 */
+
+void AAURMarkerBoardDefinitionBase::TransformMeasured(FTransform const & new_transform, bool used_as_viewpoint_origin)
+{
+	if (!used_as_viewpoint_origin)
+	{
+		this->SetActorTransform(new_transform, false);
+	}
+
+	if (ActorToMove)
+	{
+		ActorToMove->SetActorTransform(new_transform, false);
+	}
+
+	OnTransformUpdate.Broadcast(new_transform);
+
+	//UE_LOG(LogAUR, Log, TEXT("TransformMeasured: %s"), *new_transform.ToString())
+}
 
 void AAURMarkerBoardDefinitionBase::AssignAutomaticMarkerIds()
 {

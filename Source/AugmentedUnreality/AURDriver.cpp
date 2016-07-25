@@ -16,14 +16,17 @@ limitations under the License.
 
 #include "AugmentedUnreality.h"
 #include "AURDriver.h"
-#include "AURSmoothingFilter.h"
+//#include "AURSmoothingFilter.h"
+
+UAURDriver* UAURDriver::CurrentDriver = nullptr;
 
 UAURDriver::UAURDriver()
 	: CalibrationFilePath("AugmentedUnreality/Calibration/camera.xml")
 	, CalibrationFallbackFilePath("AugmentedUnreality/Calibration/default.xml")
 	, bPerformOrientationTracking(true)
-	, SmoothingFilterInstance(nullptr)
+	//, SmoothingFilterInstance(nullptr)
 	, Resolution(800, 600)
+	, bActive(false)
 	, bConnected(false)
 	, bCalibrated(false)
 	, bCalibrationInProgress(false)
@@ -32,11 +35,22 @@ UAURDriver::UAURDriver()
 
 void UAURDriver::Initialize()
 {
+	/*
 	if (this->SmoothingFilterClass)
 	{
 		this->SmoothingFilterInstance = NewObject<UAURSmoothingFilter>(this, this->SmoothingFilterClass);
 		this->SmoothingFilterInstance->Init();
 	}
+	*/
+
+	if (CurrentDriver)
+	{
+		UE_LOG(LogAUR, Error, TEXT("UAURDriver::Initialize: CurrentDriver is not null"))
+	}
+
+	CurrentDriver = this;
+
+	bActive = true;
 }
 
 void UAURDriver::Tick()
@@ -45,6 +59,20 @@ void UAURDriver::Tick()
 
 void UAURDriver::Shutdown()
 {
+	bActive = false;
+
+	CurrentDriver = nullptr;
+}
+
+bool UAURDriver::RegisterBoard(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
+{
+	UE_LOG(LogAUR, Error, TEXT("UAURDriver::RegisterBoard: Not implemented"))
+	return false;
+}
+
+void UAURDriver::UnregisterBoard(AAURMarkerBoardDefinitionBase * board_actor)
+{
+	UE_LOG(LogAUR, Error, TEXT("UAURDriver::UnregisterBoard: Not implemented"))
 }
 
 bool UAURDriver::IsConnected() const
@@ -96,62 +124,12 @@ bool UAURDriver::IsNewFrameAvailable() const
 	return false;
 }
 
-FTransform UAURDriver::GetOrientation()
-{
-	return this->CurrentOrientation;
-}
-
-float UAURDriver::GetLastOrientationUpdateTime() const
-{
-	return this->LastOrientationUpdateTime;
-}
-
-float UAURDriver::GetTimeSinceLastOrientationUpdate() const
-{
-	if (this->WorldReference)
-	{
-		return this->WorldReference->RealTimeSeconds - this->GetLastOrientationUpdateTime();
-	}
-	else
-	{
-		return 1000;
-	}
-}
-
-void UAURDriver::GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime)
-{
-	OutOrientation = this->GetOrientation();
-	OutUpdateTime = this->GetLastOrientationUpdateTime();
-}
-
-bool UAURDriver::IsNewOrientationAvailable() const
-{
-	return false;
-}
-
 FString UAURDriver::GetDiagnosticText() const
 {
 	return "Not implemented";
 }
 
-void UAURDriver::StoreNewOrientation(FTransform const & measurement)
+UAURDriver * UAURDriver::GetCurrentDriver()
 {
-	if (this->SmoothingFilterInstance)
-	{
-		this->SmoothingFilterInstance->Measurement(measurement);
-		this->CurrentOrientation = this->SmoothingFilterInstance->GetCurrentTransform();
-	}
-	else
-	{
-		this->CurrentOrientation = measurement;
-	}
-
-	if (WorldReference)
-	{
-		this->LastOrientationUpdateTime = WorldReference->RealTimeSeconds;
-	}
-	else
-	{
-		//UE_LOG(LogAUR, Error, TEXT("UAURDriver::StoreNewOrientation: GetWorld() is null"))
-	}
+	return CurrentDriver;
 }

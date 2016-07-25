@@ -17,7 +17,7 @@ limitations under the License.
 #pragma once
 
 #include "Object.h"
-class UAURSmoothingFilter;
+//class UAURSmoothingFilter;
 #include "AURDriver.generated.h"
 
 USTRUCT(BlueprintType)
@@ -66,6 +66,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverConnectionStatusChange, UA
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCameraParametersChange, UAURDriver*, Driver);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCalibrationStatusChange, UAURDriver*, Driver);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverViewpointTransformUpdate, FTransform, ViewpointTransform);
+
 /**
  * Represents a way of connecting to a camera.
  */
@@ -94,11 +96,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	uint32 bPerformOrientationTracking:1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	TSubclassOf<UAURSmoothingFilter> SmoothingFilterClass;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
+	//TSubclassOf<UAURSmoothingFilter> SmoothingFilterClass;
 
-	UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
-	UAURSmoothingFilter* SmoothingFilterInstance;
+	//UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
+	//UAURSmoothingFilter* SmoothingFilterInstance;
 
 	/** Desired (but not guaranteed) camera resolution */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
@@ -115,6 +117,10 @@ public:
 	/** Called when calibration starts or ends */
 	UPROPERTY(BlueprintAssignable)
 	FAURDriverCalibrationStatusChange OnCalibrationStatusChange;
+
+	/** Called when a new viewpoint (camera) position is measured by the tracker */
+	UPROPERTY(BlueprintAssignable)
+	FAURDriverViewpointTransformUpdate OnViewpointTransformUpdate;
 
 	UAURDriver();
 
@@ -144,6 +150,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual void Shutdown();
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false);
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor);
 
 	// Is the camera connected and working.
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
@@ -204,50 +216,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual bool IsNewFrameAvailable() const;
 
-	/** Provide the camera orientation and last update time
-	The other accessor functions will by default call this
-	*/
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual void GetOrientationAndUpdateTime(FTransform & OutOrientation, float & OutUpdateTime);
-
-	/**
-	 * Get the current position and rotation of the camera.
-	 */
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual FTransform GetOrientation();
-
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual float GetLastOrientationUpdateTime() const;
-
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual float GetTimeSinceLastOrientationUpdate() const;
-
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual bool IsNewOrientationAvailable() const;
-
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual FString GetDiagnosticText() const;
 
-protected:
-	uint32 bConnected : 1;
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	static UAURDriver* GetCurrentDriver();
 
-	/** Tracking state */
-	FTransform CurrentOrientation;
-	float LastOrientationUpdateTime;
+protected:
+	// Is the driver turned on
+	uint32 bActive : 1;
+
+	// Is the camera connected and streaming
+	uint32 bConnected : 1;
 
 	uint32 bCalibrated : 1;
 	uint32 bCalibrationInProgress : 1;
 
 	/** Reference to UWorld for time measurement */
 	UWorld* WorldReference;
-
-	/** 
-		Called by the driver when a new orientation is detected
-		set CurrentOrientation and LastOrientationUpdateTime
-
-		If a filter is present, filtering is done here.
-	**/
-	virtual void StoreNewOrientation(FTransform const & measurement);
 
 	FString GetCalibrationFileFullPath() const 
 	{
@@ -258,6 +244,8 @@ protected:
 	{
 		return FPaths::GameContentDir() / this->CalibrationFallbackFilePath;
 	}
+
+	static UAURDriver* CurrentDriver;
 
 	static void EnsureDirExists(FString FilePath)
 	{

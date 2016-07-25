@@ -37,8 +37,6 @@ public:
 
 	virtual FAURVideoFrame* GetFrame() override;
 	virtual bool IsNewFrameAvailable() const override;
-	virtual FTransform GetOrientation() override;
-	virtual bool IsNewOrientationAvailable() const override;
 
 protected:
 	// Threaded capture model
@@ -47,21 +45,17 @@ protected:
 
 	FAURVideoFrame* WorkerFrame; // the frame processed by worker thread
 	FAURVideoFrame* AvailableFrame; // the frame ready to be published
-	FAURVideoFrame* PublishedFrame; // the frame currently held by tje game
+	FAURVideoFrame* PublishedFrame; // the frame currently held by the game
 
 	FAURVideoFrame FrameInstances[3];
 
-	FCriticalSection OrientationLock; // mutex which needs to be obtained before using CameraOrientation variable.
-	FThreadSafeBool bNewOrientationReady;
+	FCriticalSection TrackerLock; // mutex which needs to be obtained before using marker tracker
 	
 	TUniquePtr<FRunnable> Worker;
 	TUniquePtr<FRunnableThread> WorkerThread;
 
 	// Override this method and create the specific class of FRunnable.
 	virtual FRunnable* CreateWorker();
-
-	// Adds thread safety to the storing operation
-	virtual void StoreNewOrientation(FTransform const & measurement) override;
 
 	// Publish a new frame - switched the publicly available frame with the one held by background thread.
 	virtual void StoreWorkerFrame();

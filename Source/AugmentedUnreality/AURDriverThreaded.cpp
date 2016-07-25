@@ -21,7 +21,7 @@ limitations under the License.
 
 UAURDriverThreaded::UAURDriverThreaded()
 	: bNewFrameReady(false)
-	, bNewOrientationReady(false)
+	//, bNewOrientationReady(false)
 {
 }
 
@@ -30,7 +30,6 @@ void UAURDriverThreaded::Initialize()
 	Super::Initialize();
 
 	this->bNewFrameReady = false;
-	this->bNewOrientationReady = false;
 
 	this->WorkerFrame = &this->FrameInstances[0];
 	this->AvailableFrame = &this->FrameInstances[1];
@@ -60,6 +59,8 @@ void UAURDriverThreaded::Shutdown()
 		this->WorkerThread.Reset(nullptr);
 		this->Worker.Reset(nullptr);
 	}
+
+	Super::Shutdown();
 }
 
 FRunnable * UAURDriverThreaded::CreateWorker()
@@ -98,29 +99,6 @@ void UAURDriverThreaded::StoreWorkerFrame()
 	// Put the generated frame as available frame
 	std::swap(WorkerFrame, AvailableFrame);
 	bNewFrameReady = true;
-}
-
-FTransform UAURDriverThreaded::GetOrientation()
-{
-	// Accessing orientation
-	FScopeLock lock(&this->OrientationLock);
-
-	this->bNewOrientationReady = false;
-	return this->CurrentOrientation;
-}
-
-bool UAURDriverThreaded::IsNewOrientationAvailable() const
-{
-	return this->bNewOrientationReady;
-}
-
-void UAURDriverThreaded::StoreNewOrientation(FTransform const & measurement)
-{
-	// Mutex of orientation vars
-	FScopeLock(&this->OrientationLock);
-
-	Super::StoreNewOrientation(measurement);
-	this->bNewOrientationReady = true;
 }
 
 void UAURDriverThreaded::SetFrameResolution(FIntPoint const & new_res)

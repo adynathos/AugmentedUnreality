@@ -17,7 +17,10 @@ limitations under the License.
 
 #include "AUROpenCV.h"
 #include "AURMarkerComponentBase.h"
+#include <algorithm>
+
 #include "AURMarkerBoardDefinitionBase.generated.h"
+class AAURMarkerBoardDefinitionBase;
 
 /**
 	Description of a set of AR markers, in a format needed by the tracker library.
@@ -26,7 +29,7 @@ limitations under the License.
 class FFreeFormBoardData
 {
 public:
-	FFreeFormBoardData();
+	FFreeFormBoardData(AAURMarkerBoardDefinitionBase* board_actor);
 	void Clear();
 	void SetDictionaryId(uint32_t dict_id);
 	void AddMarker(FMarkerDefinitionData const & marker_def);
@@ -36,21 +39,45 @@ public:
 		return ArucoBoard;
 	}
 
+	std::vector<int> const& GetMarkerIds() const
+	{
+		return ArucoBoard.ids;
+	}
+
+	int GetMinMarkerId() const
+	{
+		return *std::min_element(std::begin(GetMarkerIds()), std::end(GetMarkerIds()));
+	}
+
+	int GetArucoDictionaryId() const
+	{
+		return DictionaryId;
+	}
+
 	cv::aruco::Dictionary const& GetArucoDictionary() const
 	{
 		return ArucoDictionary;
 	}
 
-	std::vector<cv::Mat> const & GetMarkerImages() const
+	AAURMarkerBoardDefinitionBase* GetBoardActor() const
 	{
-		return Pages;
+		return BoardActor;
 	}
 
+	
+
+	/*std::vector<cv::Mat> const & GetMarkerImages() const
+	{
+		return Pages;
+	}*/
+
 	// Default size is A4 landscape.
-	void DrawMarkers(float marker_size_cm = 8.0f, uint32_t dpi = 300, float margin_cm = 2.0f, cv::Size2f page_size_cm = cv::Size2f(29.7f, 21.0f));
+	//void DrawMarkers(float marker_size_cm = 8.0f, uint32_t dpi = 300, float margin_cm = 2.0f, cv::Size2f page_size_cm = cv::Size2f(29.7f, 21.0f));
 
 protected:
-	std::vector<cv::Mat> Pages;
+	//std::vector<cv::Mat> Pages;
+
+	AAURMarkerBoardDefinitionBase* BoardActor;
 
 	/**
 		The board is constructed in AUR binary, without GridBoard::create,
@@ -65,6 +92,8 @@ protected:
 	cv::aruco::Dictionary ArucoDictionary;
 	uint32_t DictionaryId;
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURBoardTransformUpdate, FTransform, MeasuredTransform);
 
 /**
  * Actor blueprint representing a spatial configuration of ArUco markers.
@@ -102,6 +131,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
 	int32 DictionaryId;
 
+	//UPROPERTY(Transient, BlueprintReadOnly, Category = ArucoTracking)
+	//bool UsedAsViewpointOrigin;
+
+	// Event fired when this board is detected by the tracker and provides the location of the board.
+	UPROPERTY(BlueprintAssignable, Category = AugmentedReality)
+	FAURBoardTransformUpdate OnTransformUpdate;
+
+	// This actor will be moved to match the detected position of this board.
+	// Or if this was registered with use_as_viewpoint_origin, it will be placed in the determined camera position.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
+	AActor* ActorToMove;
+
 	/*
 		Each marker must have a different Id.
 		Set this to true to automatically set different ids to child markers.
@@ -124,6 +165,10 @@ public:
 	TSharedPtr<FFreeFormBoardData> GetBoardData();
 
 	//virtual void PostInitializeComponents() override;
+
+	// Called by AURArucoTracker when a new transform is measured
+	// @param used_as_viewpoint_origin Is this board used to position the camera (as opposed to moving some object in scene)
+	void TransformMeasured(FTransform const& new_transform, bool used_as_viewpoint_origin);
 
 protected:
 	TSharedPtr<FFreeFormBoardData> BoardData;

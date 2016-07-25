@@ -31,11 +31,12 @@ UAURDriverOpenCV::UAURDriverOpenCV()
 	this->CameraProperties.SetResolution(this->Resolution);
 }
 
+/*
 void UAURDriverOpenCV::SetTrackingBoardDefinition(AAURMarkerBoardDefinitionBase * board_definition)
 {
 	TrackingBoardDefinition = board_definition;
 	Tracker.UpdateBoardDefinition(TrackingBoardDefinition);
-}
+}*/
 
 void UAURDriverOpenCV::Initialize()
 {
@@ -46,8 +47,60 @@ void UAURDriverOpenCV::Initialize()
 	Super::Initialize();
 }
 
+void UAURDriverOpenCV::Tick()
+{
+	// 
+	if (bActive)
+	{
+		FScopeLock lock(&this->TrackerLock);
+		Tracker.PublishTransformUpdatesOnTick();
+	}
+}
+
+bool UAURDriverOpenCV::RegisterBoard(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
+{
+	return Tracker.RegisterBoard(board_actor, use_as_viewpoint_origin);
+}
+
+void UAURDriverOpenCV::UnregisterBoard(AAURMarkerBoardDefinitionBase * board_actor)
+{
+	Tracker.UnregisterBoard(board_actor);
+}
+
 bool UAURDriverOpenCV::CreateCameraCapture()
 {
+	if (!VideoFile.IsEmpty())
+	{
+		FString fpath = FPaths::GameDir() / VideoFile;
+
+		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open file: [%s]"), *fpath);
+
+		VideoSourceFile* vid_src = new VideoSourceFile;
+		vid_src->OpenFile(fpath);
+		VideoSrc.Reset(vid_src);
+	}
+	else if (!CameraConnectionString.IsEmpty())
+	{
+		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open stream: [%s]"), *CameraConnectionString);
+		
+		VideoSourceStream* vid_src = new VideoSourceStream;
+		vid_src->OpenStream(this->CameraConnectionString);
+		VideoSrc.Reset(vid_src);
+	}
+	else
+	{
+		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open camera with index %d"), CameraIndex);
+
+		VideoSourceCamera* vid_src = new VideoSourceCamera;
+		vid_src->OpenCamera(this->CameraIndex, this->Resolution);
+		VideoSrc.Reset(vid_src);
+	}
+
+	//return CameraCapture.isOpened();
+
+	return VideoSrc->IsConnected();
+
+	/*
 	if (CameraConnectionString.IsEmpty())
 	{
 		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open camera with index %d"), CameraIndex);
@@ -67,6 +120,7 @@ bool UAURDriverOpenCV::CreateCameraCapture()
 	}
 
 	return CameraCapture.isOpened();
+	*/
 }
 
 
@@ -81,14 +135,15 @@ bool UAURDriverOpenCV::ConnectToCamera()
 	}
 
 	// Find the resolution used by the camera
-	FIntPoint camera_res;
+	/*FIntPoint camera_res;
 	camera_res.X = FPlatformMath::RoundToInt(CameraCapture.get(cv::CAP_PROP_FRAME_WIDTH));
 	camera_res.Y = FPlatformMath::RoundToInt(CameraCapture.get(cv::CAP_PROP_FRAME_HEIGHT));
+	*/
+
+	FIntPoint camera_res = VideoSrc->GetResolution();
 
 	// Show the reported FPS
-	double camera_fps = CameraCapture.get(cv::CAP_PROP_FPS);
 
-	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Reported FPS: %lf"), camera_fps)
 
 	if (camera_res.X <= 0 || camera_res.Y <= 0)
 	{
@@ -116,10 +171,11 @@ bool UAURDriverOpenCV::ConnectToCamera()
 
 void UAURDriverOpenCV::DisconnectCamera()
 {
-	if (CameraCapture.isOpened())
+	/*if (CameraCapture.isOpened())
 	{
 		this->CameraCapture.release();
-	}
+	}*/
+	VideoSrc->Disconnect();
 
 	bConnected = false;
 	NotifyConnectionStatusChange();
@@ -258,7 +314,8 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 	while (this->bContinue)
 	{
 		// get a new frame from camera - this blocks untill the next frame is available
-		Driver->CameraCapture >> CapturedFrame;
+		//Driver->CameraCapture >> CapturedFrame;
+		Driver->VideoSrc->GetNextFrame(CapturedFrame);
 
 		// compare the frame size to the size we expect from capture parameters
 		auto frame_size = CapturedFrame.size();
@@ -299,14 +356,9 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 				/**
 				* Tracking markers and relative position with respect to them
 				*/
-				FTransform camera_transform;
-				bool markers_detected = Driver->Tracker.DetectMarkers(CapturedFrame, camera_transform);
-
-				if(markers_detected)
 				{
-					// Report the rotation and location to the driver.
-					// mutex locking performed by driver
-					Driver->StoreNewOrientation(camera_transform);
+					FScopeLock lock(&Driver->TrackerLock);
+					Driver->Tracker.DetectMarkers(CapturedFrame);
 				}
 			}
 
@@ -345,4 +397,88 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 void UAURDriverOpenCV::FWorkerRunnable::Stop()
 {
 	this->bContinue = false;
+}
+
+void VideoSourceCvCapture::Disconnect()
+{
+	if (Capture.isOpened())
+	{
+		this->Capture.release();
+	}
+}
+
+bool VideoSourceCvCapture::IsConnected() const
+{
+	return Capture.isOpened();
+}
+
+FIntPoint VideoSourceCvCapture::GetResolution() const
+{
+	FIntPoint camera_res;
+	camera_res.X = FPlatformMath::RoundToInt(Capture.get(cv::CAP_PROP_FRAME_WIDTH));
+	camera_res.Y = FPlatformMath::RoundToInt(Capture.get(cv::CAP_PROP_FRAME_HEIGHT));
+	return camera_res;
+}
+
+void VideoSourceCvCapture::OnOpen()
+{
+}
+
+bool VideoSourceCvCapture::GetNextFrame(cv::Mat & frame)
+{
+	return Capture.read(frame);
+}
+
+bool VideoSourceCamera::OpenCamera(int camera_index, FIntPoint desired_resolution)
+{
+	Capture.open(camera_index);
+
+	if (Capture.isOpened() && desired_resolution.GetMin() > 0)
+	{
+		Capture.set(cv::CAP_PROP_FRAME_WIDTH, desired_resolution.X);
+		Capture.set(cv::CAP_PROP_FRAME_HEIGHT, desired_resolution.Y);
+	}
+
+	return Capture.isOpened();
+}
+
+bool VideoSourceStream::OpenStream(FString connection_string)
+{
+	return Capture.open(TCHAR_TO_UTF8(*connection_string));
+}
+
+const double MAX_FPS = 60.0;
+const double MIN_FPS = 0.1;
+
+bool VideoSourceFile::OpenFile(FString file_path)
+{
+	bool success = Capture.open(TCHAR_TO_UTF8(*file_path));
+
+	Period = 1.0;
+	if (success)
+	{
+		double fps = Capture.get(cv::CAP_PROP_FPS);
+
+		UE_LOG(LogAUR, Log, TEXT("VideoSourceFile: Reported FPS: %lf"), fps)
+		fps = FMath::Clamp(fps, MIN_FPS, MAX_FPS);
+
+		Period = 1.0 / fps;
+
+		FrameCount = FPlatformMath::RoundToInt(Capture.get(cv::CAP_PROP_FRAME_COUNT));
+	}
+
+	return Capture.isOpened();
+}
+
+bool VideoSourceFile::GetNextFrame(cv::Mat & frame)
+{
+	FPlatformProcess::Sleep(Period);
+	bool success = Capture.read(frame);
+
+	if (Capture.get(cv::CAP_PROP_POS_FRAMES) >= FrameCount - 1)
+	{
+		Capture.set(cv::CAP_PROP_POS_FRAMES, 0);
+	}
+
+	return success;
 }

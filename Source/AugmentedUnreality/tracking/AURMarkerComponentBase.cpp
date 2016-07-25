@@ -79,16 +79,21 @@ FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
 	// Determine the transform from board actor to this component
 	FTransform transform_this_to_actor = this->GetRelativeTransform();
 
-	TArray<USceneComponent*> parent_components;
-	this->GetParentComponents(parent_components);
-	for (auto const & parent_comp : parent_components)
+	//TArray<USceneComponent*> parent_components;
+	//this->GetParentComponents(parent_components);
+
+	USceneComponent* root_component = GetAttachmentRoot();
+	USceneComponent* parent_comp = GetAttachParent();
+
+	while (parent_comp && parent_comp != root_component)
 	{
 		// Runtime/Core/Public/Math/Transform.h:
 		// C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
 		// (we want the parent-most transform done first)
 		transform_this_to_actor *= parent_comp->GetRelativeTransform();
+		parent_comp = parent_comp->GetAttachParent();
 	}
-	
+
 	// Transform the corners
 	FMarkerDefinitionData def_data(Id);
 
