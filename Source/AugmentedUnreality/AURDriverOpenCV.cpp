@@ -18,31 +18,22 @@ limitations under the License.
 #include "AURDriverOpenCV.h"
 #include "AURSmoothingFilter.h"
 
-#include <sstream>
-#include <utility> // swap
-
-#define _USE_MATH_DEFINES
-#include <math.h>
-
 UAURDriverOpenCV::UAURDriverOpenCV()
-	: CameraIndex(0)
-	, TrackingBoardDefinition(nullptr)
 {
-	this->CameraProperties.SetResolution(this->Resolution);
 }
-
-/*
-void UAURDriverOpenCV::SetTrackingBoardDefinition(AAURMarkerBoardDefinitionBase * board_definition)
-{
-	TrackingBoardDefinition = board_definition;
-	Tracker.UpdateBoardDefinition(TrackingBoardDefinition);
-}*/
 
 void UAURDriverOpenCV::Initialize()
 {
-	this->LoadCalibrationFile();
+	//this->LoadCalibrationFile();
 	this->Tracker.SetSettings(this->TrackerSettings);
-	this->CameraProperties.SetResolution(this->Resolution);
+
+	AvailableVideoSources.Add(nullptr);
+
+	for (auto const& vid_src_class : DefaultVideoSources)
+	{
+		UAURVideoSource* vid_src = NewObject<UAURVideoSource>(this, vid_src_class);
+		AvailableVideoSources.Add(vid_src);
+	}
 
 	Super::Initialize();
 }
@@ -57,6 +48,31 @@ void UAURDriverOpenCV::Tick()
 	}
 }
 
+UAURVideoSource * UAURDriverOpenCV::GetVideoSource()
+{
+	FScopeLock lock(&VideoSourceLock);
+	return VideoSource;
+}
+
+void UAURDriverOpenCV::SetVideoSource(UAURVideoSource * NewVideoSource)
+{
+	FScopeLock lock(&VideoSourceLock);
+	NextVideoSource = NewVideoSource;
+}
+
+bool UAURDriverOpenCV::OpenDefaultVideoSource()
+{
+	for (auto vid_src : AvailableVideoSources)
+	{
+		if (vid_src)
+		{
+			SetVideoSource(vid_src);
+			return true;
+		}
+	}
+	return false;
+}
+
 bool UAURDriverOpenCV::RegisterBoard(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
 {
 	return Tracker.RegisterBoard(board_actor, use_as_viewpoint_origin);
@@ -67,159 +83,25 @@ void UAURDriverOpenCV::UnregisterBoard(AAURMarkerBoardDefinitionBase * board_act
 	Tracker.UnregisterBoard(board_actor);
 }
 
-bool UAURDriverOpenCV::CreateCameraCapture()
+void UAURDriverOpenCV::OnVideoSourceSwitch()
 {
-	if (!VideoFile.IsEmpty())
+	if (IsCalibrationInProgress())
 	{
-		FString fpath = FPaths::GameDir() / VideoFile;
-
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open file: [%s]"), *fpath);
-
-		VideoSourceFile* vid_src = new VideoSourceFile;
-		vid_src->OpenFile(fpath);
-		VideoSrc.Reset(vid_src);
-	}
-	else if (!CameraConnectionString.IsEmpty())
-	{
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open stream: [%s]"), *CameraConnectionString);
-		
-		VideoSourceStream* vid_src = new VideoSourceStream;
-		vid_src->OpenStream(this->CameraConnectionString);
-		VideoSrc.Reset(vid_src);
-	}
-	else
-	{
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open camera with index %d"), CameraIndex);
-
-		VideoSourceCamera* vid_src = new VideoSourceCamera;
-		vid_src->OpenCamera(this->CameraIndex, this->Resolution);
-		VideoSrc.Reset(vid_src);
+		CancelCalibration();
 	}
 
-	//return CameraCapture.isOpened();
-
-	return VideoSrc->IsConnected();
-
-	/*
-	if (CameraConnectionString.IsEmpty())
-	{
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open camera with index %d"), CameraIndex);
-		CameraCapture.open(this->CameraIndex);
-
-		if (CameraCapture.isOpened())
-		{
-			// Use the resolution specified
-			CameraCapture.set(cv::CAP_PROP_FRAME_WIDTH, this->Resolution.X);
-			CameraCapture.set(cv::CAP_PROP_FRAME_HEIGHT, this->Resolution.Y);
-		}
-	}
-	else
-	{
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Trying to open camera address: [%s]"), *CameraConnectionString);
-		CameraCapture.open(TCHAR_TO_UTF8(*CameraConnectionString), cv::CAP_GSTREAMER);
-	}
-
-	return CameraCapture.isOpened();
-	*/
-}
-
-
-
-bool UAURDriverOpenCV::ConnectToCamera()
-{
-	bool result = CreateCameraCapture();
-
-	if (!result) {
-		UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Failed to open VideoCapture"))
-			return false;
-	}
-
-	// Find the resolution used by the camera
-	/*FIntPoint camera_res;
-	camera_res.X = FPlatformMath::RoundToInt(CameraCapture.get(cv::CAP_PROP_FRAME_WIDTH));
-	camera_res.Y = FPlatformMath::RoundToInt(CameraCapture.get(cv::CAP_PROP_FRAME_HEIGHT));
-	*/
-
-	FIntPoint camera_res = VideoSrc->GetResolution();
-
-	// Show the reported FPS
-
-
-	if (camera_res.X <= 0 || camera_res.Y <= 0)
-	{
-		UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Can not determine resolution now - camera returned resolution %d x %d"),
-			camera_res.X, camera_res.Y)
-	}
-	else if (camera_res != Resolution)
-	{
-		UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Camera returned resolution %d x %d even though %d x %d was requested"),
-			camera_res.X, camera_res.Y, Resolution.X, Resolution.Y)
-
-		Resolution = camera_res;
-		CameraProperties.SetResolution(camera_res);
-	}
-
-	// this will allocate the frame with proper size
 	OnCameraPropertiesChange();
-
-	// Announce the fact that connection is established
-	bConnected = true;
-	NotifyConnectionStatusChange();
-
-	return true;
-}
-
-void UAURDriverOpenCV::DisconnectCamera()
-{
-	/*if (CameraCapture.isOpened())
-	{
-		this->CameraCapture.release();
-	}*/
-	VideoSrc->Disconnect();
-
-	bConnected = false;
-	NotifyConnectionStatusChange();
-}
-
-void UAURDriverOpenCV::LoadCalibrationFile()
-{
-	FString calib_file_path = this->GetCalibrationFileFullPath();
-	if (this->CameraProperties.LoadFromFile(calib_file_path))
-	{
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Calibration loaded from %s"), *calib_file_path)
-		this->bCalibrated = true;
-	}
-	else
-	{
-		UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Failed to load calibration from %s"), *calib_file_path)
-		this->bCalibrated = false;
-
-		calib_file_path = this->GetCalibrationFallbackFileFullPath();
-		if (this->CameraProperties.LoadFromFile(calib_file_path))
-		{
-			UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Fallback calibration loaded from %s"), *calib_file_path)
-		}
-		else
-		{
-			UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Failed to load fallback calibration from %s"), *calib_file_path)
-		}
-	}
-
-	if (this->CameraProperties.Resolution != this->Resolution)
-	{
-		UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: The resolution in the calibration file is different than the desired resolution of the driver. Trying to convert."))
-		this->CameraProperties.SetResolution(this->Resolution);
-	}
-
-	this->OnCameraPropertiesChange();
+	NotifyVideoSourceStatusChange();
 }
 
 void UAURDriverOpenCV::OnCalibrationFinished()
 {
-	this->CameraProperties = this->CalibrationProcess.GetCameraProperties();
-	this->bCalibrated = true;
+	if (VideoSource)
+	{
+		VideoSource->SaveCalibration(CalibrationProcess.GetCameraProperties());
+	}
+
 	this->bCalibrationInProgress = false;
-	this->CameraProperties.SaveToFile(this->GetCalibrationFileFullPath());
 
 	// Notify about the change
 	this->OnCameraPropertiesChange();
@@ -230,15 +112,18 @@ void UAURDriverOpenCV::OnCalibrationFinished()
 
 void UAURDriverOpenCV::OnCameraPropertiesChange()
 {
-	this->CameraProperties.PrintToLog();
+	if (VideoSource)
+	{
+		VideoSource->GetCameraProperties().PrintToLog();
 
-	// Give the camera matrix to the tracker
-	this->Tracker.SetCameraProperties(this->CameraProperties);
+		// Give the camera matrix to the tracker
+		this->Tracker.SetCameraProperties(VideoSource->GetCameraProperties());
 
-	// Allocate proper frame sizes
-	this->SetFrameResolution(this->GetResolution());
+		// Allocate proper frame sizes
+		this->SetFrameResolution(VideoSource->GetResolution());
 
-	this->NotifyCameraParametersChange();
+		this->NotifyCameraParametersChange();
+	}
 }
 
 FRunnable * UAURDriverOpenCV::CreateWorker()
@@ -246,39 +131,65 @@ FRunnable * UAURDriverOpenCV::CreateWorker()
 	return new FWorkerRunnable(this);
 }
 
-FIntPoint UAURDriverOpenCV::GetResolution() const
-{
-	return this->CameraProperties.Resolution;
-}
-
 FVector2D UAURDriverOpenCV::GetFieldOfView() const
 {
-	return this->CameraProperties.FOV;
+	if (VideoSource)
+	{
+		return VideoSource->GetCameraProperties().FOV;
+	}
+	else
+	{
+		return FIntPoint(1, 1);
+	}
+}
+
+bool UAURDriverOpenCV::IsConnected() const
+{
+	if (VideoSource)
+	{
+		return VideoSource->IsConnected();
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool UAURDriverOpenCV::IsCalibrated() const
+{
+	if (VideoSource)
+	{
+		return VideoSource->IsCalibrated();
+	}
+	else
+	{
+		return false;
+	}
 }
 
 float UAURDriverOpenCV::GetCalibrationProgress() const
 {
-	return this->CalibrationProcess.GetProgress();
+	return CalibrationProcess.GetProgress();
 }
 
 void UAURDriverOpenCV::StartCalibration()
 {
-	FScopeLock lock(&this->CalibrationLock);
+	FScopeLock lock(&CalibrationLock);
 
-	this->CalibrationProcess.Reset();
-	this->bCalibrationInProgress = true;
+	CalibrationProcess.Reset();
+	bCalibrationInProgress = true;
 
-	this->NotifyCalibrationStatusChange();
+	NotifyCalibrationStatusChange();
 }
 
 void UAURDriverOpenCV::CancelCalibration()
 {
-	FScopeLock lock(&this->CalibrationLock);
+	FScopeLock lock(&CalibrationLock);
 
-	this->CalibrationProcess.Reset();
-	this->bCalibrationInProgress = false;
+	CalibrationProcess.Reset();
+	bCalibrationInProgress = false;
 
-	this->NotifyCalibrationStatusChange();
+	NotifyCalibrationStatusChange();
 }
 
 FString UAURDriverOpenCV::GetDiagnosticText() const
@@ -289,8 +200,7 @@ FString UAURDriverOpenCV::GetDiagnosticText() const
 UAURDriverOpenCV::FWorkerRunnable::FWorkerRunnable(UAURDriverOpenCV * driver)
 	: Driver(driver)
 {
-	FIntPoint res = driver->Resolution;
-	CapturedFrame = cv::Mat(res.X, res.Y, CV_8UC3, cv::Scalar(0, 0, 255));
+	CapturedFrame = cv::Mat(1920, 1080, CV_8UC3, cv::Scalar(0, 0, 255));
 }
 
 bool UAURDriverOpenCV::FWorkerRunnable::Init()
@@ -304,91 +214,139 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 {
 	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Worker thread start"))
 
-	// Start the video capture
-	if (!this->Driver->ConnectToCamera())
-	{
-		// if connection failed, do not run the main loop
-		this->bContinue = false;
-	}
+	UAURVideoSource* current_video_source = nullptr;
 
 	while (this->bContinue)
 	{
-		// get a new frame from camera - this blocks untill the next frame is available
-		//Driver->CameraCapture >> CapturedFrame;
-		Driver->VideoSrc->GetNextFrame(CapturedFrame);
+		bool new_video_source = false;
 
-		// compare the frame size to the size we expect from capture parameters
-		auto frame_size = CapturedFrame.size();
-		if (frame_size.width <= 0 || frame_size.height <= 0)
+		// Switch video source
 		{
-			UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Camera returned frame of wrong size: %dx%d"),
-				frame_size.width, frame_size.height);
+			FScopeLock lock(&Driver->VideoSourceLock);
+
+			if (current_video_source != Driver->NextVideoSource)
+			{
+				UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Switching video source"))
+
+				if (current_video_source)
+				{
+					current_video_source->Disconnect();
+				}
+
+				current_video_source = Driver->NextVideoSource;
+				// need to be kept in UPROPERTY for GC
+				Driver->VideoSource = current_video_source;
+
+				new_video_source = true;
+			}
+		}
+		
+		// activate new video source after switch
+		if (new_video_source)
+		{
+			if (current_video_source)
+			{
+				current_video_source->Connect();
+			}
+
+			Driver->OnVideoSourceSwitch();
+		}
+
+		// If no video source or it is not open, wait for a change
+		if (!current_video_source || !current_video_source->IsConnected())
+		{
+			FPlatformProcess::Sleep(0.25);
 		}
 		else
 		{
-			// Adjust the frame size if the camera returned a frame of different size than anticipated
-			if (frame_size.width != Driver->Resolution.X || frame_size.height != Driver->Resolution.Y)
+			// get a new frame from camera - this blocks untill the next frame is available
+			//Driver->CameraCapture >> CapturedFrame;
+			//Driver->VideoSrc->GetNextFrame(CapturedFrame);
+
+			// get a new frame from camera - this blocks untill the next frame is available
+			current_video_source->GetNextFrame(CapturedFrame);
+
+			// compare the frame size to the size we expect from capture parameters
+			auto frame_size = CapturedFrame.size();
+			if (frame_size.width <= 0 || frame_size.height <= 0)
 			{
-				FIntPoint new_camera_res(frame_size.width, frame_size.height);
-
-				UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Adjusting resolution to match the frame returned by camera: %dx%d (previously %dx%d)"),
-					new_camera_res.X, new_camera_res.Y, Driver->Resolution.X, Driver->Resolution.Y);
-
-				Driver->Resolution = new_camera_res;
-				Driver->CameraProperties.SetResolution(new_camera_res);
-
-				// this will allocate the frame with proper size
-				Driver->OnCameraPropertiesChange();
+				UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Camera returned frame of wrong size: %dx%d"),
+					frame_size.width, frame_size.height);
 			}
-
-			if (Driver->IsCalibrationInProgress()) // calibration
+			else
 			{
-				FScopeLock(&Driver->CalibrationLock);
-				Driver->CalibrationProcess.ProcessFrame(CapturedFrame, Driver->WorldReference->RealTimeSeconds);
-
-				if (Driver->CalibrationProcess.IsFinished())
+				// Adjust the frame size if the camera returned a frame of different size than anticipated
+				if (frame_size.width != Driver->FrameResolution.X || frame_size.height != Driver->FrameResolution.Y)
 				{
-					Driver->OnCalibrationFinished();
+					FIntPoint new_camera_res(frame_size.width, frame_size.height);
+
+					UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Adjusting resolution to match the frame returned by camera: %dx%d (previously %dx%d)"),
+						new_camera_res.X, new_camera_res.Y, Driver->FrameResolution.X, Driver->FrameResolution.Y);
+
+					Driver->SetFrameResolution(new_camera_res);
 				}
-			}
-			if (this->Driver->bPerformOrientationTracking)
-			{
-				/**
-				* Tracking markers and relative position with respect to them
-				*/
+
+				if (Driver->IsCalibrationInProgress()) // calibration
 				{
-					FScopeLock lock(&Driver->TrackerLock);
-					Driver->Tracker.DetectMarkers(CapturedFrame);
+					FScopeLock(&Driver->CalibrationLock);
+					Driver->CalibrationProcess.ProcessFrame(CapturedFrame, Driver->WorldReference->RealTimeSeconds);
+
+					if (Driver->CalibrationProcess.IsFinished())
+					{
+						Driver->OnCalibrationFinished();
+					}
 				}
-			}
-
-			// ---------------------------
-			// Create the frame to publish
-
-			// Frame to fill is in RGBA format
-			FColor* dest_pixel_ptr = Driver->WorkerFrame->Image.GetData();
-
-			for (int32 pixel_r = 0; pixel_r < CapturedFrame.rows; pixel_r++)
-			{
-				for (int32 pixel_c = 0; pixel_c < CapturedFrame.cols; pixel_c++)
+				if (this->Driver->bPerformOrientationTracking)
 				{
-					cv::Vec3b& src_pixel = CapturedFrame.at<cv::Vec3b>(pixel_r, pixel_c);
-
-					// Captured image is in BGR format
-					dest_pixel_ptr->R = src_pixel.val[2];
-					dest_pixel_ptr->G = src_pixel.val[1];
-					dest_pixel_ptr->B = src_pixel.val[0];
-
-					dest_pixel_ptr++;
+					/**
+					* Tracking markers and relative position with respect to them
+					*/
+					{
+						FScopeLock lock(&Driver->TrackerLock);
+						Driver->Tracker.DetectMarkers(CapturedFrame);
+					}
 				}
-			}
 
-			Driver->StoreWorkerFrame();
+				// ---------------------------
+				// Create the frame to publish
+
+				// Frame to fill is in RGBA format
+				FColor* dest_pixel_ptr = Driver->WorkerFrame->Image.GetData();
+
+				for (int32 pixel_r = 0; pixel_r < CapturedFrame.rows; pixel_r++)
+				{
+					for (int32 pixel_c = 0; pixel_c < CapturedFrame.cols; pixel_c++)
+					{
+						cv::Vec3b& src_pixel = CapturedFrame.at<cv::Vec3b>(pixel_r, pixel_c);
+
+						// Captured image is in BGR format
+						dest_pixel_ptr->R = src_pixel.val[2];
+						dest_pixel_ptr->G = src_pixel.val[1];
+						dest_pixel_ptr->B = src_pixel.val[0];
+
+						dest_pixel_ptr++;
+					}
+				}
+
+				Driver->StoreWorkerFrame();
+			}
 		}
 	}
 
+	// Disconnect video sources and notify the driver about that
+	{
+		FScopeLock lock(&Driver->VideoSourceLock);
+		if (current_video_source && current_video_source->IsConnected())
+		{
+			current_video_source->Disconnect();
+		}
+		
+		Driver->VideoSource = nullptr;
+		Driver->NextVideoSource = nullptr;
+		Driver->OnVideoSourceSwitch();
+	}
+
 	// Exiting the loop means the program ends, so release camera
-	Driver->DisconnectCamera();
 	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Worker thread ends"))
 
 	return 0;
@@ -397,88 +355,4 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 void UAURDriverOpenCV::FWorkerRunnable::Stop()
 {
 	this->bContinue = false;
-}
-
-void VideoSourceCvCapture::Disconnect()
-{
-	if (Capture.isOpened())
-	{
-		this->Capture.release();
-	}
-}
-
-bool VideoSourceCvCapture::IsConnected() const
-{
-	return Capture.isOpened();
-}
-
-FIntPoint VideoSourceCvCapture::GetResolution() const
-{
-	FIntPoint camera_res;
-	camera_res.X = FPlatformMath::RoundToInt(Capture.get(cv::CAP_PROP_FRAME_WIDTH));
-	camera_res.Y = FPlatformMath::RoundToInt(Capture.get(cv::CAP_PROP_FRAME_HEIGHT));
-	return camera_res;
-}
-
-void VideoSourceCvCapture::OnOpen()
-{
-}
-
-bool VideoSourceCvCapture::GetNextFrame(cv::Mat & frame)
-{
-	return Capture.read(frame);
-}
-
-bool VideoSourceCamera::OpenCamera(int camera_index, FIntPoint desired_resolution)
-{
-	Capture.open(camera_index);
-
-	if (Capture.isOpened() && desired_resolution.GetMin() > 0)
-	{
-		Capture.set(cv::CAP_PROP_FRAME_WIDTH, desired_resolution.X);
-		Capture.set(cv::CAP_PROP_FRAME_HEIGHT, desired_resolution.Y);
-	}
-
-	return Capture.isOpened();
-}
-
-bool VideoSourceStream::OpenStream(FString connection_string)
-{
-	return Capture.open(TCHAR_TO_UTF8(*connection_string));
-}
-
-const double MAX_FPS = 60.0;
-const double MIN_FPS = 0.1;
-
-bool VideoSourceFile::OpenFile(FString file_path)
-{
-	bool success = Capture.open(TCHAR_TO_UTF8(*file_path));
-
-	Period = 1.0;
-	if (success)
-	{
-		double fps = Capture.get(cv::CAP_PROP_FPS);
-
-		UE_LOG(LogAUR, Log, TEXT("VideoSourceFile: Reported FPS: %lf"), fps)
-		fps = FMath::Clamp(fps, MIN_FPS, MAX_FPS);
-
-		Period = 1.0 / fps;
-
-		FrameCount = FPlatformMath::RoundToInt(Capture.get(cv::CAP_PROP_FRAME_COUNT));
-	}
-
-	return Capture.isOpened();
-}
-
-bool VideoSourceFile::GetNextFrame(cv::Mat & frame)
-{
-	FPlatformProcess::Sleep(Period);
-	bool success = Capture.read(frame);
-
-	if (Capture.get(cv::CAP_PROP_POS_FRAMES) >= FrameCount - 1)
-	{
-		Capture.set(cv::CAP_PROP_POS_FRAMES, 0);
-	}
-
-	return success;
 }

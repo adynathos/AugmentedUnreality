@@ -32,8 +32,8 @@ struct FAURVideoFrame
 	TArray<FColor> Image;
 
 	FAURVideoFrame()
-		: FrameResolution(0, 0)
 	{
+		this->SetResolution(FIntPoint(1280, 720));
 	}
 
 	FAURVideoFrame(FIntPoint resolution)
@@ -65,8 +65,7 @@ struct FAURVideoFrame
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverConnectionStatusChange, UAURDriver*, Driver);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCameraParametersChange, UAURDriver*, Driver);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCalibrationStatusChange, UAURDriver*, Driver);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverViewpointTransformUpdate, FTransform, ViewpointTransform);
+//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverViewpointTransformUpdate, FTransform, ViewpointTransform);
 
 /**
  * Represents a way of connecting to a camera.
@@ -77,38 +76,13 @@ class UAURDriver : public UObject
 	GENERATED_BODY()
 
 public:
-	/** Settings */
-
-	/** Location of the file containing calibration data for this camera,
-		relative to FPaths::GameSavedDir()
-	*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	FString CalibrationFilePath;
-
-	/** Location of the default file containing calibration for this camera,
-		used when the CalibrationFilePath file does not exist,
-		relative to FPaths::GameContentDir()
-	*/
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	FString CalibrationFallbackFilePath;
-
 	/** True if it should track markers and calculate camera position+rotation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	uint32 bPerformOrientationTracking:1;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	//TSubclassOf<UAURSmoothingFilter> SmoothingFilterClass;
-
-	//UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
-	//UAURSmoothingFilter* SmoothingFilterInstance;
-
-	/** Desired (but not guaranteed) camera resolution */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	FIntPoint Resolution;
-
 	/** Called when the connection to camera is established or lost */
 	UPROPERTY(BlueprintAssignable)
-	FAURDriverConnectionStatusChange OnConnectionStatusChange;
+	FAURDriverConnectionStatusChange OnVideoSourceStatusChange;
 
 	/** Called when the resolution or FOV changes */
 	UPROPERTY(BlueprintAssignable)
@@ -119,8 +93,8 @@ public:
 	FAURDriverCalibrationStatusChange OnCalibrationStatusChange;
 
 	/** Called when a new viewpoint (camera) position is measured by the tracker */
-	UPROPERTY(BlueprintAssignable)
-	FAURDriverViewpointTransformUpdate OnViewpointTransformUpdate;
+	//UPROPERTY(BlueprintAssignable)
+	//FAURDriverViewpointTransformUpdate OnViewpointTransformUpdate;
 
 	UAURDriver();
 
@@ -150,6 +124,9 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual void Shutdown();
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual bool OpenDefaultVideoSource();
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false);
@@ -226,24 +203,13 @@ protected:
 	// Is the driver turned on
 	uint32 bActive : 1;
 
-	// Is the camera connected and streaming
-	uint32 bConnected : 1;
+	// Resolution of the frames used for image transfer
+	FIntPoint FrameResolution;
 
-	uint32 bCalibrated : 1;
 	uint32 bCalibrationInProgress : 1;
 
 	/** Reference to UWorld for time measurement */
 	UWorld* WorldReference;
-
-	FString GetCalibrationFileFullPath() const 
-	{
-		return FPaths::GameSavedDir() / this->CalibrationFilePath;
-	}
-
-	FString GetCalibrationFallbackFileFullPath() const 
-	{
-		return FPaths::GameContentDir() / this->CalibrationFallbackFilePath;
-	}
 
 	static UAURDriver* CurrentDriver;
 

@@ -35,6 +35,7 @@ public:
 	virtual void Initialize() override;
 	virtual void Shutdown() override;
 
+	virtual FIntPoint GetResolution() const override;
 	virtual FAURVideoFrame* GetFrame() override;
 	virtual bool IsNewFrameAvailable() const override;
 
@@ -64,7 +65,7 @@ protected:
 	void SetFrameResolution(FIntPoint const& new_res);
 
 	// Call the delegates from game thread
-	void NotifyConnectionStatusChange();
+	void NotifyVideoSourceStatusChange();
 	void NotifyCameraParametersChange();
 	void NotifyCalibrationStatusChange();
 

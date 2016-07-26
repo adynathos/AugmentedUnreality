@@ -21,28 +21,15 @@ limitations under the License.
 UAURDriver* UAURDriver::CurrentDriver = nullptr;
 
 UAURDriver::UAURDriver()
-	: CalibrationFilePath("AugmentedUnreality/Calibration/camera.xml")
-	, CalibrationFallbackFilePath("AugmentedUnreality/Calibration/default.xml")
-	, bPerformOrientationTracking(true)
-	//, SmoothingFilterInstance(nullptr)
-	, Resolution(800, 600)
+	: bPerformOrientationTracking(true)
+	, FrameResolution(1280, 720)
 	, bActive(false)
-	, bConnected(false)
-	, bCalibrated(false)
 	, bCalibrationInProgress(false)
 {
 }
 
 void UAURDriver::Initialize()
 {
-	/*
-	if (this->SmoothingFilterClass)
-	{
-		this->SmoothingFilterInstance = NewObject<UAURSmoothingFilter>(this, this->SmoothingFilterClass);
-		this->SmoothingFilterInstance->Init();
-	}
-	*/
-
 	if (CurrentDriver)
 	{
 		UE_LOG(LogAUR, Error, TEXT("UAURDriver::Initialize: CurrentDriver is not null"))
@@ -64,6 +51,12 @@ void UAURDriver::Shutdown()
 	CurrentDriver = nullptr;
 }
 
+bool UAURDriver::OpenDefaultVideoSource()
+{
+	UE_LOG(LogAUR, Error, TEXT("UAURDriver::OpenDefaultVideoSource: Not implemented"))
+	return false;
+}
+
 bool UAURDriver::RegisterBoard(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
 {
 	UE_LOG(LogAUR, Error, TEXT("UAURDriver::RegisterBoard: Not implemented"))
@@ -77,12 +70,12 @@ void UAURDriver::UnregisterBoard(AAURMarkerBoardDefinitionBase * board_actor)
 
 bool UAURDriver::IsConnected() const
 {
-	return this->bConnected;
+	return false;
 }
 
 bool UAURDriver::IsCalibrated() const
 {
-	return this->bCalibrated;
+	return false;
 }
 
 bool UAURDriver::IsCalibrationInProgress() const
@@ -106,7 +99,7 @@ void UAURDriver::CancelCalibration()
 
 FIntPoint UAURDriver::GetResolution() const
 {
-	return this->Resolution;
+	return FIntPoint(0, 0);
 }
 
 FVector2D UAURDriver::GetFieldOfView() const

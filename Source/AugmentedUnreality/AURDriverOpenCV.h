@@ -21,58 +21,9 @@ limitations under the License.
 #include "AUROpenCV.h"
 #include "AUROpenCVCalibration.h"
 #include "tracking/AURArucoTracker.h"
+#include "video_sources/AURVideoSource.h"
 
 #include "AURDriverOpenCV.generated.h"
-
-class VideoSource {
-
-public:
-	virtual void Disconnect() = 0;
-	virtual bool IsConnected() const = 0;
-
-	virtual bool GetNextFrame(cv::Mat & frame) = 0;
-	virtual FIntPoint GetResolution() const = 0;
-};
-
-class VideoSourceCvCapture : public VideoSource {
-public:
-	virtual void Disconnect();
-	virtual bool IsConnected() const;
-
-	virtual bool GetNextFrame(cv::Mat & frame);
-	virtual FIntPoint GetResolution() const;
-	//virtual double GetFrequency() const;
-
-protected:
-	void OnOpen();
-
-	cv::VideoCapture Capture;
-};
-
-class VideoSourceCamera : public VideoSourceCvCapture {
-
-public:
-	bool OpenCamera(int camera_index, FIntPoint desired_resolution = FIntPoint(0, 0));
-};
-
-class VideoSourceStream : public VideoSourceCvCapture {
-
-public:
-	bool OpenStream(FString connection_string);
-};
-
-
-class VideoSourceFile : public VideoSourceCvCapture {
-
-public:
-	bool OpenFile(FString file_path);
-
-	virtual bool GetNextFrame(cv::Mat & frame);
-
-protected:
-	float Period;
-	int FrameCount;
-};
 
 /**
  *
@@ -83,32 +34,28 @@ class UAURDriverOpenCV : public UAURDriverThreaded
 	GENERATED_BODY()
 
 public:
-	/**
-	 *	ONLY SET THESE PROPERTIES BEFORE CALLING Initialize()
-	 */
+	// ONLY SET THESE PROPERTIES BEFORE CALLING Initialize()	 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	FArucoTrackerSettings TrackerSettings;
 
-	/*
-	 * ID of camera to capture video from. Used if CameraConnectionString is empty.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	int32 CameraIndex;
-
-	/*
-	 * Read video from file 
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	FString VideoFile;
-
-	/*
-	 * Connection string for GStreamer, leave empty to use CameraIndex
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	FString CameraConnectionString;
-
+	// Convenience list of often-used video sources
+	// Sources from outside this list can be used as well for SetVideoSource
 	UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
-	AAURMarkerBoardDefinitionBase* TrackingBoardDefinition;
+	TArray<UAURVideoSource*> AvailableVideoSources;
+
+	// Automatically creates those video sources on Initialize
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AugmentedReality)
+	TArray< TSubclassOf<UAURVideoSource> > DefaultVideoSources;
+
+	// Get the currently active video source
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	UAURVideoSource* GetVideoSource();
+
+	// Switch to a new video source object, nullptr to disable video
+	// This does not intantly change the VideoSource variable - wait for the other
+	// thread to close the previous one and open new one.
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	void SetVideoSource(UAURVideoSource* NewVideoSource);
 
 	//UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	//void SetTrackingBoardDefinition(AAURMarkerBoardDefinitionBase* board_definition);
@@ -118,12 +65,14 @@ public:
 	virtual void Initialize() override;
 	virtual void Tick() override;
 
+	virtual bool OpenDefaultVideoSource() override;
 	virtual bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false) override;
 	virtual void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor) override;
 
-	virtual FIntPoint GetResolution() const override;
 	virtual FVector2D GetFieldOfView() const override;
 	
+	virtual bool IsConnected() const override;
+	virtual bool IsCalibrated() const override;
 	virtual float GetCalibrationProgress() const override;
 	virtual void StartCalibration() override;
 	virtual void CancelCalibration() override;
@@ -131,12 +80,17 @@ public:
 	virtual FString GetDiagnosticText() const override;
 
 protected:
-	// Connection to the camera
-	//cv::VideoCapture CameraCapture;
-	TUniquePtr<VideoSource> VideoSrc;
+	FCriticalSection VideoSourceLock;
+
+	// Video source instance providing the video stream for the AR
+	UPROPERTY(Transient)
+	UAURVideoSource* VideoSource;
+
+	// Switch to this video source on next iteration
+	UPROPERTY(Transient)
+	UAURVideoSource* NextVideoSource;
 
 	// Camera calibration
-	FOpenCVCameraProperties CameraProperties;
 	FCriticalSection CalibrationLock;
 	FOpenCVCameraCalibrationProcess CalibrationProcess;
 
@@ -145,21 +99,10 @@ protected:
 
 	FString DiagnosticText;
 
-	// Creates a cv::CameraCapture with the right index/address,
-	// Override to change the address.
-	// This operation is often blocking, call from separate thread.
-	virtual bool CreateCameraCapture();
+	// Called by the worker thread when the new video source is ready
+	void OnVideoSourceSwitch();
 
-	// Attempts to open a connection to the camera.
-	// Calls CreateCameraCapture.
-	// This operation is often blocking, call from separate thread.
-	// Returns true on success.
-	bool ConnectToCamera();
-
-	// Release the connection when program ends.
-	void DisconnectCamera();
-
-	void LoadCalibrationFile();
+	//void LoadCalibrationFile();
 	void OnCalibrationFinished();
 	void OnCameraPropertiesChange();
 

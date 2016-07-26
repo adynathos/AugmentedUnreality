@@ -21,7 +21,6 @@ limitations under the License.
 
 UAURDriverThreaded::UAURDriverThreaded()
 	: bNewFrameReady(false)
-	//, bNewOrientationReady(false)
 {
 }
 
@@ -69,6 +68,11 @@ FRunnable * UAURDriverThreaded::CreateWorker()
 	return nullptr;
 }
 
+FIntPoint UAURDriverThreaded::GetResolution() const
+{
+	return FrameResolution;
+}
+
 FAURVideoFrame* UAURDriverThreaded::GetFrame()
 {
 	// If there is a new frame produced
@@ -103,17 +107,18 @@ void UAURDriverThreaded::StoreWorkerFrame()
 
 void UAURDriverThreaded::SetFrameResolution(FIntPoint const & new_res)
 {
+	FrameResolution = new_res;
 	for (int idx = 0; idx < 3; idx++)
 	{
 		this->FrameInstances[idx].SetResolution(new_res);
 	}
 }
 
-void UAURDriverThreaded::NotifyConnectionStatusChange()
+void UAURDriverThreaded::NotifyVideoSourceStatusChange()
 {
 	AsyncTask(ENamedThreads::GameThread, [this]() {
-		UE_LOG(LogAUR, Log, TEXT("NotifyConnectionStatusChange"))
-		this->OnConnectionStatusChange.Broadcast(this);
+		UE_LOG(LogAUR, Log, TEXT("NotifyVideoSourceStatusChange"))
+		this->OnVideoSourceStatusChange.Broadcast(this);
 	});
 }
 

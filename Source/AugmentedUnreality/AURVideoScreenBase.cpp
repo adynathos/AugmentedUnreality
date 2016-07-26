@@ -193,7 +193,7 @@ void UAURVideoScreenBase::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 	if (this->bIsActive && this->VideoDriver)
 	{
-		auto res = this->VideoDriver->Resolution;
+		auto res = this->VideoDriver->GetResolution();
 
 		if (!this->DynamicTexture || res.X != this->DynamicTexture->GetSizeX() || res.Y != this->DynamicTexture->GetSizeY())
 		{
