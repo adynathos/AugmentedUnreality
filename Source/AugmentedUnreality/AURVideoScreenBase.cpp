@@ -94,6 +94,13 @@ UMaterialInstanceDynamic* UAURVideoScreenBase::FindScreenMaterial()
 
 void UAURVideoScreenBase::SetResolution(FIntPoint resolution)
 {
+	if (resolution.GetMin() <= 0)
+	{
+		UE_LOG(LogAUR, Error, TEXT("UAURVideoScreenBase::SetResolution: invalid resolution %d x %d"), resolution.X, resolution.Y);
+		resolution.X = 1;
+		resolution.Y = 1;
+	}
+
 	this->Resolution = resolution;
 
 	// Create transient texture to be able to draw on it
