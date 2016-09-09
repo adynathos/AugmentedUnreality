@@ -101,7 +101,8 @@ FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
 
 	for (int idx = 0; idx < 4; idx++)
 	{
-		def_data.Corners[idx] = transform_this_to_actor.TransformPosition(LOCAL_CORNERS[idx] * pattern_size_cm);
+		// Don't multiply by this marker's size becuase the transform's scale will do it.
+		def_data.Corners[idx] = transform_this_to_actor.TransformPosition(LOCAL_CORNERS[idx] * MARKER_DEFAULT_SIZE);
 	}
 
 	return def_data;
