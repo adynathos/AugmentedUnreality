@@ -23,7 +23,10 @@ However, we resolve them wit the following tricks
 // UE4 defines a macro "check" in Runtime/Core/Public/Misc/AssertionMacros.h:28
 // which conflicts with method "check" in opencv2/core/utility.hpp:729
 // so remove the macro for this file:
+#pragma push_macro("check")
 #undef check
+
+// some actions
 
 // Both UE4 and OpenCV typedef types "int64" "uint64" and that causes a conflict.
 // To prevent the conflict, we rename OpenCV's types.
@@ -44,7 +47,7 @@ However, we resolve them wit the following tricks
 #undef uint64
 
 // But UE needs this macro, so here it comes back
-#define check(expr)	{ if(UNLIKELY(!(expr))) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); CA_ASSUME(expr); } }
+#pragma pop_macro("check")
 
 class FAUROpenCV
 {
