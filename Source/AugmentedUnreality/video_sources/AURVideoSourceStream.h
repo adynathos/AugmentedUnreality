@@ -29,9 +29,13 @@ class UAURVideoSourceStream : public UAURVideoSourceCvCapture
 	GENERATED_BODY()
 	
 public:
-	//Connection string for GStreamer, leave empty to use CameraIndex
+	//Connection string for GStreamer, leave empty to use StreamFile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
 	FString ConnectionString;
+
+	// Stream definition file, like .sdp, used when ConnectionString is empty
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
+	FString StreamFile;
 
 	UAURVideoSourceStream();
 

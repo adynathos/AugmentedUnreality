@@ -30,15 +30,42 @@ FText UAURVideoSourceStream::GetSourceName() const
 	}
 	else
 	{
-		return FText::FromString("Stream");
+		if (!ConnectionString.IsEmpty())
+		{
+			return FText::FromString("GStreamer");
+		}
+		else 
+		{
+			return FText::FromString("Stream " + FPaths::GetCleanFilename(StreamFile));
+		}
 	}
 }
 
 bool UAURVideoSourceStream::Connect()
 {
-	if (Capture.open(TCHAR_TO_UTF8(*ConnectionString)))
+	bool success = false;
+
+	if (!ConnectionString.IsEmpty())
+	{
+		success = Capture.open(TCHAR_TO_UTF8(*ConnectionString));
+	}
+	else
+	{
+		FString full_path = FPaths::GameDir() / StreamFile;
+
+		if (!FPaths::FileExists(full_path))
+		{
+			UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceStream::Connect: File %s does not exist"), *full_path)
+				return false;
+		}
+
+		success = Capture.open(TCHAR_TO_UTF8(*full_path));
+	}
+
+	if (success)
 	{
 		LoadCalibration();
 	}
+
 	return Capture.isOpened();
 }
