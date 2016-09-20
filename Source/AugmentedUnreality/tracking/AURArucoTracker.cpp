@@ -231,7 +231,7 @@ bool FAURArucoTracker::RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor,
 	{
 		// That is the first board so set the dictionary to match it
 		DictionaryId = board_data->GetArucoDictionaryId();
-		ArucoDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(DictionaryId));
+		ArucoDictionary = board_data->GetArucoDictionary();
 	}
 
 	// Construct and add to map
@@ -244,8 +244,6 @@ bool FAURArucoTracker::RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor,
 	{
 		TrackedBoardsByMarker.Add(marker_id, tracker_info);
 	}
-
-	//board_actor->UsedAsViewpointOrigin = use_as_viewpoint_origin;
 
 	return true;
 }

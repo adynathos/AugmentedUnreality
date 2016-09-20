@@ -23,93 +23,14 @@ limitations under the License.
 class AAURMarkerBoardDefinitionBase;
 
 /**
-	Description of a set of AR markers, in a format needed by the tracker library.
-	Usually created from a board definition BP.
-**/
-class FFreeFormBoardData
-{
-public:
-	FFreeFormBoardData(AAURMarkerBoardDefinitionBase* board_actor);
-	void Clear();
-	void SetDictionaryId(uint32_t dict_id);
-	void AddMarker(FMarkerDefinitionData const & marker_def);
-
-	cv::aruco::Board const& GetArucoBoard() const
-	{
-		return ArucoBoard;
-	}
-
-	std::vector<int> const& GetMarkerIds() const
-	{
-		return ArucoBoard.ids;
-	}
-
-	int GetMinMarkerId() const
-	{
-		return *std::min_element(std::begin(GetMarkerIds()), std::end(GetMarkerIds()));
-	}
-
-	int GetArucoDictionaryId() const
-	{
-		return DictionaryId;
-	}
-
-	cv::aruco::Dictionary const& GetArucoDictionary() const
-	{
-		return ArucoDictionary;
-	}
-
-	AAURMarkerBoardDefinitionBase* GetBoardActor() const
-	{
-		return BoardActor;
-	}
-
-	
-
-	/*std::vector<cv::Mat> const & GetMarkerImages() const
-	{
-		return Pages;
-	}*/
-
-	// Default size is A4 landscape.
-	//void DrawMarkers(float marker_size_cm = 8.0f, uint32_t dpi = 300, float margin_cm = 2.0f, cv::Size2f page_size_cm = cv::Size2f(29.7f, 21.0f));
-
-protected:
-	//std::vector<cv::Mat> Pages;
-
-	AAURMarkerBoardDefinitionBase* BoardActor;
-
-	/**
-		The board is constructed in AUR binary, without GridBoard::create,
-		so it can be deleted in AUR binary too.
-	**/
-	cv::aruco::Board ArucoBoard;
-	
-	/**
-		A full copy of the dictionary returned by cv::ArUco is stored here
-		so that we avoid the crash-inducing Ptr<Dictionary>
-	**/
-	cv::aruco::Dictionary ArucoDictionary;
-	uint32_t DictionaryId;
-};
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURBoardTransformUpdate, FTransform, MeasuredTransform);
-
-/**
- * Actor blueprint representing a spatial configuration of ArUco markers.
- */
-UCLASS(Abstract, Blueprintable, BlueprintType)
-class AAURMarkerBoardDefinitionBase : public AActor
+	Represents an set of markers.
+*/
+USTRUCT(BlueprintType)
+struct FArucoDictionaryDefinition
 {
 	GENERATED_BODY()
 
-public:
-	// Where to store the marker image, relative to FPaths::GameSavedDir()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	FString MarkerFileDir;
-
-	/**
-		Id of the predefined marker dictionary. Choices:
+	/** Use one of the predefined dictionaries Choices:
 		DICT_4X4_50 = 0,
 		DICT_4X4_100,
 		DICT_4X4_250,
@@ -129,7 +50,113 @@ public:
 		DICT_ARUCO_ORIGINAL
 	**/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
-	int32 DictionaryId;
+	int32 PredefinedDictionaryId;
+
+	// False: Use PredefinedDictionaryId, True: build custom dict with CustomDictionary* properties.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
+	bool UseCustomDictionary;
+
+	// Number of markers in the custom dictionary.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
+	int32 CustomDictionaryCount;
+
+	// Marker is made of [size x size] squares
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking, meta = (ClampMin = "0", ClampMax = "64", UIMin = "0.0", UIMax = "64"))
+	int32 CustomDictionaryMarkerSize;
+
+	FArucoDictionaryDefinition()
+		: PredefinedDictionaryId(cv::aruco::DICT_4X4_100)
+		, UseCustomDictionary(false)
+		, CustomDictionaryCount(0)
+		, CustomDictionaryMarkerSize(3)
+	{}
+
+	bool operator==(FArucoDictionaryDefinition const & other) const;
+	bool operator!=(FArucoDictionaryDefinition const & other) const;
+
+	// Id for comparing if 2 dictionaries are the same.
+	int32 GetUniqueId() const;
+	FString GetName() const;
+	cv::aruco::Dictionary GetDictionary() const;
+};
+
+/**
+	Description of a set of AR markers, in a format needed by the tracker library.
+	Usually created from a board definition BP.
+**/
+class FFreeFormBoardData
+{
+public:
+	FFreeFormBoardData(AAURMarkerBoardDefinitionBase* board_actor);
+	void Clear();
+	void SetDictionaryDefinition(FArucoDictionaryDefinition const & dict_def);
+	void AddMarker(FMarkerDefinitionData const & marker_def);
+
+	cv::aruco::Board const& GetArucoBoard() const
+	{
+		return ArucoBoard;
+	}
+
+	std::vector<int> const& GetMarkerIds() const
+	{
+		return ArucoBoard.ids;
+	}
+
+	int GetMinMarkerId() const
+	{
+		return *std::min_element(std::begin(GetMarkerIds()), std::end(GetMarkerIds()));
+	}
+
+	int GetArucoDictionaryId() const
+	{
+		return DictionaryDefinition.GetUniqueId();
+	}
+
+	cv::aruco::Dictionary const& GetArucoDictionary() const
+	{
+		return ArucoDictionary;
+	}
+
+	AAURMarkerBoardDefinitionBase* GetBoardActor() const
+	{
+		return BoardActor;
+	}
+
+protected:
+	AAURMarkerBoardDefinitionBase* BoardActor;
+
+	/**
+		The board is constructed in AUR binary, without GridBoard::create,
+		so it can be deleted in AUR binary too.
+	**/
+	cv::aruco::Board ArucoBoard;
+	
+	/**
+		A full copy of the dictionary returned by cv::ArUco is stored here
+		so that we avoid the crash-inducing Ptr<Dictionary>
+	**/
+	cv::aruco::Dictionary ArucoDictionary;
+	FArucoDictionaryDefinition DictionaryDefinition;
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURBoardTransformUpdate, FTransform, MeasuredTransform);
+
+/**
+ * Actor blueprint representing a spatial configuration of ArUco markers.
+ */
+UCLASS(Abstract, Blueprintable, BlueprintType)
+class AAURMarkerBoardDefinitionBase : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	// Where to store the marker image, relative to FPaths::GameSavedDir()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
+	FString MarkerFileDir;
+
+	// Set of markers to use
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
+	FArucoDictionaryDefinition DictionaryDefinition;
 
 	//UPROPERTY(Transient, BlueprintReadOnly, Category = ArucoTracking)
 	//bool UsedAsViewpointOrigin;
