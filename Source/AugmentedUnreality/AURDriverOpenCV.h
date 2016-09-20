@@ -28,7 +28,7 @@ limitations under the License.
 /**
  *
  */
-UCLASS(Blueprintable, BlueprintType)
+UCLASS(Blueprintable, BlueprintType, Config=Game)
 class UAURDriverOpenCV : public UAURDriverThreaded
 {
 	GENERATED_BODY()
@@ -38,14 +38,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	FArucoTrackerSettings TrackerSettings;
 
-	// Convenience list of often-used video sources
-	// Sources from outside this list can be used as well for SetVideoSource
-	UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
-	TArray<UAURVideoSource*> AvailableVideoSources;
-
 	// Automatically creates those video sources on Initialize
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AugmentedReality)
 	TArray< TSubclassOf<UAURVideoSource> > DefaultVideoSources;
+
+	/* 
+	Index of the last used video source, saved in config so that
+	it is opened on next start 
+	*/
+	UPROPERTY(Config)
+	int32 DefaultVideoSourceIndex;
+
+	// Convenience list of existing instances of video sources
+	// Sources from outside this list can be used as well for SetVideoSource
+	UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
+	TArray<UAURVideoSource*> AvailableVideoSources;
 
 	// Get the currently active video source
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
@@ -56,6 +63,10 @@ public:
 	// thread to close the previous one and open new one.
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	void SetVideoSource(UAURVideoSource* NewVideoSource);
+
+	// Switch to a new video source from AvailableVideoSources list
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	void SetVideoSourceByIndex(const int32 index);
 
 	//UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	//void SetTrackingBoardDefinition(AAURMarkerBoardDefinitionBase* board_definition);

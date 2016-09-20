@@ -19,6 +19,7 @@ limitations under the License.
 #include "AURSmoothingFilter.h"
 
 UAURDriverOpenCV::UAURDriverOpenCV()
+	: DefaultVideoSourceIndex(1)
 {
 }
 
@@ -60,16 +61,41 @@ void UAURDriverOpenCV::SetVideoSource(UAURVideoSource * NewVideoSource)
 	NextVideoSource = NewVideoSource;
 }
 
+void UAURDriverOpenCV::SetVideoSourceByIndex(const int32 index)
+{
+	if (index < 0 || index >= AvailableVideoSources.Num())
+	{
+		UE_LOG(LogAUR, Error, TEXT("UAURDriverOpenCV::SetVideoSourceByIndex index outside of range: %d"), index)
+	}
+	else
+	{
+		SetVideoSource(AvailableVideoSources[index]);
+
+		// Save the index to open same source on next run
+		DefaultVideoSourceIndex = index;
+		SaveConfig();
+	}
+}
+
 bool UAURDriverOpenCV::OpenDefaultVideoSource()
 {
-	for (auto vid_src : AvailableVideoSources)
+	if (DefaultVideoSourceIndex >= 0 && DefaultVideoSourceIndex < AvailableVideoSources.Num())
 	{
-		if (vid_src)
+		SetVideoSourceByIndex(DefaultVideoSourceIndex);
+		return true;
+	}
+	else
+	{
+		for (int32 idx = 0; idx < AvailableVideoSources.Num(); idx++)
 		{
-			SetVideoSource(vid_src);
-			return true;
+			if (AvailableVideoSources[idx])
+			{
+				SetVideoSourceByIndex(idx);
+				return true;
+			}
 		}
 	}
+
 	return false;
 }
 
