@@ -97,12 +97,13 @@ FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
 	// Transform the corners
 	FMarkerDefinitionData def_data(Id);
 
-	const float pattern_size_cm = BoardSizeCm - 2 * MarginCm;
+	// Don't multiply by this marker's size becuase the transform's scale will do it.
+	// But calculate what part of the board is taken by the margin
+	const float pattern_size_relative = (BoardSizeCm - 2 * MarginCm) * MARKER_DEFAULT_SIZE/BoardSizeCm;
 
 	for (int idx = 0; idx < 4; idx++)
 	{
-		// Don't multiply by this marker's size becuase the transform's scale will do it.
-		def_data.Corners[idx] = transform_this_to_actor.TransformPosition(LOCAL_CORNERS[idx] * MARKER_DEFAULT_SIZE);
+		def_data.Corners[idx] = transform_this_to_actor.TransformPosition(LOCAL_CORNERS[idx] * pattern_size_relative);
 	}
 
 	return def_data;
