@@ -126,7 +126,7 @@ void UAURDriverThreaded::NotifyCameraParametersChange()
 {
 	AsyncTask(ENamedThreads::GameThread, [this]() {
 		UE_LOG(LogAUR, Log, TEXT("NotifyCameraParametersChange"))
-			this->OnCameraParametersChange.Broadcast(this);
+		this->OnCameraParametersChange.Broadcast(this);
 	});
 }
 
@@ -134,6 +134,6 @@ void UAURDriverThreaded::NotifyCalibrationStatusChange()
 {
 	AsyncTask(ENamedThreads::GameThread, [this]() {
 		UE_LOG(LogAUR, Log, TEXT("NotifyCalibrationStatusChange"))
-			this->OnCalibrationStatusChange.Broadcast(this);
+		this->OnCalibrationStatusChange.Broadcast(this);
 	});
 }
