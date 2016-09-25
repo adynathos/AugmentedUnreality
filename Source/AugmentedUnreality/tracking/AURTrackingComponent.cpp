@@ -1,8 +1,38 @@
-// Copyright 2016 Krzysztof LisLicensed under the Apache License, Version 2.0 (the "License");you may not use this file except in compliance with the License.You may obtain a copy of the License at    http:
+/*
+Copyright 2016 Krzysztof Lis
 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http ://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 #include "AugmentedUnreality.h"
 #include "AURTrackingComponent.h"
+#include "AURDriver.h"
+#include "AURMarkerBoardDefinitionBase.h"
 
+void UAURTrackingComponent::BeginPlay()
+{
+	UE_LOG(LogAUR, Warning, TEXT("TRackignCOmp:BEGIN"))
 
+	AAURMarkerBoardDefinitionBase* board = Cast<AAURMarkerBoardDefinitionBase>(GetChildActor());
 
+	if (!board)
+	{
+		UE_LOG(LogAUR, Error, TEXT("AURTrackingComponent: No valid board child-actor"))
+	}
+	else
+	{
+		// Move our actor to match the board's position
+		board->ActorToMove = GetOwner();
 
+		UAURDriver::RegisterBoardForTracking(board);
+	}
+}
