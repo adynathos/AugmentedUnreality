@@ -17,6 +17,7 @@ limitations under the License.
 #include "AugmentedUnreality.h"
 #include "AURMarkerBoardDefinitionBase.h"
 #include "AURMarkerComponentBase.h"
+#include "AURDriver.h"
 
 const float INCH = 2.54f;
 
@@ -153,6 +154,14 @@ TSharedPtr<FFreeFormBoardData> AAURMarkerBoardDefinitionBase::GetBoardData()
 	}
 
 	return BoardData;
+}
+
+void AAURMarkerBoardDefinitionBase::EndPlay(const EEndPlayReason::Type reason)
+{
+	Super::EndPlay(reason);
+
+	// Unregister to be sure we don't leave invalid pointers in the list
+	UAURDriver::UnregisterBoardForTracking(this);
 }
 
 void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dpi)

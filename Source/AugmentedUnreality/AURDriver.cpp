@@ -19,6 +19,7 @@ limitations under the License.
 //#include "AURSmoothingFilter.h"
 
 UAURDriver* UAURDriver::CurrentDriver = nullptr;
+TArray<UAURDriver::BoardRegistration> UAURDriver::RegisteredBoards;
 
 UAURDriver::UAURDriver()
 	: bPerformOrientationTracking(true)
@@ -30,12 +31,7 @@ UAURDriver::UAURDriver()
 
 void UAURDriver::Initialize()
 {
-	if (CurrentDriver)
-	{
-		UE_LOG(LogAUR, Error, TEXT("UAURDriver::Initialize: CurrentDriver is not null"))
-	}
-
-	CurrentDriver = this;
+	RegisterDriver(this);
 
 	bActive = true;
 }
@@ -48,7 +44,7 @@ void UAURDriver::Shutdown()
 {
 	bActive = false;
 
-	CurrentDriver = nullptr;
+	UnregisterDriver(this);
 }
 
 bool UAURDriver::OpenDefaultVideoSource()
@@ -122,7 +118,47 @@ FString UAURDriver::GetDiagnosticText() const
 	return "Not implemented";
 }
 
-UAURDriver * UAURDriver::GetCurrentDriver()
+void UAURDriver::RegisterBoardForTracking(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
 {
-	return CurrentDriver;
+	RegisteredBoards.AddUnique(BoardRegistration(board_actor, use_as_viewpoint_origin));
+
+	if (CurrentDriver)
+	{
+		CurrentDriver->RegisterBoard(board_actor, use_as_viewpoint_origin);
+	}
+}
+
+void UAURDriver::UnregisterBoardForTracking(AAURMarkerBoardDefinitionBase * board_actor)
+{
+	RegisteredBoards.RemoveAll([&](BoardRegistration const & entry) {
+		return entry.Board == board_actor;
+	});
+
+	if (CurrentDriver)
+	{
+		CurrentDriver->UnregisterBoard(board_actor);
+	}
+}
+
+void UAURDriver::RegisterDriver(UAURDriver* driver)
+{
+	if (CurrentDriver)
+	{
+		UE_LOG(LogAUR, Warning, TEXT("UAURDriver::Initialize: CurrentDriver is not null, replacing"))
+	}
+
+	CurrentDriver = driver;
+
+	for (auto const & entry : RegisteredBoards)
+	{
+		CurrentDriver->RegisterBoard(entry.Board, entry.ViewpointOrigin);
+	}
+}
+
+void UAURDriver::UnregisterDriver(UAURDriver* driver)
+{
+	if (CurrentDriver == driver)
+	{
+		CurrentDriver = nullptr;
+	}
 }

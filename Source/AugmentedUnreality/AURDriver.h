@@ -78,7 +78,7 @@ class UAURDriver : public UObject
 public:
 	/** True if it should track markers and calculate camera position+rotation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	uint32 bPerformOrientationTracking:1;
+	uint32 bPerformOrientationTracking : 1;
 
 	/** Called when the connection to camera is established or lost */
 	UPROPERTY(BlueprintAssignable)
@@ -108,7 +108,7 @@ public:
 	* Provide an UWorld reference for time measurement.
 	*/
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	void SetWorld(UWorld* world_reference) 
+	void SetWorld(UWorld* world_reference)
 	{
 		this->WorldReference = world_reference;
 	}
@@ -128,17 +128,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual bool OpenDefaultVideoSource();
 
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false);
-
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor);
-
 	// Is the camera connected and working.
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual bool IsConnected() const;
 
-	/** 
+	/**
 	 * True if the specific calibration file for this camera has been found,
 	 * False if it uses default fallback file.
 	 */
@@ -171,7 +165,7 @@ public:
 	virtual FVector2D GetFieldOfView() const;
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	void GetCameraParameters(FIntPoint & camera_resolution, FVector2D field_of_view) const 
+	void GetCameraParameters(FIntPoint & camera_resolution, FVector2D field_of_view) const
 	{
 		camera_resolution = this->GetResolution();
 		field_of_view = this->GetFieldOfView();
@@ -196,8 +190,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual FString GetDiagnosticText() const;
 
+	// Start tracking a board - called by the static board list mechanism (RegisterBoardForTracking)
+	virtual bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false);
+
+	virtual void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor);
+
+	/**
+		Registers the board to be tracked by the currently running AURDriver
+		(if one is running) and any AURDriver created in the future.
+
+		Boards for AR tracking may be placed on various unconnected actors,
+		who do not have the reference to the currently used AURDriver,
+		or due to initialization order there may be no currently running driver at all.
+
+		Therefore boards will be put on a global list and when a driver is present,
+		it will read the list and track the board.
+	**/
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	static UAURDriver* GetCurrentDriver();
+	static void RegisterBoardForTracking(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false);
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	static void UnregisterBoardForTracking(AAURMarkerBoardDefinitionBase* board_actor);
 
 protected:
 	// Is the driver turned on
@@ -211,11 +224,32 @@ protected:
 	/** Reference to UWorld for time measurement */
 	UWorld* WorldReference;
 
-	static UAURDriver* CurrentDriver;
-
 	static void EnsureDirExists(FString FilePath)
 	{
 		IPlatformFile & filesystem = FPlatformFileManager::Get().GetPlatformFile();
 		filesystem.CreateDirectoryTree(*FPaths::GetPath(FilePath));
 	}
+
+private:
+	struct BoardRegistration
+	{
+		AAURMarkerBoardDefinitionBase* Board;
+		bool ViewpointOrigin;
+
+		BoardRegistration(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false)
+			: Board(board_actor)
+			, ViewpointOrigin(use_as_viewpoint_origin)
+		{}
+
+		// For TArray.AddUnique
+		bool operator==(BoardRegistration const & other) const
+		{
+			return Board == other.Board && ViewpointOrigin == other.ViewpointOrigin;
+		}
+	};
+	static TArray<BoardRegistration> RegisteredBoards;
+	static UAURDriver* CurrentDriver;
+
+	static void RegisterDriver(UAURDriver* driver);
+	static void UnregisterDriver(UAURDriver* driver);
 };

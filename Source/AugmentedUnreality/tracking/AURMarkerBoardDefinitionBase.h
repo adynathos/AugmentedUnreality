@@ -191,6 +191,8 @@ public:
 
 	TSharedPtr<FFreeFormBoardData> GetBoardData();
 
+	virtual void EndPlay(const EEndPlayReason::Type reason) override;
+
 	//virtual void PostInitializeComponents() override;
 
 	// Called by AURArucoTracker when a new transform is measured
