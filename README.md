@@ -1,111 +1,262 @@
-## Augmented Unreality
-### Augmented reality for Unreal Engine 4
+<h1>Augmented Unreality</h1>
+<p>
+Augmented Unreality is a plugin for <a href="https://www.unrealengine.com">Unreal Engine 4</a>
+which enables creation of augmented reality applications by displaying a video stream from a camera 
+inside the game and tracking camera position using fiducial markers.
+</p>
+<p>
+It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>ETH Zürich</b>.
+</p>
 
-by Krzysztof Lis (Adynathos)
+<h2>Features</h2>
+<p>
+<ul>
+	<li>Video stream displayed in-game</li>
+	<li>Multiple video sources: cameras, video files, network streams. Source can be switched using in-game UI</li>
+	<li>Camera position tracked using fiducial markers, multiple independent sets of markers can be tracked at once</li>
+	<li>Editable spatial configurations of markers </li>
+	<li>Camera calibration</li>
+</ul>
+</p>
 
-### Features
+<figure>
+<a href="https://www.youtube.com/watch?v=JVyAn8I0yIE">
+	<!--<img src="images/youtube.jpg" width="600"/>-->
+	<img src="https://polybox.ethz.ch/index.php/s/UqF2pp4m4l6iahV/download" width="600"/>
+</a>
+</figure>
 
-- in-game displaying of camera video stream
-- augmented reality, camera position tracking with ArUco markers
-- camera calibration
+<h2 name="downloads">Downloads</h2>
+<p>
+<ul>
+	<li><a name="downloads_project" href="#">Augmented Unreality Plugin 1.1.0</a> (UE 4.13.1)
+		- the plugin files only, 
+	</li>
+	<li><a name="downloads_plugin" href="#">Augmented Unreality Example Project 1.1.0</a> (UE 4.13.1) 
+		- an example project using the plugin
+	</li> 
+</ul>
+</p>
 
-Augmented reality in UE:
+<h2 name="install">Installation</h2>
 
-<img src="https://googledrive.com/host/0B4QRvG9KRioDNG9RaGlpaTR4a2s/images/aur_example_01.jpg" width="75%"
-	alt="AR example" />
+<h3>Getting started - try the example project</h2>
+<p>
+<ul>
+<li><a href="#downloads">Download the example project</a></li>
+<li>Decompress the archive - and move `AugmentedUnrealityPr` to the location where you store your Unreal projects.</li>
+<li>Launch Unreal Engine and open `AugmentedUnrealityPr/AugmentedUnrealityPr.uproject`.</li>
+<li>Navigate to `AugmentedUnrealityPr/Saved/AugmentedUnreality/Markers` and print the board images:
+	`AURBoard_SquareA_C_0/AURBoard_SquareA_C_0.png`, `AURBoard_SquareB_C_0/AURBoard_SquareB_C_0.png`.
+</li>
+<li>Connect a camera and launch the game.</li>
+<li>If the virtual object are not well aligned with the markers, perform <a href="#section_calibration">camera calibration</a>.</li>
+</ul>
+</p>
 
-<img src="https://googledrive.com/host/0B4QRvG9KRioDNG9RaGlpaTR4a2s/images/aur_example_02.jpg" width="75%"
-	alt="AR example" />
+<figure>
+<figcaption> Overview of elements visible in the example project: </figcaption>
+	<!--<img src="images/aur_overview.jpg" width="800" />-->
+	<img src="https://polybox.ethz.ch/index.php/s/Kc4hJHLdvjARvnJ/download" width="800" />
+</figure>
 
-<img src="https://googledrive.com/host/0B4QRvG9KRioDNG9RaGlpaTR4a2s/images/aur_example_on_lcd.jpg" width="75%"
-	alt="marker on computer screen" />
+<h3>Add plugin to an existing project:</h3>
+<p>
+<ul>
+<li><a href="#downloads">Download the plugin</a></li>
+<li>Decompress the archive - and move directory `AugmentedUnreality` to `YourProject/Plugins`</li>
+<li>Reopen your project</li>
+</ul>
+</p>
 
-Camera calibration:<a name="fig_calibration"></a>
+<h2 name="video">Camera / Video</h2>
+<p>
+Video acquisition is achieved using OpenCV's <a href="http://docs.opencv.org/3.1.0/d8/dfe/classcv_1_1VideoCapture.html">VideoCapture</a>. 
+</p>
+<p>
+Video capture and processing is performed by the `AURDriver` object, like `ExampleDriver` class in the example project.
+You can adjust the video settings by creating a child blueprint of AURDriver_Default and editing its properties.
+Once you have your AURDriver blueprint, use it as the value for your PlayerController's `CameraDriverClass`
+(if you inherit the PlayerController from example project) or pass it as `DriverClass` when spawning an `AURCameraActor`.
+</p>
+<p>
+The key property of `AURDriver` is `DefaultVideoSources` - a list of video source classes that will be 
+automatically created and available to switch through the UI.
+</p>
 
-<img src="https://googledrive.com/host/0B4QRvG9KRioDNG9RaGlpaTR4a2s/images/aur_example_calibration.jpg" width="75%"
-	alt="calibration" />
+<h3 name="video_sources">Video sources</h3>
+<p>
+The plugin can obtain video from various sources.
+To use video from a given source, create a blueprint for it and add it to your `AURDriver`'s `DefaultVideoSources`.
+Your video source blueprint should extend one of these superclasses:
+</p>
+<p>
+<ul>
+	<li>`AURVideoSourceCamera` - video from a camera directly connected to the computer. Properties:
+		<ul>
+			<li>`CameraIndex` - 0-based number of the camera. If you have only one camera, the index should be 0.</li>
+			<li>`DesiredResolution` - the driver will attempt to set the camera's resolution to the desired resolution specified in this attribute,
+				however it is not guaranteed that the camera accepts this resolution.
+				Generally, lower resolution means lower quality and accuracy but higher refresh rate.
+			</li>
+		</ul>
+	</li>
+	<li>`AURVideoVideoFile` - video from a file. The `VideoFile` should be the path to the file
+		relative to `FPaths::GameDir()`.
+	</li>
+	<li>`AURVideoSourceStream` - video streamed through network. Set only one of the following:
+		<ul>
+			<li>`ConnectionString` - a <a href="http://www.z25.org/static/_rd_/videostreaming_intro_plab/">GStreamer pipeline</a> ending with appsink.</li>
+			<li>`StreamFile` - path to a `.sdp` file relative to `FPaths::GameDir()`.</li>
+		</ul>
+	</li>
+</ul>
+</p>
+<p>
+Shared properties of all `VideoStream`s:
+<ul>
+	<li>`SourceName` - name to be displayed in the graphical list of video sources</li>
+	<li>`CalibrationFileName` - location of the file storing calibration for this video source, 
+		relative to `FPaths::GameSavedDir()/AugmentedUnreality/Calibration`.
+		If two sources use the same camera, they should have the same calibration file.
+	</li>
+</ul>
+</p>
 
-In-game video screen:
+<h3 name="calibration">Camera calibration</h3>
+<p>
+Best quality is obtained if the camera is calibrated. 
+It is important to find the camera's <b>field of view</b>.
+If the camera's field of view differs from the rendering engine's field of view,
+the virtual objects will not be properly aligned to the real world.
+If you notice that the virtual objects move in real world when you move the camera, it means the camera is not correctly calibrated
+</p>
+<p>
+Each `VideoSource` can have different camera parameters, therefore each has its own calibration file
+located at located in `FPaths::GameSavedDir()/AugmentedUnreality/VideoSource.CalibrationFilePath`.
+The driver will attempt to load this file and display the information whether the camera is calibrated in the UI.
+</p>
 
-<img src="https://googledrive.com/host/0B4QRvG9KRioDNG9RaGlpaTR4a2s/images/aur_example_screen.jpg" width="75%"
-	alt="in-game video screen" />
-
-### Download
-
-- [Augmented Unreality Project 1.00](https://googledrive.com/host/0B4QRvG9KRioDNG9RaGlpaTR4a2s/AugmentedUnrealityProject_1_00.zip)
-
-### Installation
-
-#### Running the example project:
-
-- download the latest package [here](https://googledrive.com/host/0B4QRvG9KRioDNG9RaGlpaTR4a2s/) 
-- decompress the  archive - and move `AugmentedUnrealityProject` to the location where you store your Unreal projects
-- launch Unreal Engine and open `AugmentedUnrealityProject/AugmentedUnrealityPr.uproject`
-- optional: perform [camera calibration](#section_calibration)
-
-Augmented reality example:
-
-- print or display the tracker marker `AugmentedUnrealityProject/Saved/AugmentedUnreality/Markers/marker.png` (the game needs to be run at least once to generate it)
-- launch the game and point camera at the marker
-
-In-game screen example:
-
-- open `AugmentedUnrealityProject/Content/Maps/AURExample_ARScreen.umap`
-- launch the game
-
-
-#### Camera calibration<a name="section_calibration"></a>
-Best quality is obtained if the camera is calibrated. It is important to find the camera's field of view to match the camera image and the AR objects.
-
-The driver first tries to load the calibration data from `AugmentedUnrealityProject/Saved + Driver.CalibrationFilePath`, then if it fails, `AugmentedUnrealityProject/Content + Driver.CalibrationFallbackFilePath`. This mechanism should allow distributing a default calibration file in the project's `Content` directory. A default calibration file is supplied with the example project.
-
+<p>
 To perform calibration of your camera:
+<ul>
+<li>Print or display on an additional screen the calibration pattern found in `AugmentedUnreality/Content/Calibration/calibration_pattern_asymmetric_circles.png`</li>
+<li>Open the example project and start the game</li>
+<li>In the menu in the top-right corner of the screen, choose the right video source and click `Calibrate`</li>
+<li>Point the camera at the calibration pattern from different directions - pattern is detected if a <a href="#fig_calibration">colorful overlay is drawn</a></li>
+<li>Wait until the progress bar is full</li>
+<li>The camera properties are now saved to the calibraiton file and will be loaded whenever you use this video source again</li>
+</ul>
+</p>
 
-- print or display on an additional screen the calibration pattern found in `AugmentedUnrealityProject/Content/AugmentedUnreality/Calibration/calibration_pattern_asymmetric_circles.png`
-- open the example project and start the game
-- in the menu in the top-right corner of the screen, click `Calibrate` 
-- point the camera at the calibration pattern from different directions - pattern is detected if a [colorful overlay is drawn](#fig_picture)
-- wait until the progress bar is full
-- the calibration data is now saved to file `AugmentedUnrealityProject/Saved/AugmentedUnreality/Calibration/camera.xml` by default, or in general to `AugmentedUnrealityProject/Saved + Driver.CalibrationFilePath` if you changed that property of your driver
-- if you use the same driver blueprint next time, this file will be automatically loaded.
+<figure name="fig_calibration">
+	<figcaption>Camera calibration in progress - the colorful overlay indicates the calibration pattern was detected:<figcaption>
+	<!--<img src="images/aur_calibration.jpg" width="800" />-->
+	<img src="https://polybox.ethz.ch/index.php/s/YZ2wQpd7tnGBrgh/download" width="800" />
+</figure>
 
-#### Camera capture
-Camera stream capture is performed using [OpenCV's VideoCapture](http://docs.opencv.org/3.0-beta/modules/videoio/doc/reading_and_writing_video.html).
+<h2 name="tracking">Tracking</h2>
+<p>
+This plugin uses <a href="http://www.uco.es/investiga/grupos/ava/node/26">ArUco</a> boards for camera pose estimation,
+specifically the <a href="http://docs.opencv.org/3.1.0/d5/dae/tutorial_aruco_detection.html">implementation of ArUco in OpenCV contrib</a>.
+</p>
+<p>
+Boards are used for two purposes:
+<ul>
+	<li>Positioning the camera in game world - this aligns the real and virtual world.
+		The board's position in real world is equivalent to the point (0, 0, 0) in game world.
+		Boards used for camera positioning are set in the `PlayerController`'s `MarkerBoardDefinitions`
+		property (if you are extending the example player controller)
+		or in `AURCameraActor`'s `BoardDefinitions` if you are spawning the camera actor directly.
+	</li>
+	<li>
+		Positioning independent actors - to bind an actor's pose to an AR board,
+		add an `AURTrackingComponent` to the actor and select the `ChildActorClass` to one of the board blueprints
+	</li>
+</ul>
+</p>
 
-To choose which camera is used, change the driver blueprint's `CameraIndex` attribute.
-The driver attempts to set the camera's resolution to the desired resolution specified in the `Resolution` attribute,
-however it is not guaranteed that the camera may choose not to accept this setting.
-Generally, lower resolution means faster refresh rate.
+<h3 name="boards">Boards</h3>
+<figure>
+	<!--<img src="images/board_arena.jpg" width="600" />-->
+	<img src="https://polybox.ethz.ch/index.php/s/H0GGOXE5XZNL9Ci/download" width="600" />
+</figure>
 
-#### Tracker markers
+<p>
+An ArUco board is a set of square markers, together with their positions and orientations in space.
+When a board is visible in the video, its pose relative to the camera can be calculated.
+In Augmented Unreality, we use boards for finding the pose of the camera in game world and for positioning independent actors with their own markers.
+</p>
+<p>
+Augmented Unreality allows the user to create their own custom spatial configurations of markers in Unreal Editor.
+Please see the example boards in `AugmentedUnreality/Content/Markers` and `AugmentedUnrealityPr/Content/AugmentedUnrealityExample/Markers`.
+<p>
+<p>
+To design a new board, create a child blueprint of `AURBoardDefinition` and edit it by adding `AURMarkerComponents` inside it.
+Each `AURMarkerComponent` represents one square on the board.
+<ul>
+	<li>`Location`, `Rotation` - pose of square in space. You can use `SceneCompoenent`s to organize the board hierarchically.</li>
+	<li>`Id` - identifier of the pattern shown in this square. Each square should have a different Id.</li>
+	<li>`BoardSizeCm` - length of the square's size. This will automatically set the scale.
+		When printing the boards, please ensure the squares match this size.</li>
+	<li>`MarginCm` - margin inside the square, does not affect the total size.</li>
+</ul>
+If you want to use the board to position the (0, 0, 0) point, add to to `MarkerBoardDefinitions` in `PlayerController`.
+If you want an actor to follow the position of the board, add an `AURTrackingComponent` to the actor and select the `ChildActorClass` to the board blueprint.
+</p>
+<p>
+After you create or edit the board blueprint, launch the game to generate the marker images.
+Then open the directory `YourProject/Saved/AugmentedUnreality/Markers/YourBoardName`, print the images,
+and arrange them in space to match your designed configuration.
+The IDs of the markers in the editor need to match the numbers present in the images:
+</p>
 
-This plugin uses [ArUco](http://www.uco.es/investiga/grupos/ava/node/26) boards for camera pose estimation,
-specifically the [implementation of ArUco in OpenCV contrib](http://docs.opencv.org/3.1.0/d5/dae/tutorial_aruco_detection.html).
+<figure>
+	<!--<img src="images/marker.png" width="400" />-->
+	<img src="https://polybox.ethz.ch/index.php/s/nBO36jy0kzjSsRP/download" width="400" />
+</figure>
 
-The parameters of the marker used can be changed in the driver blueprint's `TrackerSettings.BoardDefinition` attribute.
-Tracker markers are created and saved to file when the application starts.
-By default they are saved to `AugmentedUnrealityProject/Saved/AugmentedUnreality/Markers/marker.png` but this location can be changed in the settings.
+<figure>
+	<!--<img src="images/board_tower.jpg" width="600" />-->
+	<img src="https://polybox.ethz.ch/index.php/s/31CTBjbqRJYoiqT/download" width="600" />
+</figure>
 
-#### Engine version
+<h3 name="platforms">Platforms</h3>
+<ul>
+	<li><i>Windows</i> - fully functional, pre-built packages available.</li>
+	<li><i>Linux</i> - the plugin compiles and editor can open the project, but when the game is launched a crash occurs,
+		which is potentially related to differences in memory management between Unreal Engine and OpenCV.
+		I would be grateful for help from someone experience with memory management across shared libraries.
+	</li>
+	<li><i>Android</i> - there is an Android version of OpenCV so it should be possible to port the plugin to that platform.
+		This is outside the scope of my project but I am willing to help if someone wants to try this.
+	</li>
+</ul>
 
-The pre-built package was built with UE4.11.2.
-
-#### Presented solutions
-
+<h3 name="solutions">Education</h3>
+<p>
 The following problems have been solved in this plugin,
 if you want to learn about these topics, please see:
-
-- [Including external libraries in UE4](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AugmentedUnreality.Build.cs)
-- Multi-threading in UE4 
-[1](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverThreaded.h)
-[2](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverThreaded.cpp)
-[3](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverOpenCV.h)
-[4](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverOpenCV.h)
-- Performing OpenCV camera calibration
-[OpenCV tutorial](http://docs.opencv.org/3.1.0/d4/d94/tutorial_camera_calibration.html)
-[integration 1](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AUROpenCVCalibration.h)
-[integration 2](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AUROpenCVCalibration.cpp)
-- Drawing on dynamic textures
-[UE tutorial](https://wiki.unrealengine.com/Dynamic_Textures) (a bit old)
-[our adaptation](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURVideoScreenBase.cpp)
-- [Conversion between OpenCV's and Unreal's coordinate systems](https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURArucoTracker.cpp)
+<ul>
+<li>
+<a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AugmentedUnreality.Build.cs">Including external libraries in UE4</a>
+</li>
+<li>Multi-threading in UE4 
+<a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverThreaded.h">(1)</a>
+<a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverThreaded.cpp">(2)</a>
+<a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverOpenCV.h">(3)</a>
+<a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURDriverOpenCV.h">(4)</a>
+</li>
+<li>Performing OpenCV camera calibration
+<a href="http://docs.opencv.org/3.1.0/d4/d94/tutorial_camera_calibration.html">OpenCV tutorial</a>, 
+<a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AUROpenCVCalibration.cpp">adaptation for the plugin</a>
+</li>
+<li> Drawing on dynamic textures
+	<a href="https://wiki.unrealengine.com/Dynamic_Textures">UE tutorial</a> (a bit old)
+	<a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AURVideoScreenBase.cpp">my adaptation</a>
+</li>
+<li>
+<a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/tracking/AURArucoTracker.cpp">Conversion between OpenCV's and Unreal's coordinate systems</a>
+</li>
+</ul>
+</p>
