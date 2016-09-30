@@ -45,27 +45,36 @@ bool UAURVideoSourceStream::Connect()
 {
 	bool success = false;
 
-	if (!ConnectionString.IsEmpty())
+	try
 	{
-		success = Capture.open(TCHAR_TO_UTF8(*ConnectionString));
-	}
-	else
-	{
-		FString full_path = FPaths::GameDir() / StreamFile;
-
-		if (!FPaths::FileExists(full_path))
+		if (!ConnectionString.IsEmpty())
 		{
-			UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceStream::Connect: File %s does not exist"), *full_path)
-				return false;
+			success = Capture.open(TCHAR_TO_UTF8(*ConnectionString));
+		}
+		else
+		{
+			FString full_path = FPaths::GameDir() / StreamFile;
+
+			if (!FPaths::FileExists(full_path))
+			{
+				UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceStream::Connect: File %s does not exist"), *full_path)
+					return false;
+			}
+
+			success = Capture.open(TCHAR_TO_UTF8(*full_path));
 		}
 
-		success = Capture.open(TCHAR_TO_UTF8(*full_path));
-	}
+		if (success)
+		{
+			LoadCalibration();
+		}
 
-	if (success)
+		return Capture.isOpened();
+	}
+	catch (std::exception& exc)
 	{
-		LoadCalibration();
+		UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceStream::Connect: exception \n    %s"), UTF8_TO_TCHAR(exc.what()))
 	}
 
-	return Capture.isOpened();
+	return false;
 }
