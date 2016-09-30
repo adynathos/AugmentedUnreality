@@ -158,9 +158,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
 	FArucoDictionaryDefinition DictionaryDefinition;
 
-	//UPROPERTY(Transient, BlueprintReadOnly, Category = ArucoTracking)
-	//bool UsedAsViewpointOrigin;
-
 	// Event fired when this board is detected by the tracker and provides the location of the board.
 	UPROPERTY(BlueprintAssignable, Category = AugmentedReality)
 	FAURBoardTransformUpdate OnTransformUpdate;

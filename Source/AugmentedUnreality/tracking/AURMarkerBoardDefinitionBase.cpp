@@ -104,13 +104,13 @@ void FFreeFormBoardData::AddMarker(FMarkerDefinitionData const & marker_def)
 {
 	ArucoBoard.ids.push_back(marker_def.MarkerId);
 
-	UE_LOG(LogAUR, Log, TEXT("Marker %d"), marker_def.MarkerId);
+	//UE_LOG(LogAUR, Log, TEXT("Marker %d"), marker_def.MarkerId);
 
 	std::vector<cv::Point3f> corners(4);
 	for (int idx = 0; idx < 4; idx++)
 	{
 		corners[idx] = cv::Point3f(FAUROpenCV::ConvertUnrealVectorToOpenCv(marker_def.Corners[idx]));
-		UE_LOG(LogAUR, Log, TEXT("	C %s -> (%f %f %f)"), *marker_def.Corners[idx].ToString(), corners[idx].x, corners[idx].y, corners[idx].z);
+		//UE_LOG(LogAUR, Log, TEXT("	C %s -> (%f %f %f)"), *marker_def.Corners[idx].ToString(), corners[idx].x, corners[idx].y, corners[idx].z);
 	}
 	ArucoBoard.objPoints.push_back(corners);
 }
@@ -118,7 +118,6 @@ void FFreeFormBoardData::AddMarker(FMarkerDefinitionData const & marker_def)
 AAURMarkerBoardDefinitionBase::AAURMarkerBoardDefinitionBase()
 	: MarkerFileDir("AugmentedUnreality/Markers")
 	, ActorToMove(nullptr)
-	//, UsedAsViewpointOrigin(false)
 	//, AutomaticMarkerIds(true)
 {
 	PrimaryActorTick.bStartWithTickEnabled = false;
@@ -138,7 +137,7 @@ void AAURMarkerBoardDefinitionBase::BuildBoardData()
 	TInlineComponentArray<UAURMarkerComponentBase*, 32> marker_components;
 	GetComponents(marker_components);
 
-	UE_LOG(LogAUR, Log, TEXT("Board def %s found %d markers"), *GetName(), marker_components.Num());
+	UE_LOG(LogAUR, Log, TEXT("Board def %s: found %d markers"), *GetName(), marker_components.Num());
 
 	for (auto & marker : marker_components)
 	{
@@ -183,7 +182,7 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 		TInlineComponentArray<UAURMarkerComponentBase*, 32> marker_components;
 		GetComponents(marker_components);
 
-		UE_LOG(LogAUR, Log, TEXT("Board def %s found %d markers"), *GetName(), marker_components.Num());
+		UE_LOG(LogAUR, Log, TEXT("Board def %s: saving marker images to %s"), *GetName(), *output_dir);
 
 		for (auto & marker : marker_components)
 		{
@@ -194,7 +193,7 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 
 			cv::imwrite(TCHAR_TO_UTF8(*filename), RenderMarker(marker->Id, canvas_pixels, margin_pixels));
 
-			UE_LOG(LogAUR, Log, TEXT("AAURMarkerBoardDefinitionBase::SaveMarkerFiles: Saved marker image to: %s"), *filename);
+			//UE_LOG(LogAUR, Log, TEXT("AAURMarkerBoardDefinitionBase::SaveMarkerFiles: Saved marker image to: %s"), *filename);
 		}
 	}
 	catch (std::exception& exc)
