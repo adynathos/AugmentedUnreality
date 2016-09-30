@@ -9,9 +9,9 @@
 	"EnabledByDefault": true,
 	"CanContainContent": true,
 
-	"EngineVersion": "4.10.0",
-	"Version": 1,
-	"VersionName": "1.0",
+	"EngineVersion": "4.13.1",
+	"Version": 2,
+	"VersionName": "1.1",
 
 	"FileVersion": 3,
 
