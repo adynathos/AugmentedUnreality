@@ -44,10 +44,10 @@ It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>E
 <p>
 <ul>
 <li><a href="#downloads">Download the example project</a></li>
-<li>Decompress the archive - and move `AugmentedUnrealityPr` to the location where you store your Unreal projects.</li>
-<li>Launch Unreal Engine and open `AugmentedUnrealityPr/AugmentedUnrealityPr.uproject`.</li>
-<li>Navigate to `AugmentedUnrealityPr/Saved/AugmentedUnreality/Markers` and print the board images:
-	`AURBoard_SquareA_C_0/AURBoard_SquareA_C_0.png`, `AURBoard_SquareB_C_0/AURBoard_SquareB_C_0.png`.
+<li>Decompress the archive - and move <tt>AugmentedUnrealityPr</tt> to the location where you store your Unreal projects.</li>
+<li>Launch Unreal Engine and open <tt>AugmentedUnrealityPr/AugmentedUnrealityPr.uproject</tt>.</li>
+<li>Navigate to <tt>AugmentedUnrealityPr/Saved/AugmentedUnreality/Markers</tt> and print the board images:
+	<tt>AURBoard_SquareA_C_0/AURBoard_SquareA_C_0.png</tt>, <tt>AURBoard_SquareB_C_0/AURBoard_SquareB_C_0.png</tt>.
 </li>
 <li>Connect a camera and launch the game.</li>
 <li>If the virtual object are not well aligned with the markers, perform <a href="#section_calibration">camera calibration</a>.</li>
@@ -64,7 +64,7 @@ It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>E
 <p>
 <ul>
 <li><a href="#downloads">Download the plugin</a></li>
-<li>Decompress the archive - and move directory `AugmentedUnreality` to `YourProject/Plugins`</li>
+<li>Decompress the archive - and move directory <tt>AugmentedUnreality</tt> to <tt>YourProject/Plugins</tt></li>
 <li>Reopen your project</li>
 </ul>
 </p>
@@ -74,50 +74,50 @@ It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>E
 Video acquisition is achieved using OpenCV's <a href="http://docs.opencv.org/3.1.0/d8/dfe/classcv_1_1VideoCapture.html">VideoCapture</a>. 
 </p>
 <p>
-Video capture and processing is performed by the `AURDriver` object, like `ExampleDriver` class in the example project.
+Video capture and processing is performed by the <tt>AURDriver</tt> object, like <tt>ExampleDriver</tt> class in the example project.
 You can adjust the video settings by creating a child blueprint of AURDriver_Default and editing its properties.
-Once you have your AURDriver blueprint, use it as the value for your PlayerController's `CameraDriverClass`
-(if you inherit the PlayerController from example project) or pass it as `DriverClass` when spawning an `AURCameraActor`.
+Once you have your AURDriver blueprint, use it as the value for your PlayerController's <tt>CameraDriverClass</tt>
+(if you inherit the PlayerController from example project) or pass it as <tt>DriverClass</tt> when spawning an <tt>AURCameraActor</tt>.
 </p>
 <p>
-The key property of `AURDriver` is `DefaultVideoSources` - a list of video source classes that will be 
+The key property of <tt>AURDriver</tt> is <tt>DefaultVideoSources</tt> - a list of video source classes that will be 
 automatically created and available to switch through the UI.
 </p>
 
 <h3 name="video_sources">Video sources</h3>
 <p>
 The plugin can obtain video from various sources.
-To use video from a given source, create a blueprint for it and add it to your `AURDriver`'s `DefaultVideoSources`.
+To use video from a given source, create a blueprint for it and add it to your <tt>AURDriver</tt>'s <tt>DefaultVideoSources</tt>.
 Your video source blueprint should extend one of these superclasses:
 </p>
 <p>
 <ul>
-	<li>`AURVideoSourceCamera` - video from a camera directly connected to the computer. Properties:
+	<li><tt>AURVideoSourceCamera</tt> - video from a camera directly connected to the computer. Properties:
 		<ul>
-			<li>`CameraIndex` - 0-based number of the camera. If you have only one camera, the index should be 0.</li>
-			<li>`DesiredResolution` - the driver will attempt to set the camera's resolution to the desired resolution specified in this attribute,
+			<li><tt>CameraIndex</tt> - 0-based number of the camera. If you have only one camera, the index should be 0.</li>
+			<li><tt>DesiredResolution</tt> - the driver will attempt to set the camera's resolution to the desired resolution specified in this attribute,
 				however it is not guaranteed that the camera accepts this resolution.
 				Generally, lower resolution means lower quality and accuracy but higher refresh rate.
 			</li>
 		</ul>
 	</li>
-	<li>`AURVideoVideoFile` - video from a file. The `VideoFile` should be the path to the file
-		relative to `FPaths::GameDir()`.
+	<li><tt>AURVideoVideoFile</tt> - video from a file. The <tt>VideoFile</tt> should be the path to the file
+		relative to <tt>FPaths::GameDir()</tt>.
 	</li>
-	<li>`AURVideoSourceStream` - video streamed through network. Set only one of the following:
+	<li><tt>AURVideoSourceStream</tt> - video streamed through network. Set only one of the following:
 		<ul>
-			<li>`ConnectionString` - a <a href="http://www.z25.org/static/_rd_/videostreaming_intro_plab/">GStreamer pipeline</a> ending with appsink.</li>
-			<li>`StreamFile` - path to a `.sdp` file relative to `FPaths::GameDir()`.</li>
+			<li><tt>ConnectionString</tt> - a <a href="http://www.z25.org/static/_rd_/videostreaming_intro_plab/">GStreamer pipeline</a> ending with appsink.</li>
+			<li><tt>StreamFile</tt> - path to a </tt>.sdp</tt> file relative to <tt>FPaths::GameDir()</tt>.</li>
 		</ul>
 	</li>
 </ul>
 </p>
 <p>
-Shared properties of all `VideoStream`s:
+Shared properties of all <tt>VideoStream</tt>s:
 <ul>
-	<li>`SourceName` - name to be displayed in the graphical list of video sources</li>
-	<li>`CalibrationFileName` - location of the file storing calibration for this video source, 
-		relative to `FPaths::GameSavedDir()/AugmentedUnreality/Calibration`.
+	<li><tt>SourceName</tt> - name to be displayed in the graphical list of video sources</li>
+	<li><tt>CalibrationFileName</tt> - location of the file storing calibration for this video source, 
+		relative to <tt>FPaths::GameSavedDir()/AugmentedUnreality/Calibration</tt>.
 		If two sources use the same camera, they should have the same calibration file.
 	</li>
 </ul>
@@ -132,17 +132,17 @@ the virtual objects will not be properly aligned to the real world.
 If you notice that the virtual objects move in real world when you move the camera, it means the camera is not correctly calibrated
 </p>
 <p>
-Each `VideoSource` can have different camera parameters, therefore each has its own calibration file
-located at located in `FPaths::GameSavedDir()/AugmentedUnreality/VideoSource.CalibrationFilePath`.
+Each <tt>VideoSource</tt> can have different camera parameters, therefore each has its own calibration file
+located at located in <tt>FPaths::GameSavedDir()/AugmentedUnreality/VideoSource.CalibrationFilePath</tt>.
 The driver will attempt to load this file and display the information whether the camera is calibrated in the UI.
 </p>
 
 <p>
 To perform calibration of your camera:
 <ul>
-<li>Print or display on an additional screen the calibration pattern found in `AugmentedUnreality/Content/Calibration/calibration_pattern_asymmetric_circles.png`</li>
+<li>Print or display on an additional screen the calibration pattern found in <tt>AugmentedUnreality/Content/Calibration/calibration_pattern_asymmetric_circles.png</tt></li>
 <li>Open the example project and start the game</li>
-<li>In the menu in the top-right corner of the screen, choose the right video source and click `Calibrate`</li>
+<li>In the menu in the top-right corner of the screen, choose the right video source and click <tt>Calibrate</tt></li>
 <li>Point the camera at the calibration pattern from different directions - pattern is detected if a <a href="#fig_calibration">colorful overlay is drawn</a></li>
 <li>Wait until the progress bar is full</li>
 <li>The camera properties are now saved to the calibraiton file and will be loaded whenever you use this video source again</li>
@@ -165,13 +165,13 @@ Boards are used for two purposes:
 <ul>
 	<li>Positioning the camera in game world - this aligns the real and virtual world.
 		The board's position in real world is equivalent to the point (0, 0, 0) in game world.
-		Boards used for camera positioning are set in the `PlayerController`'s `MarkerBoardDefinitions`
+		Boards used for camera positioning are set in the <tt>PlayerController</tt>'s <tt>MarkerBoardDefinitions</tt>
 		property (if you are extending the example player controller)
-		or in `AURCameraActor`'s `BoardDefinitions` if you are spawning the camera actor directly.
+		or in <tt>AURCameraActor</tt>'s <tt>BoardDefinitions</tt> if you are spawning the camera actor directly.
 	</li>
 	<li>
 		Positioning independent actors - to bind an actor's pose to an AR board,
-		add an `AURTrackingComponent` to the actor and select the `ChildActorClass` to one of the board blueprints
+		add an <tt>AURTrackingComponent</tt> to the actor and select the <tt>ChildActorClass</tt> to one of the board blueprints
 	</li>
 </ul>
 </p>
@@ -189,24 +189,24 @@ In Augmented Unreality, we use boards for finding the pose of the camera in game
 </p>
 <p>
 Augmented Unreality allows the user to create their own custom spatial configurations of markers in Unreal Editor.
-Please see the example boards in `AugmentedUnreality/Content/Markers` and `AugmentedUnrealityPr/Content/AugmentedUnrealityExample/Markers`.
+Please see the example boards in <tt>AugmentedUnreality/Content/Markers</tt> and <tt>AugmentedUnrealityPr/Content/AugmentedUnrealityExample/Markers</tt>.
 <p>
 <p>
-To design a new board, create a child blueprint of `AURBoardDefinition` and edit it by adding `AURMarkerComponents` inside it.
-Each `AURMarkerComponent` represents one square on the board.
+To design a new board, create a child blueprint of <tt>AURBoardDefinition</tt> and edit it by adding <tt>AURMarkerComponents</tt> inside it.
+Each <tt>AURMarkerComponent</tt> represents one square on the board.
 <ul>
-	<li>`Location`, `Rotation` - pose of square in space. You can use `SceneCompoenent`s to organize the board hierarchically.</li>
-	<li>`Id` - identifier of the pattern shown in this square. Each square should have a different Id.</li>
-	<li>`BoardSizeCm` - length of the square's size. This will automatically set the scale.
+	<li><tt>Location</tt>, <tt>Rotation</tt> - pose of square in space. You can use <tt>SceneCompoenent</tt>s to organize the board hierarchically.</li>
+	<li><tt>Id</tt> - identifier of the pattern shown in this square. Each square should have a different Id.</li>
+	<li><tt>BoardSizeCm</tt> - length of the square's size. This will automatically set the scale.
 		When printing the boards, please ensure the squares match this size.</li>
-	<li>`MarginCm` - margin inside the square, does not affect the total size.</li>
+	<li><tt>MarginCm</tt> - margin inside the square, does not affect the total size.</li>
 </ul>
-If you want to use the board to position the (0, 0, 0) point, add to to `MarkerBoardDefinitions` in `PlayerController`.
-If you want an actor to follow the position of the board, add an `AURTrackingComponent` to the actor and select the `ChildActorClass` to the board blueprint.
+If you want to use the board to position the (0, 0, 0) point, add to to <tt>MarkerBoardDefinitions</tt> in <tt>PlayerController</tt>.
+If you want an actor to follow the position of the board, add an <tt>AURTrackingComponent</tt> to the actor and select the <tt>ChildActorClass</tt> to the board blueprint.
 </p>
 <p>
 After you create or edit the board blueprint, launch the game to generate the marker images.
-Then open the directory `YourProject/Saved/AugmentedUnreality/Markers/YourBoardName`, print the images,
+Then open the directory <tt>YourProject/Saved/AugmentedUnreality/Markers/YourBoardName</tt>, print the images,
 and arrange them in space to match your designed configuration.
 The IDs of the markers in the editor need to match the numbers present in the images:
 </p>
