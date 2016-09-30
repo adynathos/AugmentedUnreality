@@ -29,10 +29,10 @@ It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>E
 <h2 name="downloads">Downloads</h2>
 <p>
 <ul>
-	<li><a name="downloads_project" href="#">Augmented Unreality Plugin 1.1.0</a> (UE 4.13.1)
+	<li><a name="downloads_project" href="https://polybox.ethz.ch/index.php/s/ucl1amKJ7CnLtYn/download">Augmented Unreality Plugin 1.1.0</a> (UE 4.13.1)
 		- the plugin files only, 
 	</li>
-	<li><a name="downloads_plugin" href="#">Augmented Unreality Example Project 1.1.0</a> (UE 4.13.1) 
+	<li><a name="downloads_plugin" href="https://polybox.ethz.ch/index.php/s/nzkm3GrZas5Zp3X/download">Augmented Unreality Example Project 1.1.0</a> (UE 4.13.1) 
 		- an example project using the plugin
 	</li> 
 </ul>
