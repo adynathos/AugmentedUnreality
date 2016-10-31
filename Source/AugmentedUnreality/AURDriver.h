@@ -62,11 +62,6 @@ struct FAURVideoFrame
 	}
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverConnectionStatusChange, UAURDriver*, Driver);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCameraParametersChange, UAURDriver*, Driver);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCalibrationStatusChange, UAURDriver*, Driver);
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverViewpointTransformUpdate, FTransform, ViewpointTransform);
-
 /**
  * Represents a way of connecting to a camera.
  */
@@ -76,6 +71,10 @@ class UAURDriver : public UObject
 	GENERATED_BODY()
 
 public:
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverConnectionStatusChange, UAURDriver*, Driver);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCameraParametersChange, UAURDriver*, Driver);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCalibrationStatusChange, UAURDriver*, Driver);
+
 	/** True if it should track markers and calculate camera position+rotation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	uint32 bPerformOrientationTracking : 1;
@@ -127,6 +126,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual bool OpenDefaultVideoSource();
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	UTexture2D* GetOutputTexture() const
+	{
+		return OutputTexture;
+	}
 
 	// Is the camera connected and working.
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
@@ -213,6 +218,10 @@ public:
 	static void UnregisterBoardForTracking(AAURMarkerBoardDefinitionBase* board_actor);
 
 protected:
+	// The video is drawn on this dynamic texture
+	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
+	UTexture2D* OutputTexture;
+
 	// Is the driver turned on
 	uint32 bActive : 1;
 
@@ -224,6 +233,9 @@ protected:
 	/** Reference to UWorld for time measurement */
 	UWorld* WorldReference;
 
+	// Resizes output texture and frames to fit the resolution provided by video source
+	virtual void SetFrameResolution(FIntPoint const& new_res);
+
 	static void EnsureDirExists(FString FilePath)
 	{
 		IPlatformFile & filesystem = FPlatformFileManager::Get().GetPlatformFile();
@@ -231,6 +243,22 @@ protected:
 	}
 
 private:
+	// The rendering scheduled by ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER 
+	// takes place in the rendering thread:
+	// https://docs.unrealengine.com/latest/INT/Programming/Rendering/ThreadedRendering/index.html
+	// so data has to be passed through a struct.
+	struct FTextureUpdateParameters
+	{
+		FTexture2DResource*	Texture2DResource;
+		FUpdateTextureRegion2D RegionDefinition;
+		UAURDriver* Driver;
+	};
+	// The constant values of these parameters:
+	FTextureUpdateParameters TextureUpdateParameters;
+
+	void WriteFrameToTexture();
+
+	// Global registry of boards to track
 	struct BoardRegistration
 	{
 		AAURMarkerBoardDefinitionBase* Board;

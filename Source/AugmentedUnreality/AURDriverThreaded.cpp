@@ -84,7 +84,7 @@ FAURVideoFrame* UAURDriverThreaded::GetFrame()
 		// Put the new ready frame in PublishedFrame
 		std::swap(this->AvailableFrame, this->PublishedFrame);
 
-		this->bNewFrameReady = false;
+		this->bNewFrameReady.AtomicSet(false);
 	}
 	// if there is no new frame, return the old one again
 
@@ -102,11 +102,13 @@ void UAURDriverThreaded::StoreWorkerFrame()
 
 	// Put the generated frame as available frame
 	std::swap(WorkerFrame, AvailableFrame);
-	bNewFrameReady = true;
+	bNewFrameReady.AtomicSet(true);
 }
 
 void UAURDriverThreaded::SetFrameResolution(FIntPoint const & new_res)
 {
+	Super::SetFrameResolution(new_res);
+
 	FrameResolution = new_res;
 	for (int idx = 0; idx < 3; idx++)
 	{

@@ -43,20 +43,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	void Initialize(UAURDriver* Driver);
 
-	UAURVideoScreenBase(const FObjectInitializer & ObjectInitializer);
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	void OnCameraPropertiesChange(UAURDriver* Driver);
+
+	UAURVideoScreenBase();
 
 	/* UActorComponent */
 	virtual void Activate(bool bReset = false) override;
 	virtual void Deactivate() override;
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction * ThisTickFunction) override;
 	/* end UActorComponent */
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
 	UAURDriver* VideoDriver;
-
-	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
-	UTexture2D* DynamicTexture;
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
 	UMaterialInstanceDynamic* ScreenMaterial;
@@ -69,31 +68,8 @@ protected:
 	void SetResolution(FIntPoint resolution);
 
 	/**
-	 * Updates the vertical size of the screen based on aspect ratio
-	 */
-	void UpdateAspectRatio();
-
-	/**
-	 * Display the frame received from the driver on the dynamic texture
-	 */
-	void DisplayNextFrame();
-
-	/**
 	* Finds the material instance with texture parameter "VideoTexture"
 	* on this actor's component
 	*/
 	UMaterialInstanceDynamic* FindScreenMaterial();
-	
-	// The rendering scheduled by ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER 
-	// takes place in the rendering thread:
-	// https://docs.unrealengine.com/latest/INT/Programming/Rendering/ThreadedRendering/index.html
-	// so data has to be passed through a struct.
-	struct FTextureUpdateParameters
-	{
-		FTexture2DResource*	Texture2DResource;
-		FUpdateTextureRegion2D RegionDefinition;
-		UAURDriver* Driver;
-	};
-	// The constant values of these parameters:
-	FTextureUpdateParameters TextureUpdateParameters;
 };

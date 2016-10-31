@@ -41,7 +41,8 @@ void UAURDriverOpenCV::Initialize()
 
 void UAURDriverOpenCV::Tick()
 {
-	// 
+	Super::Tick();
+
 	if (bActive)
 	{
 		FScopeLock lock(&this->TrackerLock);
@@ -115,6 +116,8 @@ void UAURDriverOpenCV::OnVideoSourceSwitch()
 	{
 		CancelCalibration();
 	}
+
+	bNewFrameReady.AtomicSet(false);
 
 	OnCameraPropertiesChange();
 	NotifyVideoSourceStatusChange();
@@ -286,53 +289,20 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 		else
 		{
 			// get a new frame from camera - this blocks untill the next frame is available
-			//Driver->CameraCapture >> CapturedFrame;
-			//Driver->VideoSrc->GetNextFrame(CapturedFrame);
-
-			// get a new frame from camera - this blocks untill the next frame is available
 			current_video_source->GetNextFrame(CapturedFrame);
 
 			// compare the frame size to the size we expect from capture parameters
 			auto frame_size = CapturedFrame.size();
-			if (frame_size.width <= 0 || frame_size.height <= 0)
+
+			if (frame_size.width != Driver->FrameResolution.X || frame_size.height != Driver->FrameResolution.Y)
 			{
-				UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Camera returned frame of wrong size: %dx%d"),
-					frame_size.width, frame_size.height);
+				FIntPoint new_camera_res(frame_size.width, frame_size.height);
+
+				UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Source returned frame of size %dx%d but %dx%d was expected from source's GetResolution()"),
+					new_camera_res.X, new_camera_res.Y, Driver->FrameResolution.X, Driver->FrameResolution.Y);
 			}
 			else
-			{
-				// Adjust the frame size if the camera returned a frame of different size than anticipated
-				if (frame_size.width != Driver->FrameResolution.X || frame_size.height != Driver->FrameResolution.Y)
-				{
-					FIntPoint new_camera_res(frame_size.width, frame_size.height);
-
-					UE_LOG(LogAUR, Warning, TEXT("AURDriverOpenCV: Adjusting resolution to match the frame returned by camera: %dx%d (previously %dx%d)"),
-						new_camera_res.X, new_camera_res.Y, Driver->FrameResolution.X, Driver->FrameResolution.Y);
-
-					Driver->SetFrameResolution(new_camera_res);
-				}
-
-				if (Driver->IsCalibrationInProgress()) // calibration
-				{
-					FScopeLock(&Driver->CalibrationLock);
-					Driver->CalibrationProcess.ProcessFrame(CapturedFrame, Driver->WorldReference->RealTimeSeconds);
-
-					if (Driver->CalibrationProcess.IsFinished())
-					{
-						Driver->OnCalibrationFinished();
-					}
-				}
-				if (this->Driver->bPerformOrientationTracking)
-				{
-					/**
-					* Tracking markers and relative position with respect to them
-					*/
-					{
-						FScopeLock lock(&Driver->TrackerLock);
-						Driver->Tracker.DetectMarkers(CapturedFrame);
-					}
-				}
-
+			{	
 				// ---------------------------
 				// Create the frame to publish
 
@@ -355,6 +325,27 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 				}
 
 				Driver->StoreWorkerFrame();
+
+				if (Driver->IsCalibrationInProgress()) // calibration
+				{
+					FScopeLock(&Driver->CalibrationLock);
+					Driver->CalibrationProcess.ProcessFrame(CapturedFrame, Driver->WorldReference->RealTimeSeconds);
+
+					if (Driver->CalibrationProcess.IsFinished())
+					{
+						Driver->OnCalibrationFinished();
+					}
+				}
+				if (this->Driver->bPerformOrientationTracking)
+				{
+					/**
+					* Tracking markers and relative position with respect to them
+					*/
+					{
+						FScopeLock lock(&Driver->TrackerLock);
+						Driver->Tracker.DetectMarkers(CapturedFrame);
+					}
+				}
 			}
 		}
 	}

@@ -61,8 +61,7 @@ protected:
 	// Publish a new frame - switched the publicly available frame with the one held by background thread.
 	virtual void StoreWorkerFrame();
 
-	// Resizes frames to fit the resolution
-	void SetFrameResolution(FIntPoint const& new_res);
+	virtual void SetFrameResolution(FIntPoint const& new_res) override;
 
 	// Call the delegates from game thread
 	void NotifyVideoSourceStatusChange();
