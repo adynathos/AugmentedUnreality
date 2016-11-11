@@ -31,26 +31,22 @@ class UAURVideoScreenBase : public UStaticMeshComponent
 	GENERATED_BODY()
 	
 public:
-	/**
-	 *	Set the size (scale) of this component based on:
-	 *	- distance to (0, 0, 0) of actor-space where we assume the camera is
-	 *	- FOV of the camera
-	 *	- aspect ratio
-	 */
+	/** Use the driver globally published by AURDriver static delegate */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AugmentedReality)
+	bool UseGlobalDriver;
+
+	/** Start receiving video from this given AURDriver */
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	void SetSizeForFOV(float FOV_Horizontal);
+	virtual void UseDriver(UAURDriver* Driver);
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	void Initialize(UAURDriver* Driver);
-
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	void OnCameraPropertiesChange(UAURDriver* Driver);
+	virtual void OnCameraPropertiesChange(UAURDriver* Driver);
 
 	UAURVideoScreenBase();
 
 	/* UActorComponent */
-	virtual void Activate(bool bReset = false) override;
-	virtual void Deactivate() override;
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	/* end UActorComponent */
 
 protected:
@@ -59,13 +55,6 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
 	UMaterialInstanceDynamic* ScreenMaterial;
-
-	FIntPoint Resolution;
-
-	/**
-	 * Initializes the mechanisms related to updating a dynamic texture with a given resolution
-	 */
-	void SetResolution(FIntPoint resolution);
 
 	/**
 	* Finds the material instance with texture parameter "VideoTexture"

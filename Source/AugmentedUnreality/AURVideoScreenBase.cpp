@@ -19,71 +19,70 @@ limitations under the License.
 #include "AURVideoScreenBase.h"
 
 UAURVideoScreenBase::UAURVideoScreenBase()
-	: Resolution(100, 100)
+	: UseGlobalDriver(true)
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	this->bTickInEditor = false;
 	this->bAutoRegister = true;
-	this->bAutoActivate = false; // activates when Initialize is called
+	this->bAutoActivate = true;
 
 	this->SetEnableGravity(false);
 	this->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	this->bGenerateOverlapEvents = false;
 }
 
-void UAURVideoScreenBase::Initialize(UAURDriver* Driver)
+void UAURVideoScreenBase::UseDriver(UAURDriver* new_driver)
 {
-	if (Driver)
+	if (VideoDriver)
 	{
-		this->VideoDriver = Driver;
+		VideoDriver->OnCameraParametersChange.RemoveAll(this);
+	}
 
-		if (GetWorld())
-		{
-			this->VideoDriver->SetWorld(this->GetWorld());
-		}
-		else
-		{
-			UE_LOG(LogAUR, Error, TEXT("UAURVideoScreenBase::Initialize VideoDriver->GetWorld is null"));
-		}
+	VideoDriver = new_driver;
 
-		this->ScreenMaterial = this->FindScreenMaterial();
+	if (VideoDriver)
+	{
+		// Switch to this driver's texture
+		OnCameraPropertiesChange(VideoDriver);
 
-		if (!this->ScreenMaterial)
-		{
-			UE_LOG(LogAUR, Error, TEXT("AVideoDisplaySurface::InitDynamicMaterial(): cannot find the material with proper texture parameter"));
-			return;
-		}
-
-		// React to Driver setting the video parameters
+		// Subscribe to future changes
 		VideoDriver->OnCameraParametersChange.AddUniqueDynamic(this, &UAURVideoScreenBase::OnCameraPropertiesChange);
-
-		UE_LOG(LogAUR, Log, TEXT("UAURVideoScreenBase initialized"));
-
-		this->Activate();
-	}
-	else
-	{
-		UE_LOG(LogAUR, Error, TEXT("UAURVideoScreenBase::Initialize The driver passed is null"));
 	}
 }
 
-void UAURVideoScreenBase::Activate(bool bReset)
+void UAURVideoScreenBase::OnCameraPropertiesChange(UAURDriver* Driver)
 {
-	if (this->VideoDriver)
+	if (VideoDriver && this->ScreenMaterial)
 	{
-		UE_LOG(LogAUR, Log, TEXT("UAURVideoScreenBase activates"));
-		Super::Activate(bReset);
-	}
-	else
-	{
-		UE_LOG(LogAUR, Error, TEXT("UAURVideoScreenBase::Activate: Have no Driver to display, will not activate"));
+		this->ScreenMaterial->SetTextureParameterValue(FName("VideoTexture"), VideoDriver->GetOutputTexture());
 	}
 }
 
-void UAURVideoScreenBase::Deactivate()
+void UAURVideoScreenBase::BeginPlay()
 {
-	this->VideoDriver = nullptr;
-	Super::Deactivate();
+	Super::BeginPlay();
+
+	this->ScreenMaterial = FindScreenMaterial();
+
+	if (UseGlobalDriver)
+	{
+		// Try getting current driver
+		if (UAURDriver::GetCurrentDriver())
+		{
+			UseDriver(UAURDriver::GetCurrentDriver());
+		}
+
+		// Subscribe for know when a driver is created later
+		UAURDriver::GetDriverInstanceChangeDelegate().AddUniqueDynamic(this, &UAURVideoScreenBase::UseDriver);
+	}
+}
+
+void UAURVideoScreenBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UAURDriver::UnbindOnDriverInstanceChange(this);
+
+	Super::EndPlay(EndPlayReason);
 }
 
 UMaterialInstanceDynamic* UAURVideoScreenBase::FindScreenMaterial()
@@ -109,51 +108,4 @@ UMaterialInstanceDynamic* UAURVideoScreenBase::FindScreenMaterial()
 	}
 	
 	return nullptr;
-}
-
-void UAURVideoScreenBase::OnCameraPropertiesChange(UAURDriver* Driver)
-{
-	if (VideoDriver)
-	{
-		SetResolution(VideoDriver->GetResolution());
-		SetSizeForFOV(VideoDriver->GetFieldOfView().X);
-
-		if (this->ScreenMaterial)
-		{
-			this->ScreenMaterial->SetTextureParameterValue(FName("VideoTexture"), VideoDriver->GetOutputTexture());
-		}
-	}
-}
-
-void UAURVideoScreenBase::SetResolution(FIntPoint resolution)
-{
-	Resolution = resolution;
-	// the X size is tied to FOV, so scale Y with respect to X
-	// With the new texture, the XY placement of texture is swapped
-	//this->SetRelativeScale3D(FVector(RelativeScale3D.Y * (float)Resolution.Y / (float)Resolution.X, RelativeScale3D.Y, 1));
-}
-
-void UAURVideoScreenBase::SetSizeForFOV(float FOV_Horizontal)
-{
-	// Get camera parameters
-	//FIntPoint cam_resolution;
-	//float cam_fov, cam_aspect_ratio;
-	//this->VideoDriver->GetCameraParameters(cam_resolution, cam_fov, cam_aspect_ratio);
-
-	// Get local position
-	float distance_to_origin = this->GetRelativeTransform().GetLocation().Size();
-
-	// Try to adjust size so that it fills the whole screen
-	float width = distance_to_origin * 2.0 * FMath::Tan(FMath::DegreesToRadians(0.5 * FOV_Horizontal));
-	float height = width * (float)Resolution.Y / (float)Resolution.X;
-
-	// The texture size is 100x100
-	//this->SetRelativeScale3D(FVector(width / 100.0, height / 100.0, 1));
-	// With the new texture, the XY placement of texture is swapped
-	this->SetRelativeScale3D(FVector(height / 100.0, width / 100.0, 1));
-
-
-	FString msg = "UAURVideoScreenBase::InitScreenSize(" + FString::SanitizeFloat(FOV_Horizontal) + ") " 
-		+ FString::SanitizeFloat(this->RelativeScale3D.X) + " x " + FString::SanitizeFloat(this->RelativeScale3D.Y);
-	UE_LOG(LogAUR, Log, TEXT("%s"), *msg)
 }
