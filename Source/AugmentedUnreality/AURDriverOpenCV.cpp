@@ -16,7 +16,6 @@ limitations under the License.
 
 #include "AugmentedUnreality.h"
 #include "AURDriverOpenCV.h"
-#include "AURSmoothingFilter.h"
 
 UAURDriverOpenCV::UAURDriverOpenCV()
 	: DefaultVideoSourceIndex(1)
