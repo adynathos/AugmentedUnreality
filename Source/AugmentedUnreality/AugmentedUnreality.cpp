@@ -17,14 +17,16 @@ limitations under the License.
 #include "AugmentedUnreality.h"
 
 IMPLEMENT_MODULE(FAugmentedUnrealityModule, AugmentedUnreality)
+DEFINE_LOG_CATEGORY(LogAUR)
 
 void FAugmentedUnrealityModule::StartupModule()
 {
+	UE_LOG(LogAUR, Log, TEXT("AugmentedUnreality: module startup"))
 }
 
 
 void FAugmentedUnrealityModule::ShutdownModule()
 {
+	UE_LOG(LogAUR, Log, TEXT("AugmentedUnreality: module shutdown"))
 }
 
-DEFINE_LOG_CATEGORY(LogAUR)

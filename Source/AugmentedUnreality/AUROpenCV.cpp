@@ -16,3 +16,76 @@ limitations under the License.
 
 #include "AugmentedUnreality.h"
 #include "AUROpenCV.h"
+
+#include <cstdlib>
+#if PLATFORM_WINDOWS
+// windows has renamed the setenv func to _putenv_s
+int setenv(const char *name, const char *value, int overwrite)
+{
+	if (!overwrite) 
+	{
+		// see if env var already exists
+		size_t envsize = 0;
+		int ret = getenv_s(&envsize, NULL, 0, name);
+		// if exists, don't overwrite
+		if (ret || envsize)
+		{
+			return ret;
+		}
+	}
+
+	// set env var
+	return _putenv_s(name, value);
+}
+#endif
+
+FString FindGstreamerPluginDir()
+{
+	FString platform =
+#if PLATFORM_WINDOWS
+		"Win64"
+#elif PLATFOM_LINUX
+		"Linux"
+#else
+		"unknown"
+#endif
+		;
+
+	//return "C:\\Program Files (x86)\\gstreamer\\1.0\\x86_64\\lib\\gstreamer-1.0";
+
+	FString gst_subdir = "Binaries" / platform / "gstreamer_plugins";
+
+	FString main_gst_dir = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / gst_subdir);
+	FString plugin_gst_dir = FPaths::ConvertRelativePathToFull(FPaths::GamePluginsDir() / "AugmentedUnreality" / gst_subdir);
+
+	if (FPaths::DirectoryExists(main_gst_dir))
+	{
+		return main_gst_dir;
+	}
+	else
+	{
+		UE_LOG(LogAUR, Log, TEXT("GStreamer plugin dir not here: %s"), *main_gst_dir)
+	}
+	
+	if (FPaths::DirectoryExists(plugin_gst_dir))
+	{
+		return plugin_gst_dir;
+	}
+	else
+	{
+		UE_LOG(LogAUR, Log, TEXT("GStreamer plugin dir not here: %s"), *plugin_gst_dir)
+	}
+
+	return "";
+}
+
+void FAUROpenCV::SetGstreamerPluginEnv()
+{
+	const FString gst_plugin_dir = FindGstreamerPluginDir();
+	
+	if (!gst_plugin_dir.IsEmpty())
+	{
+		UE_LOG(LogAUR, Log, TEXT("GStreamer plugin dir: %s"), *gst_plugin_dir)
+		setenv("GST_PLUGIN_PATH", TCHAR_TO_UTF8(*gst_plugin_dir), 0);
+	}
+}

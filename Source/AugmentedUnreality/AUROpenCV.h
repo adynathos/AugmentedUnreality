@@ -69,4 +69,6 @@ public:
 		// UE.z = CV.z
 		return cv::Vec3f(unreal_vector.Y, unreal_vector.X, unreal_vector.Z);
 	}
+
+	static void SetGstreamerPluginEnv();
 };
