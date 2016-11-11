@@ -24,9 +24,9 @@ UAURDriverThreaded::UAURDriverThreaded()
 {
 }
 
-void UAURDriverThreaded::Initialize()
+void UAURDriverThreaded::Initialize(AActor* parent_actor)
 {
-	Super::Initialize();
+	Super::Initialize(parent_actor);
 
 	this->bNewFrameReady = false;
 

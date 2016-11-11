@@ -157,23 +157,23 @@ void FOpenCVCameraCalibrationProcess::Reset()
 
 bool FOpenCVCameraCalibrationProcess::ProcessFrame(cv::Mat& frame, float time_now)
 {
-	cv::Mat new_calib_points;
-
-	// Derive resolution from the given frame
-	auto frame_size = frame.size();
-	CameraProperties.SetResolution(FIntPoint(frame_size.width, frame_size.height));
-
-	// Detect point positions in the given frame
-	bool found = cv::findCirclesGrid(frame, PatternSize, new_calib_points, cv::CALIB_CB_ASYMMETRIC_GRID);
-
-	if (found)
+	// Store the captured frame if enough time has passed since the last was captured
+	if (time_now >= LastFrameTime + MinInterval)
 	{
-		// Draw to show that we have found the points
-		cv::drawChessboardCorners(frame, PatternSize, new_calib_points, found);
-		
-		// Store the captured frame if enough time has passed since the last was captured
-		if (time_now >= LastFrameTime + MinInterval)
+		cv::Mat new_calib_points;
+
+		// Derive resolution from the given frame
+		auto frame_size = frame.size();
+		CameraProperties.SetResolution(FIntPoint(frame_size.width, frame_size.height));
+
+		// Detect point positions in the given frame
+		bool found = cv::findCirclesGrid(frame, PatternSize, new_calib_points, cv::CALIB_CB_ASYMMETRIC_GRID);
+
+		if (found)
 		{
+			// Draw to show that we have found the points
+			cv::drawChessboardCorners(frame, PatternSize, new_calib_points, found);
+
 			DetectedPointSets.push_back(new_calib_points);
 			FramesCollected += 1;
 			LastFrameTime = time_now;
@@ -186,9 +186,11 @@ bool FOpenCVCameraCalibrationProcess::ProcessFrame(cv::Mat& frame, float time_no
 				this->CalculateCalibration();
 			}
 		}
+
+		return found;
 	}
 
-	return found;
+	return false;
 }
 
 void FOpenCVCameraCalibrationProcess::CalculateCalibration()

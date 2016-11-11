@@ -73,7 +73,7 @@ public:
 
 	UAURDriverOpenCV();
 
-	virtual void Initialize() override;
+	virtual void Initialize(AActor* parent_actor) override;
 	virtual void Tick() override;
 
 	virtual bool OpenDefaultVideoSource() override;

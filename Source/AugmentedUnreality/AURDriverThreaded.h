@@ -32,7 +32,7 @@ class UAURDriverThreaded : public UAURDriver
 public:
 	UAURDriverThreaded();
 
-	virtual void Initialize() override;
+	virtual void Initialize(AActor* parent_actor) override;
 	virtual void Shutdown() override;
 
 	virtual FIntPoint GetResolution() const override;

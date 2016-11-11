@@ -19,7 +19,9 @@ limitations under the License.
 //#include "AURSmoothingFilter.h"
 
 UAURDriver* UAURDriver::CurrentDriver = nullptr;
+UAURDriver::FAURDriverInstanceChange UAURDriver::OnDriverInstanceChange;
 TArray<UAURDriver::BoardRegistration> UAURDriver::RegisteredBoards;
+
 
 UAURDriver::UAURDriver()
 	: bPerformOrientationTracking(true)
@@ -29,8 +31,10 @@ UAURDriver::UAURDriver()
 {
 }
 
-void UAURDriver::Initialize()
+void UAURDriver::Initialize(AActor* parent_actor)
 {
+	SetWorld(parent_actor->GetWorld());
+
 	RegisterDriver(this);
 
 	bActive = true;
@@ -100,12 +104,12 @@ void UAURDriver::WriteFrameToTexture()
 				}
 				else
 				{
-					UE_LOG(LogAUR, Log, TEXT("UAURDriver::WriteFrameToTexture No frame ready"));
+					//UE_LOG(LogAUR, Log, TEXT("UAURDriver::WriteFrameToTexture No frame ready"));
 				}
 			}
 			else
 			{
-				UE_LOG(LogAUR, Log, TEXT("UAURDriver::WriteFrameToTexture No texture"));
+				//UE_LOG(LogAUR, Log, TEXT("UAURDriver::WriteFrameToTexture No texture"));
 			}
 		// We do not delete anything, because the region structures we use are members of the class,
 		// and the frames belong to the driver.
@@ -234,6 +238,11 @@ void UAURDriver::SetFrameResolution(FIntPoint const & new_res)
 	this->TextureUpdateParameters.Driver = this;
 }
 
+UAURDriver * UAURDriver::GetCurrentDriver()
+{
+	return CurrentDriver;
+}
+
 void UAURDriver::RegisterBoardForTracking(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
 {
 	RegisteredBoards.AddUnique(BoardRegistration(board_actor, use_as_viewpoint_origin));
@@ -256,6 +265,26 @@ void UAURDriver::UnregisterBoardForTracking(AAURMarkerBoardDefinitionBase * boar
 	}
 }
 
+void UAURDriver::BindToOnDriverInstanceChange(FAURDriverInstanceChangeSingle const & Slot)
+{
+	if (Slot.IsBound())
+	{
+		FScriptDelegate del;
+		del.BindUFunction(const_cast<UObject*>(Slot.GetUObject()), Slot.GetFunctionName());
+		OnDriverInstanceChange.AddUnique(del);
+	}
+}
+
+UAURDriver::FAURDriverInstanceChange& UAURDriver::GetDriverInstanceChangeDelegate()
+{
+	return OnDriverInstanceChange;
+}
+
+void UAURDriver::UnbindOnDriverInstanceChange(UObject * SlotOwner)
+{
+	OnDriverInstanceChange.RemoveAll(SlotOwner);
+}
+
 void UAURDriver::RegisterDriver(UAURDriver* driver)
 {
 	if (CurrentDriver)
@@ -269,6 +298,8 @@ void UAURDriver::RegisterDriver(UAURDriver* driver)
 	{
 		CurrentDriver->RegisterBoard(entry.Board, entry.ViewpointOrigin);
 	}
+
+	OnDriverInstanceChange.Broadcast(CurrentDriver);
 }
 
 void UAURDriver::UnregisterDriver(UAURDriver* driver)
@@ -276,5 +307,6 @@ void UAURDriver::UnregisterDriver(UAURDriver* driver)
 	if (CurrentDriver == driver)
 	{
 		CurrentDriver = nullptr;
+		OnDriverInstanceChange.Broadcast(CurrentDriver);
 	}
 }

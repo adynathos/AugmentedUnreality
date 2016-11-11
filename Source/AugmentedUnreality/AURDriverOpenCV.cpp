@@ -23,9 +23,8 @@ UAURDriverOpenCV::UAURDriverOpenCV()
 {
 }
 
-void UAURDriverOpenCV::Initialize()
+void UAURDriverOpenCV::Initialize(AActor* parent_actor)
 {
-	//this->LoadCalibrationFile();
 	this->Tracker.SetSettings(this->TrackerSettings);
 
 	AvailableVideoSources.Add(nullptr);
@@ -36,7 +35,9 @@ void UAURDriverOpenCV::Initialize()
 		AvailableVideoSources.Add(vid_src);
 	}
 
-	Super::Initialize();
+	//FAUROpenCV::SetGstreamerPluginEnv();
+
+	Super::Initialize(parent_actor);
 }
 
 void UAURDriverOpenCV::Tick()
@@ -293,7 +294,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 
 			// compare the frame size to the size we expect from capture parameters
 			auto frame_size = CapturedFrame.size();
-
+			
 			if (frame_size.width != Driver->FrameResolution.X || frame_size.height != Driver->FrameResolution.Y)
 			{
 				FIntPoint new_camera_res(frame_size.width, frame_size.height);
@@ -303,6 +304,34 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 			}
 			else
 			{	
+				if (Driver->IsCalibrationInProgress()) // calibration
+				{
+					if (Driver->WorldReference)
+					{
+						FScopeLock(&Driver->CalibrationLock);
+						Driver->CalibrationProcess.ProcessFrame(CapturedFrame, Driver->WorldReference->RealTimeSeconds);
+
+						if (Driver->CalibrationProcess.IsFinished())
+						{
+							Driver->OnCalibrationFinished();
+						}
+					}
+					else
+					{
+						UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: WorldReference is null, cannot measure time for calibration"))
+					}
+				} 
+				else if (this->Driver->bPerformOrientationTracking)
+				{
+					/**
+					* Tracking markers and relative position with respect to them
+					*/
+					{
+						FScopeLock lock(&Driver->TrackerLock);
+						Driver->Tracker.DetectMarkers(CapturedFrame);
+					}
+				}
+
 				// ---------------------------
 				// Create the frame to publish
 
@@ -325,27 +354,6 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 				}
 
 				Driver->StoreWorkerFrame();
-
-				if (Driver->IsCalibrationInProgress()) // calibration
-				{
-					FScopeLock(&Driver->CalibrationLock);
-					Driver->CalibrationProcess.ProcessFrame(CapturedFrame, Driver->WorldReference->RealTimeSeconds);
-
-					if (Driver->CalibrationProcess.IsFinished())
-					{
-						Driver->OnCalibrationFinished();
-					}
-				}
-				if (this->Driver->bPerformOrientationTracking)
-				{
-					/**
-					* Tracking markers and relative position with respect to them
-					*/
-					{
-						FScopeLock lock(&Driver->TrackerLock);
-						Driver->Tracker.DetectMarkers(CapturedFrame);
-					}
-				}
 			}
 		}
 	}

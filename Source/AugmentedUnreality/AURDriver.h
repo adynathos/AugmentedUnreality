@@ -74,6 +74,8 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverConnectionStatusChange, UAURDriver*, Driver);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCameraParametersChange, UAURDriver*, Driver);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCalibrationStatusChange, UAURDriver*, Driver);
+	DECLARE_DYNAMIC_DELEGATE_OneParam(FAURDriverInstanceChangeSingle, UAURDriver*, Driver);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverInstanceChange, UAURDriver*, Driver);
 
 	/** True if it should track markers and calculate camera position+rotation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
@@ -99,9 +101,10 @@ public:
 
 	/**
 	 * Start capturing video, setup marker tracking.
+	 * @param parent_actor: Actor from which we take GetWorld for time measurement
 	 */
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual void Initialize();
+	virtual void Initialize(AActor* parent_actor);
 
 	/**
 	* Provide an UWorld reference for time measurement.
@@ -200,6 +203,9 @@ public:
 
 	virtual void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor);
 
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	static UAURDriver* GetCurrentDriver();
+
 	/**
 		Registers the board to be tracked by the currently running AURDriver
 		(if one is running) and any AURDriver created in the future.
@@ -216,6 +222,21 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	static void UnregisterBoardForTracking(AAURMarkerBoardDefinitionBase* board_actor);
+
+	/*
+	 * Add a callback to be notified about a new AURDriver instance being used
+	 */
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	static void BindToOnDriverInstanceChange(FAURDriverInstanceChangeSingle const& Slot);
+
+	static FAURDriverInstanceChange& GetDriverInstanceChangeDelegate();
+
+	/*
+	 * Remove the object from the delegate - it is important to call this on object's EndPlay
+	 * to prevent old references from being in the static global delegate.
+	 */
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	static void UnbindOnDriverInstanceChange(UObject* SlotOwner);
 
 protected:
 	// The video is drawn on this dynamic texture
@@ -277,6 +298,7 @@ private:
 	};
 	static TArray<BoardRegistration> RegisteredBoards;
 	static UAURDriver* CurrentDriver;
+	static FAURDriverInstanceChange OnDriverInstanceChange;
 
 	static void RegisterDriver(UAURDriver* driver);
 	static void UnregisterDriver(UAURDriver* driver);
