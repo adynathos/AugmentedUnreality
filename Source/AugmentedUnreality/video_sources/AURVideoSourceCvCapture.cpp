@@ -47,3 +47,16 @@ float UAURVideoSourceCvCapture::GetFrequency() const
 {
 	return Capture.get(cv::CAP_PROP_FPS);
 }
+
+bool UAURVideoSourceCvCapture::OpenVideoCapture(const FString argument)
+{
+	try
+	{
+		return Capture.open(TCHAR_TO_UTF8(*argument));
+	}
+	catch (std::exception& exc)
+	{
+		UE_LOG(LogAUR, Error, TEXT("cv::VideoCapture::open exception\n    %s"), UTF8_TO_TCHAR(exc.what()))
+	}
+	return false;
+}

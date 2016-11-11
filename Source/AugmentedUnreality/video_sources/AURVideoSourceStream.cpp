@@ -49,7 +49,7 @@ bool UAURVideoSourceStream::Connect()
 	{
 		if (!ConnectionString.IsEmpty())
 		{
-			success = Capture.open(TCHAR_TO_UTF8(*ConnectionString));
+			success = OpenVideoCapture(ConnectionString);
 		}
 		else
 		{
@@ -61,11 +61,12 @@ bool UAURVideoSourceStream::Connect()
 					return false;
 			}
 
-			success = Capture.open(TCHAR_TO_UTF8(*full_path));
+			success = OpenVideoCapture(full_path);
 		}
 
 		if (success)
 		{
+			Capture.set(cv::CAP_PROP_BUFFERSIZE, 1);
 			LoadCalibration();
 		}
 

@@ -42,7 +42,7 @@ bool UAURVideoSourceVideoFile::Connect()
 		return false;
 	}
 
-	bool success = Capture.open(TCHAR_TO_UTF8(*full_path));
+	bool success = OpenVideoCapture(full_path);
 
 	Period = 1.0;
 	if (success)

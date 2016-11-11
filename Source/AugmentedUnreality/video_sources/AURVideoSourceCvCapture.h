@@ -34,6 +34,8 @@ public:
 	virtual float GetFrequency() const override;
 
 protected:
+	bool OpenVideoCapture(const FString argument);
+
 	cv::VideoCapture Capture;
 };
 	
