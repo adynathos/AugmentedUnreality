@@ -35,6 +35,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AugmentedReality)
 	bool UseGlobalDriver;
 
+	// Material displayed when there is no signal from AR
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AugmentedReality)
+	UMaterial* ReplacementMaterial;
+
 	/** Start receiving video from this given AURDriver */
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual void UseDriver(UAURDriver* Driver);
@@ -53,12 +57,17 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
 	UAURDriver* VideoDriver;
 
+	// Material used to display video stream through dynamic texture parameter
 	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
-	UMaterialInstanceDynamic* ScreenMaterial;
+	UMaterialInstanceDynamic* VideoMaterial;
 
 	/**
 	* Finds the material instance with texture parameter "VideoTexture"
 	* on this actor's component
 	*/
-	UMaterialInstanceDynamic* FindScreenMaterial();
+	void InitVideoMaterial();
+
+	/* true - switch to material displaying video, false - switch to empty material*/
+	void SetVideoMaterialActive(bool new_active);
+
 };

@@ -26,7 +26,7 @@ void UAURVideoScreenBackground::OnCameraPropertiesChange(UAURDriver* Driver)
 {
 	Super::OnCameraPropertiesChange(Driver);
 
-	if (VideoDriver)
+	if (VideoDriver && VideoDriver->IsConnected())
 	{
 		SetResolution(VideoDriver->GetResolution());
 		SetSizeForFOV(VideoDriver->GetFieldOfView().X);

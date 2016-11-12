@@ -36,7 +36,7 @@ void UAURVideoScreenBase::UseDriver(UAURDriver* new_driver)
 {
 	if (VideoDriver)
 	{
-		VideoDriver->OnCameraParametersChange.RemoveAll(this);
+		VideoDriver->OnVideoPropertiesChange.RemoveAll(this);
 	}
 
 	VideoDriver = new_driver;
@@ -47,15 +47,21 @@ void UAURVideoScreenBase::UseDriver(UAURDriver* new_driver)
 		OnCameraPropertiesChange(VideoDriver);
 
 		// Subscribe to future changes
-		VideoDriver->OnCameraParametersChange.AddUniqueDynamic(this, &UAURVideoScreenBase::OnCameraPropertiesChange);
+		VideoDriver->OnVideoPropertiesChange.AddUniqueDynamic(this, &UAURVideoScreenBase::OnCameraPropertiesChange);
+	}
+	else
+	{
+		SetVideoMaterialActive(false);
 	}
 }
 
 void UAURVideoScreenBase::OnCameraPropertiesChange(UAURDriver* Driver)
 {
-	if (VideoDriver && this->ScreenMaterial)
+	SetVideoMaterialActive(VideoDriver != nullptr && VideoDriver->IsConnected());
+
+	if (VideoDriver && VideoMaterial)
 	{
-		this->ScreenMaterial->SetTextureParameterValue(FName("VideoTexture"), VideoDriver->GetOutputTexture());
+		this->VideoMaterial->SetTextureParameterValue(FName("VideoTexture"), VideoDriver->GetOutputTexture());
 	}
 }
 
@@ -63,7 +69,7 @@ void UAURVideoScreenBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	this->ScreenMaterial = FindScreenMaterial();
+	InitVideoMaterial();
 
 	if (UseGlobalDriver)
 	{
@@ -85,27 +91,37 @@ void UAURVideoScreenBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-UMaterialInstanceDynamic* UAURVideoScreenBase::FindScreenMaterial()
+void UAURVideoScreenBase::InitVideoMaterial()
 {
 	// Iterate over materials to find the reference to the dynamic texture
 	// so that its content can be written to later.
+	const int32 material_idx = 0;
 
-	for (int32 material_idx = 0; material_idx < this->GetNumMaterials(); material_idx++)
+	UMaterialInterface* material = this->GetMaterial(material_idx);
+	UTexture* texture_param_value = nullptr;
+	if (material->GetTextureParameterValue("VideoTexture", texture_param_value))
 	{
-		UMaterialInterface* material = this->GetMaterial(material_idx);
-		UTexture* texture_param_value = nullptr;
-		if (material->GetTextureParameterValue("VideoTexture", texture_param_value))
+		UMaterialInstanceDynamic* dynamic_material_instance = Cast<UMaterialInstanceDynamic>(material);
+		if (!dynamic_material_instance)
 		{
-			UMaterialInstanceDynamic* dynamic_material_instance = Cast<UMaterialInstanceDynamic>(material);
-			if (!dynamic_material_instance)
-			{
-				dynamic_material_instance = UMaterialInstanceDynamic::Create(material, this);
-				this->SetMaterial(material_idx, dynamic_material_instance);
-			}
-
-			return dynamic_material_instance;
+			dynamic_material_instance = UMaterialInstanceDynamic::Create(material, this);
+			this->SetMaterial(material_idx, dynamic_material_instance);
 		}
+
+		VideoMaterial = dynamic_material_instance;
 	}
-	
-	return nullptr;
+}
+
+void UAURVideoScreenBase::SetVideoMaterialActive(bool new_active)
+{
+	const int32 material_idx = 0;
+
+	if (new_active && VideoMaterial)
+	{
+		SetMaterial(material_idx, VideoMaterial);
+	}
+	else if(ReplacementMaterial)
+	{
+		SetMaterial(material_idx, ReplacementMaterial);
+	}
 }
