@@ -71,8 +71,7 @@ class UAURDriver : public UObject
 	GENERATED_BODY()
 
 public:
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverConnectionStatusChange, UAURDriver*, Driver);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCameraParametersChange, UAURDriver*, Driver);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverVideoPropertiesChange, UAURDriver*, Driver);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCalibrationStatusChange, UAURDriver*, Driver);
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FAURDriverInstanceChangeSingle, UAURDriver*, Driver);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverInstanceChange, UAURDriver*, Driver);
@@ -81,13 +80,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	uint32 bPerformOrientationTracking : 1;
 
-	/** Called when the connection to camera is established or lost */
+	/** Called when the resolution / FOV changes / connection status changes */
 	UPROPERTY(BlueprintAssignable)
-	FAURDriverConnectionStatusChange OnVideoSourceStatusChange;
-
-	/** Called when the resolution or FOV changes */
-	UPROPERTY(BlueprintAssignable)
-	FAURDriverCameraParametersChange OnCameraParametersChange;
+	FAURDriverVideoPropertiesChange OnVideoPropertiesChange;
 
 	/** Called when calibration starts or ends */
 	UPROPERTY(BlueprintAssignable)

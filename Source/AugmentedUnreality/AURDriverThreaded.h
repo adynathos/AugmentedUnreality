@@ -64,8 +64,6 @@ protected:
 	virtual void SetFrameResolution(FIntPoint const& new_res) override;
 
 	// Call the delegates from game thread
-	void NotifyVideoSourceStatusChange();
-	void NotifyCameraParametersChange();
+	void NotifyVideoPropertiesChange();
 	void NotifyCalibrationStatusChange();
-
 };

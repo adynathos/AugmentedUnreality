@@ -120,7 +120,6 @@ void UAURDriverOpenCV::OnVideoSourceSwitch()
 	bNewFrameReady.AtomicSet(false);
 
 	OnCameraPropertiesChange();
-	NotifyVideoSourceStatusChange();
 }
 
 void UAURDriverOpenCV::OnCalibrationFinished()
@@ -150,9 +149,9 @@ void UAURDriverOpenCV::OnCameraPropertiesChange()
 
 		// Allocate proper frame sizes
 		this->SetFrameResolution(VideoSource->GetResolution());
-
-		this->NotifyCameraParametersChange();
 	}
+
+	NotifyVideoPropertiesChange();
 }
 
 FRunnable * UAURDriverOpenCV::CreateWorker()
