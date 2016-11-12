@@ -20,6 +20,8 @@ limitations under the License.
 
 UAURVideoScreenBase::UAURVideoScreenBase()
 	: UseGlobalDriver(true)
+	, VideoDriver(nullptr)
+	, VideoMaterial(nullptr)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
@@ -34,6 +36,12 @@ UAURVideoScreenBase::UAURVideoScreenBase()
 
 void UAURVideoScreenBase::UseDriver(UAURDriver* new_driver)
 {
+	// this may happen before BeginPlay, so call here too
+	if (VideoMaterial == nullptr)
+	{
+		InitVideoMaterial();
+	}
+
 	if (VideoDriver)
 	{
 		VideoDriver->OnVideoPropertiesChange.RemoveAll(this);
@@ -93,22 +101,25 @@ void UAURVideoScreenBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void UAURVideoScreenBase::InitVideoMaterial()
 {
-	// Iterate over materials to find the reference to the dynamic texture
-	// so that its content can be written to later.
-	const int32 material_idx = 0;
-
-	UMaterialInterface* material = this->GetMaterial(material_idx);
-	UTexture* texture_param_value = nullptr;
-	if (material->GetTextureParameterValue("VideoTexture", texture_param_value))
+	if (this->VideoMaterial == nullptr)
 	{
-		UMaterialInstanceDynamic* dynamic_material_instance = Cast<UMaterialInstanceDynamic>(material);
-		if (!dynamic_material_instance)
-		{
-			dynamic_material_instance = UMaterialInstanceDynamic::Create(material, this);
-			this->SetMaterial(material_idx, dynamic_material_instance);
-		}
+		// Iterate over materials to find the reference to the dynamic texture
+		// so that its content can be written to later.
+		const int32 material_idx = 0;
 
-		VideoMaterial = dynamic_material_instance;
+		UMaterialInterface* material = this->GetMaterial(material_idx);
+		UTexture* texture_param_value = nullptr;
+		if (material->GetTextureParameterValue("VideoTexture", texture_param_value))
+		{
+			UMaterialInstanceDynamic* dynamic_material_instance = Cast<UMaterialInstanceDynamic>(material);
+			if (!dynamic_material_instance)
+			{
+				dynamic_material_instance = UMaterialInstanceDynamic::Create(material, this);
+				this->SetMaterial(material_idx, dynamic_material_instance);
+			}
+
+			VideoMaterial = dynamic_material_instance;
+		}
 	}
 }
 
