@@ -115,7 +115,8 @@ protected:
 
 	//void LoadCalibrationFile();
 	void OnCalibrationFinished();
-	void OnCameraPropertiesChange();
+	// set resolution_override to use this resolution instead of Source->GetResolution
+	void OnCameraPropertiesChange(FIntPoint resolution_override = FIntPoint(0, 0));
 
 	virtual FRunnable* CreateWorker() override;
 

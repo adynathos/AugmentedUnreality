@@ -138,7 +138,7 @@ void UAURDriverOpenCV::OnCalibrationFinished()
 	this->NotifyCalibrationStatusChange();
 }
 
-void UAURDriverOpenCV::OnCameraPropertiesChange()
+void UAURDriverOpenCV::OnCameraPropertiesChange(FIntPoint resolution_override)
 {
 	if (VideoSource)
 	{
@@ -148,7 +148,15 @@ void UAURDriverOpenCV::OnCameraPropertiesChange()
 		this->Tracker.SetCameraProperties(VideoSource->GetCameraProperties());
 
 		// Allocate proper frame sizes
-		this->SetFrameResolution(VideoSource->GetResolution());
+		if (resolution_override.X <= 0 || resolution_override.Y <= 0)
+		{
+			this->SetFrameResolution(VideoSource->GetResolution());
+		}
+		else
+		{
+			UE_LOG(LogAUR, Warning, TEXT("UAURDriverOpenCV: Override video source's resolution with %dx%d"), resolution_override.X, resolution_override.Y)
+			this->SetFrameResolution(resolution_override);
+		}
 	}
 
 	NotifyVideoPropertiesChange();
@@ -299,6 +307,8 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 
 				UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: Source returned frame of size %dx%d but %dx%d was expected from source's GetResolution()"),
 					new_camera_res.X, new_camera_res.Y, Driver->FrameResolution.X, Driver->FrameResolution.Y);
+
+				Driver->OnCameraPropertiesChange(new_camera_res);
 			}
 			else
 			{	
