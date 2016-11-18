@@ -69,8 +69,8 @@ public:
 
 		FTransform CurrentTransform;
 
-		std::vector<int> FoundMarkerIds;
-		std::vector< std::vector<cv::Point2f> > FoundMarkerCorners;
+		CvWrapper< std::vector<int> > FoundMarkerIds;
+		CvWrapper< std::vector< std::vector<cv::Point2f> > > FoundMarkerCorners;
 
 		TrackedBoardInfo(TSharedPtr<FFreeFormBoardData> board_data)
 			: Id(board_data->GetMinMarkerId())
@@ -145,7 +145,9 @@ private:
 	**/
 	cv::aruco::Dictionary ArucoDictionary;
 
-	void DetermineBoardPosition(TrackedBoardInfo* tracking_info);
+	cv::aruco::DetectorParameters Parameters;
+
+	void DetermineBoardPosition(TrackedBoardInfo* tracking_info, cv::Mat const& image);
 
 	void PublishTransformUpdate(TrackedBoardInfo* tracking_info);
 
@@ -155,6 +157,9 @@ private:
 	CvWrapper< std::vector<int> > FoundMarkerIds;
 	// OpenCV writes directoy to those vectors, so they need to be allocated/deleted outside AUR binary
 	CvWrapper< std::vector< std::vector<cv::Point2f> > > FoundMarkerCorners;
+	// Rejected corners for cv::aruco::refineDetectedMarkers
+	CvWrapper< std::vector< std::vector<cv::Point2f> > > RejectedMarkerCorners;
+	CvWrapper< std::vector<int> > RecoveredIds;
 
 	// Creates a default aruco board and saves a copy to a file.
 	//void UpdateMarkerDefinition(FArucoGridBoardDefinition const & BoardDefinition);

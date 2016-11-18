@@ -43,7 +43,7 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
 	try
 	{
 		cv::aruco::detectMarkers(image, ArucoDictionary,
-			*FoundMarkerCorners, *FoundMarkerIds);
+			*FoundMarkerCorners, *FoundMarkerIds, Parameters, *RejectedMarkerCorners);
 
 		// we cannot see any markers at all
 		const size_t found_marker_count = FoundMarkerIds->size();
@@ -66,8 +66,8 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
 			if (tracker_info) 
 			{
 				DetectedBoards.Add(tracker_info);
-				tracker_info->FoundMarkerIds.push_back(found_marker_id);
-				tracker_info->FoundMarkerCorners.push_back(FoundMarkerCorners->at(idx));
+				tracker_info->FoundMarkerIds->push_back(found_marker_id);
+				tracker_info->FoundMarkerCorners->push_back(FoundMarkerCorners->at(idx));
 			}
 		}
 		
@@ -75,7 +75,7 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
 		{
 			if (detected_board_info != nullptr)
 			{
-				DetermineBoardPosition(detected_board_info);
+				DetermineBoardPosition(detected_board_info, image);
 			}
 			else
 			{
@@ -100,19 +100,60 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
 	return true;
 }
 
-void FAURArucoTracker::DetermineBoardPosition(TrackedBoardInfo * tracking_info)
+void FAURArucoTracker::DetermineBoardPosition(TrackedBoardInfo * tracking_info, cv::Mat const& image)
 {
 	//UE_LOG(LogAUR, Log, TEXT("Determine %d"), tracking_info->Id);
 
 	// Translation and rotation reported by detector
 	cv::Vec3d rotation_raw, translation_raw;
+	
+	if (RejectedMarkerCorners->size() > 0)
+	{
+		UE_LOG(LogAUR, Log, TEXT("Rejected %d -> refine"), RejectedMarkerCorners->size())
 
-	int number_of_markers = cv::aruco::estimatePoseBoard(tracking_info->FoundMarkerCorners, tracking_info->FoundMarkerIds,
+		const int size_pre = tracking_info->FoundMarkerIds->size();
+		try
+		{
+			cv::aruco::refineDetectedMarkers(image, tracking_info->BoardData->GetArucoBoard(),
+				*tracking_info->FoundMarkerCorners, *tracking_info->FoundMarkerIds, *this->RejectedMarkerCorners,
+				CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
+				10.0f, 3.f, true, *RecoveredIds
+				, Parameters);
+		}
+		catch (std::exception& exc)
+		{
+			UE_LOG(LogAUR, Error, TEXT("Exception in cv::aruco::refineDetectedMarkers:\n	%s\n"), UTF8_TO_TCHAR(exc.what()))
+		}
+
+		if (RecoveredIds->size() > 0)
+		{
+			FString ids;
+			for (int id : *RecoveredIds)
+			{
+				ids += FString::FromInt(id) + " ";
+			}
+
+			UE_LOG(LogAUR, Warning, TEXT("Refine recovered %d idxs: %s"), RecoveredIds->size(), *ids)
+		}
+
+		const int size_after = tracking_info->FoundMarkerIds->size();
+
+		if (size_pre != size_after)
+		{
+			UE_LOG(LogAUR, Warning, TEXT("Size change %d"), size_after-size_pre)
+		}
+	}
+	else
+	{
+		UE_LOG(LogAUR, Log, TEXT("No rejected"))
+	}
+
+	int number_of_markers = cv::aruco::estimatePoseBoard(*tracking_info->FoundMarkerCorners, *tracking_info->FoundMarkerIds,
 		tracking_info->BoardData->GetArucoBoard(), CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
 		rotation_raw, translation_raw);
 
-	tracking_info->FoundMarkerIds.clear();
-	tracking_info->FoundMarkerCorners.clear();
+	tracking_info->FoundMarkerIds->clear();
+	tracking_info->FoundMarkerCorners->clear();
 
 	// if markers fit
 	if (number_of_markers > 0)

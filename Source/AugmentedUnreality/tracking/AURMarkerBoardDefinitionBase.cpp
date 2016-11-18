@@ -98,6 +98,9 @@ void FFreeFormBoardData::SetDictionaryDefinition(FArucoDictionaryDefinition cons
 {
 	DictionaryDefinition = dict_def;
 	ArucoDictionary = dict_def.GetDictionary();
+
+	// cv::aruco::refineDetectedMarkers uses the dictionary stored inside board object
+	ArucoBoard.dictionary = dict_def.GetDictionary();
 }
 
 void FFreeFormBoardData::AddMarker(FMarkerDefinitionData const & marker_def)
