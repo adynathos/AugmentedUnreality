@@ -50,7 +50,7 @@ struct FArucoTrackerSettings
 	}
 };
 
-/* 
+/*
 	Tracking of Aruco markers:
 	http://docs.opencv.org/3.1.0/db/da9/tutorial_aruco_board_detection.html
 */
@@ -61,8 +61,8 @@ public:
 	struct TrackedBoardInfo {
 		// Tracked boards are identified by the lowest ID of their markers (marker IDs are unique)
 		int32 Id;
-		
-		// 
+
+		//
 		bool UseAsViewpointOrigin;
 
 		TSharedPtr<FFreeFormBoardData> BoardData;
@@ -72,7 +72,7 @@ public:
 		std::vector<int> FoundMarkerIds;
 		std::vector< std::vector<cv::Point2f> > FoundMarkerCorners;
 
-		TrackedBoardInfo(TSharedPtr<FFreeFormBoardData> board_data) 
+		TrackedBoardInfo(TSharedPtr<FFreeFormBoardData> board_data)
 			: Id(board_data->GetMinMarkerId())
 			, UseAsViewpointOrigin(false)
 			, BoardData(board_data)
@@ -80,16 +80,16 @@ public:
 		}
 	};
 
-	
+
 	FAURArucoTracker();
 
-	FArucoTrackerSettings const& GetSettings() 
+	FArucoTrackerSettings const& GetSettings()
 	{
 		return this->Settings;
 	}
 
 	void SetSettings(FArucoTrackerSettings const& settings);
-	
+
 	void SetCameraProperties(FOpenCVCameraProperties const& camera_properties);
 
 	// Returns the position of the camera (but with Z axis pointing toward the markers)
@@ -98,7 +98,7 @@ public:
 		return ViewpointTransform;
 	}
 
-	/* 
+	/*
 		Calculate camera's position/rotation relative to the markers
 		Returns true if any markers were detected
 	*/
@@ -152,9 +152,9 @@ private:
 	void ConvertTransformToUnreal(cv::Vec3d const& opencv_translation, cv::Vec3d const& opencv_rotation, FTransform & out_transform, bool camera_viewpoint) const;
 
 	// OpenCV writes directoy to those vectors, so they need to be allocated/deleted outside AUR binary
-	cv::aur_allocator::OpenCvWrapper< std::vector<int> > FoundMarkerIds;
+	CvWrapper< std::vector<int> > FoundMarkerIds;
 	// OpenCV writes directoy to those vectors, so they need to be allocated/deleted outside AUR binary
-	cv::aur_allocator::OpenCvWrapper< std::vector< std::vector<cv::Point2f> > > FoundMarkerCorners;
+	CvWrapper< std::vector< std::vector<cv::Point2f> > > FoundMarkerCorners;
 
 	// Creates a default aruco board and saves a copy to a file.
 	//void UpdateMarkerDefinition(FArucoGridBoardDefinition const & BoardDefinition);

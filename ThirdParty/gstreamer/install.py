@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, shutil, argparse
+import os, shutil, argparse, platform
 from os.path import join as pp
 
 modules = set(lb.lower() for lb in [
@@ -118,7 +118,6 @@ def main(args):
 
 parser = argparse.ArgumentParser(description="Copy OpenCV compulation results from build/PLATFORM to plugin's directories")
 
-import platform
 platform_dirs = {
 	'windows': 'Win64',
 	'linux': 'Linux',

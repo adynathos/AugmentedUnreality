@@ -39,9 +39,16 @@ However, we resolve them wit the following tricks
 
 	#include <opencv2/opencv.hpp>
 	#include <opencv2/calib3d.hpp>
-	#include <opencv2/aur_allocator.hpp>
+	#include <opencv2/aruco.hpp>
 
-#pragma warning(pop) 
+	#ifdef WIN32
+		#include <opencv2/aur_allocator.hpp>
+		#define CvWrapper cv::aur_allocator::OpenCvWrapper
+	#else
+		#define CvWrapper std::unique_ptr
+	#endif
+
+#pragma warning(pop)
 
 #undef int64
 #undef uint64

@@ -69,7 +69,7 @@ bool FOpenCVCameraProperties::SaveToFile(FString const & file_path) const
 	cam_param_file << KEY_RESOLUTION << std::vector<int32>{ Resolution.X, Resolution.Y };
 	cam_param_file << KEY_CAMERA_MATRIX << CameraMatrix;
 	cam_param_file << KEY_DISTORTION << DistortionCoefficients;
-	
+
 	return true;
 }
 
@@ -98,7 +98,7 @@ void FOpenCVCameraProperties::SetResolution(FIntPoint const & new_resolution)
 void FOpenCVCameraProperties::DeriveFOV()
 {
 	/*
-		CameraMatrix(0, 0) is f_x in "pixels" because "real" units cancel out: 
+		CameraMatrix(0, 0) is f_x in "pixels" because "real" units cancel out:
 			x_img_pix = x_real / z_real * f_pix
 		We fix the aspect ratio to 1, so f_x == f_y == f
 
@@ -128,7 +128,7 @@ void FOpenCVCameraProperties::PrintToLog() const
 		<< "FOV vertical: " << FOV.Y << '\n'
 		<< "Camera matrix: " << CameraMatrix << '\n'
 		<< "Distortion coefficients: " << DistortionCoefficients << '\n';
-	
+
 	UE_LOG(LogAUR, Log, TEXT("OpenCVCameraProperties: %s"), UTF8_TO_TCHAR(param_ss.str().c_str()))
 }
 
@@ -138,8 +138,8 @@ FOpenCVCameraCalibrationProcess::FOpenCVCameraCalibrationProcess()
 	, PatternSize(4, 11)
 	, SquareSize(1.7) // cm if printed on A4 paper
 	, CalibrationFlags(
-		cv::CALIB_FIX_K4 | 
-		cv::CALIB_FIX_K5 | 
+		cv::CALIB_FIX_K4 |
+		cv::CALIB_FIX_K5 |
 		cv::CALIB_FIX_PRINCIPAL_POINT |
 		cv::CALIB_ZERO_TANGENT_DIST |
 		cv::CALIB_FIX_ASPECT_RATIO
@@ -211,14 +211,14 @@ void FOpenCVCameraCalibrationProcess::CalculateCalibration()
 	object_points.resize(DetectedPointSets.size(), object_points[0]);
 
 	// OpenCV writes directoy to those vectors, so they need to be allocated/deleted outside AUR binary
-	cv::aur_allocator::OpenCvWrapper< std::vector<cv::Mat> > r_vecs, t_vecs;
+	CvWrapper< std::vector<cv::Mat> > r_vecs, t_vecs;
 
-	try 
+	try
 	{
 		cv::setIdentity(CameraProperties.CameraMatrix);
 		CameraProperties.DistortionCoefficients.setTo(0.0);
 
-		// the error is root-square-mean 
+		// the error is root-square-mean
 		double calibration_error = cv::calibrateCamera(object_points, DetectedPointSets, cv::Size(CameraProperties.Resolution.X, CameraProperties.Resolution.Y),
 			CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients, *r_vecs, *t_vecs,
 			CalibrationFlags);

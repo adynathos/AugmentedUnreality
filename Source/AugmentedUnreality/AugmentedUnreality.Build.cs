@@ -16,6 +16,7 @@
 
 using System;
 using System.IO;
+using System.Collections;
 using System.Collections.Generic;
 using UnrealBuildTool;
 
@@ -39,7 +40,6 @@ public class AugmentedUnreality : ModuleRules
 	protected List<string> OpenCVModules = new List<string>()
 	{
 		"opencv_core",
-		"opencv_aur_allocator",
 		"opencv_calib3d",	// camera calibration
 		"opencv_features2d", // cv::SimpleBlobDetector for calibration
 		"opencv_videoio",	// VideoCapture
@@ -80,6 +80,7 @@ public class AugmentedUnreality : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Win64) {return "Win64";}
 		if (Target.Platform == UnrealTargetPlatform.Win32) {return "Win32";}
 		if (Target.Platform == UnrealTargetPlatform.Linux) {return "Linux";}
+		if (Target.Platform == UnrealTargetPlatform.Android) {return "Android";}
 		return "Unknown";
 	}
 
@@ -116,16 +117,21 @@ public class AugmentedUnreality : ModuleRules
 				Console.WriteLine("AUR: Not debug");
 			}
 
+			// Add the aur_allocator fix for crashes on windows
+			List<string> modules = new List<string>();
+			modules.AddRange(OpenCVModules);
+			modules.Add("opencv_aur_allocator");
+
 			// Static linking
 			var lib_dir = Path.Combine(opencv_dir, "lib", "Win64");
 			PublicAdditionalLibraries.AddRange(
-				OpenCVModules.ConvertAll(m => Path.Combine(lib_dir, m + suffix + ".lib"))
+				modules.ConvertAll(m => Path.Combine(lib_dir, m + suffix + ".lib"))
 			);
 
 			// Dynamic libraries
 			// The DLLs need to be in Binaries/Win64 anyway, so let us keep them there instead of ThirdParty/opencv
 			PublicDelayLoadDLLs.AddRange(
-				OpenCVModules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), m + suffix + ".dll"))
+				modules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), m + suffix + ".dll"))
 			);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux )
@@ -134,8 +140,18 @@ public class AugmentedUnreality : ModuleRules
 
 			var opencv_libs = OpenCVModules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), "lib" + m + ".so"));
 
+
 			PublicAdditionalLibraries.AddRange(opencv_libs);
-			PublicDelayLoadDLLs.AddRange(opencv_libs);
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			Console.WriteLine("AUR: Android with arch=", Target.Architecture);
+
+			var lib_dir = Path.Combine(opencv_dir, "lib", "Android", Target.Architecture);
+			var opencv_libs = OpenCVModules.ConvertAll(m => Path.Combine(lib_dir, "lib" + m + ".so"));
+
+			PublicLibraryPaths.Add(lib_dir);
+			PublicAdditionalLibraries.AddRange(opencv_libs);
 		}
 		else
 		{
