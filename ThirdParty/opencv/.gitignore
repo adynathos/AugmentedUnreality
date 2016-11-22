@@ -1,7 +1,8 @@
 
 build
-include/*
+install
 lib
+include/*
 src/opencv
 
 src/opencv_contrib/*

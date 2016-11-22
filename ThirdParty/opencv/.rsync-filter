@@ -2,3 +2,10 @@
 
 # ignore:
 - build
+
+- install/Android/sdk/native/jni
+- install/Android/sdk/java
+- install/Android/sdk/etc
+- install/Android/bin
+- install/Android/apk
+
