@@ -40,8 +40,10 @@ void FAURArucoTracker::SetCameraProperties(FOpenCVCameraProperties const & camer
 bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
 {
 	// http://docs.opencv.org/3.1.0/db/da9/tutorial_aruco_board_detection.html
+#ifndef __ANDROID__
 	try
 	{
+#endif
 		cv::aruco::detectMarkers(image, ArucoDictionary,
 			*FoundMarkerCorners, *FoundMarkerIds);
 
@@ -90,12 +92,14 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
 				rotation_raw, translation_raw, 10);
 		}
 		*/
+#ifndef __ANDROID__
 	}
 	catch (std::exception& exc)
 	{
 		UE_LOG(LogAUR, Error, TEXT("Exception in ArucoWrapper::DetectMarkers:\n	%s\n"), UTF8_TO_TCHAR(exc.what()))
 		return false;
 	}
+#endif
 
 	return true;
 }

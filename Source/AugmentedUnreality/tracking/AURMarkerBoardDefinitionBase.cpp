@@ -176,9 +176,10 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 	float pixels_per_cm = float(dpi) / INCH;
 
 	FString dict_name = DictionaryDefinition.GetName();
-
+#ifndef __ANDROID__
 	try
 	{
+#endif
 		TInlineComponentArray<UAURMarkerComponentBase*, 32> marker_components;
 		GetComponents(marker_components);
 
@@ -188,18 +189,20 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 		{
 			FString filename = output_dir / FString::Printf(TEXT("marker_%s_%02d.png"), *dict_name, marker->Id);
 				
-			int32 canvas_pixels = (int32)std::round(pixels_per_cm*marker->BoardSizeCm);
-			int32 margin_pixels = (int32)std::round(pixels_per_cm*marker->MarginCm);
+			int32 canvas_pixels = FMath::RoundToInt(pixels_per_cm*marker->BoardSizeCm);
+			int32 margin_pixels = FMath::RoundToInt(pixels_per_cm*marker->MarginCm);
 
 			cv::imwrite(TCHAR_TO_UTF8(*filename), RenderMarker(marker->Id, canvas_pixels, margin_pixels));
 
 			//UE_LOG(LogAUR, Log, TEXT("AAURMarkerBoardDefinitionBase::SaveMarkerFiles: Saved marker image to: %s"), *filename);
 		}
+#ifndef __ANDROID__
 	}
 	catch (std::exception& exc)
 	{
 		UE_LOG(LogAUR, Error, TEXT("AAURMarkerBoardDefinitionBase::SaveMarkerFiles: exception when saving\n    %s"), UTF8_TO_TCHAR(exc.what()))
 	}
+#endif
 }
 
 cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side, int32 margin)
@@ -225,7 +228,7 @@ cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side,
 	// Texts
 	const int text_margin = 8;
 	const double font_size = margin / 30.0;
-	const int font_line_width = std::round(font_size);
+	const int font_line_width = FMath::RoundToInt(font_size);
 	const int font_index = cv::FONT_HERSHEY_DUPLEX;
 	const cv::Scalar font_color(175);
 

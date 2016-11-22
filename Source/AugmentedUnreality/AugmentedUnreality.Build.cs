@@ -147,11 +147,23 @@ public class AugmentedUnreality : ModuleRules
 		{
 			Console.WriteLine("AUR: Android with arch=", Target.Architecture);
 
-			var lib_dir = Path.Combine(opencv_dir, "lib", "Android", Target.Architecture);
-			var opencv_libs = OpenCVModules.ConvertAll(m => Path.Combine(lib_dir, "lib" + m + ".so"));
+			var arch = "armeabi-v7a"; //Target.Architecture
 
-			PublicLibraryPaths.Add(lib_dir);
+			var src_dir = Path.Combine(opencv_dir, "install", "Android", "sdk", "native");
+
+			var modules_lib_dir = Path.Combine(src_dir, "libs", arch);
+			var opencv_libs = OpenCVModules.ConvertAll(
+				m => Path.Combine(modules_lib_dir, "lib" + m + ".a")
+			);
+			PublicLibraryPaths.Add(modules_lib_dir);
 			PublicAdditionalLibraries.AddRange(opencv_libs);
+
+			var thirdparty_lib_dir = Path.Combine(src_dir, "3rdparty", "libs", arch);
+			var thirdparty_libs = new List<string>(Directory.GetFiles(thirdparty_lib_dir)).ConvertAll( 
+				fn => Path.Combine(thirdparty_lib_dir, fn)
+			);
+			PublicLibraryPaths.Add(thirdparty_lib_dir);
+			PublicAdditionalLibraries.AddRange(thirdparty_libs);
 		}
 		else
 		{

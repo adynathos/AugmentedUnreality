@@ -45,6 +45,7 @@ However, we resolve them wit the following tricks
 		#include <opencv2/aur_allocator.hpp>
 		#define CvWrapper cv::aur_allocator::OpenCvWrapper
 	#else
+		#include <memory>
 		#define CvWrapper std::unique_ptr
 	#endif
 

@@ -50,13 +50,17 @@ float UAURVideoSourceCvCapture::GetFrequency() const
 
 bool UAURVideoSourceCvCapture::OpenVideoCapture(const FString argument)
 {
+#ifndef __ANDROID__
 	try
 	{
+#endif
 		return Capture.open(TCHAR_TO_UTF8(*argument));
+#ifndef __ANDROID__
 	}
 	catch (std::exception& exc)
 	{
 		UE_LOG(LogAUR, Error, TEXT("cv::VideoCapture::open exception\n    %s"), UTF8_TO_TCHAR(exc.what()))
 	}
 	return false;
+#endif
 }

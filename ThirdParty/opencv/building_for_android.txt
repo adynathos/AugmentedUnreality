@@ -1,0 +1,18 @@
+On Linux:
+	install AndroidNDK from https://developer.android.com/ndk/downloads/index.html
+	set env var ANDROID_NDK="path/to/android-ndk"
+
+	open CMake GUI
+		set src location to AugmentedUnreality/ThirdParty/opencv/src/opencv
+		add key:
+			ANDROID_NATIVE_API_LEVEL = "19"
+		click "Configure"
+			-> specify toolchain for cross compiling
+			-> choose: AugmentedUnreality/ThirdParty/opencv/src/opencv/platforms/android/android.toolchain.cmake
+
+		set additional modules = AugmentedUnreality/ThirdParty/opencv/src/opencv_contrib/modules
+		set WITH_CUDA = false
+		set install prefix = AugmentedUnreality/ThirdParty/opencv/install/Android
+
+		click "Generate"
+
