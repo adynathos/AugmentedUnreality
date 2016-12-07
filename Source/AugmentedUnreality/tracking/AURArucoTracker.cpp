@@ -37,7 +37,7 @@ void FAURArucoTracker::SetCameraProperties(FOpenCVCameraProperties const & camer
 	this->CameraProperties = camera_properties;
 }
 
-bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
+bool FAURArucoTracker::DetectMarkers(cv::Mat& image, bool draw_found_markers)
 {
 	// http://docs.opencv.org/3.1.0/db/da9/tutorial_aruco_board_detection.html
 #ifndef __ANDROID__
@@ -54,7 +54,7 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
 			return false;
 		}
 
-		if (Settings.bDisplayDetectedMarkers)
+		if (draw_found_markers)
 		{
 			cv::aruco::drawDetectedMarkers(image, *FoundMarkerCorners, *FoundMarkerIds);
 		}
@@ -65,14 +65,14 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
 			int found_marker_id = FoundMarkerIds->at(idx);
 
 			TrackedBoardInfo* tracker_info = TrackedBoardsByMarker.FindRef(found_marker_id);
-			if (tracker_info) 
+			if (tracker_info)
 			{
 				DetectedBoards.Add(tracker_info);
 				tracker_info->FoundMarkerIds.push_back(found_marker_id);
 				tracker_info->FoundMarkerCorners.push_back(FoundMarkerCorners->at(idx));
 			}
 		}
-		
+
 		for (TrackedBoardInfo* detected_board_info : DetectedBoards)
 		{
 			if (detected_board_info != nullptr)
@@ -84,9 +84,9 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat& image)
 				UE_LOG(LogAUR, Error, TEXT("detected_board_info is null"))
 			}
 		}
-		
+
 		/*
-		if (Settings.bDisplayDetectedMarkers)
+		if (draw_found_markers)
 		{
 			cv::aruco::drawAxis(image, CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
 				rotation_raw, translation_raw, 10);
@@ -117,7 +117,7 @@ void FAURArucoTracker::DetermineBoardPosition(TrackedBoardInfo * tracking_info)
 
 	tracking_info->FoundMarkerIds.clear();
 	tracking_info->FoundMarkerCorners.clear();
-
+	
 	// if markers fit
 	if (number_of_markers > 0)
 	{
@@ -184,6 +184,7 @@ void FAURArucoTracker::ConvertTransformToUnreal(cv::Vec3d const& opencv_translat
 	FVector rotation_axis = FAUROpenCV::ConvertOpenCvVectorToUnreal(opencv_rotation);
 	FVector cv_translation = FAUROpenCV::ConvertOpenCvVectorToUnreal(opencv_translation);
 
+	// cv_rotation = R^-1? because other direction of angle in UE4?
 	float angle = rotation_axis.Size();
 	rotation_axis.Normalize();
 	FQuat cv_rotation(rotation_axis, angle);
@@ -249,6 +250,8 @@ bool FAURArucoTracker::RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor,
 		TrackedBoardsByMarker.Add(marker_id, tracker_info);
 	}
 
+	board_actor->SetActorHiddenInGame(!BoardVisibility);
+
 	return true;
 }
 
@@ -270,7 +273,7 @@ void FAURArucoTracker::UnregisterBoard(AAURMarkerBoardDefinitionBase * board_act
 	{
 		TrackedBoardsByMarker.Remove(marker_id);
 	}
-	
+
 	// Since this object will be deleted, remove it from being potentially used in Publish
 	DetectedBoards.Remove(tracking_info);
 
@@ -286,4 +289,14 @@ void FAURArucoTracker::PublishTransformUpdatesOnTick()
 	}
 
 	DetectedBoards.Empty();
+}
+
+void FAURArucoTracker::SetBoardVisibility(bool NewBoardVisibility)
+{
+	BoardVisibility = NewBoardVisibility;
+
+	for (auto& bi : TrackedBoardsByMarker)
+	{
+		bi.Value->BoardData->GetBoardActor()->SetActorHiddenInGame(!BoardVisibility);
+	}
 }

@@ -28,6 +28,7 @@ UAURDriver::UAURDriver()
 	, FrameResolution(1, 1)
 	, bActive(false)
 	, bCalibrationInProgress(false)
+	, DiagnosticLevel(EAURDiagnosticInfoLevel::AURD_Silent)
 {
 }
 
@@ -188,6 +189,17 @@ FAURVideoFrame * UAURDriver::GetFrame()
 bool UAURDriver::IsNewFrameAvailable() const
 {
 	return false;
+}
+
+void UAURDriver::SetDiagnosticInfoLevel(EAURDiagnosticInfoLevel NewLevel)
+{
+	DiagnosticLevel = NewLevel;
+}
+
+void UAURDriver::ToggleDiagnosticInfoLevel()
+{
+	const uint8 next = ((uint8)GetDiagnosticInfoLevel() + 1) % ((uint8)EAURDiagnosticInfoLevel::AURD_Advanced + 1);
+	SetDiagnosticInfoLevel((EAURDiagnosticInfoLevel)next);
 }
 
 FString UAURDriver::GetDiagnosticText() const

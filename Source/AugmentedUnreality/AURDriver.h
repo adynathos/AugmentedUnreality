@@ -20,6 +20,14 @@ limitations under the License.
 //class UAURSmoothingFilter;
 #include "AURDriver.generated.h"
 
+UENUM(BlueprintType)
+enum class EAURDiagnosticInfoLevel : uint8
+{
+	AURD_Silent = 0 	UMETA(DisplayName = "Diagnostic: Silent"),
+	AURD_Basic = 1		UMETA(DisplayName = "Diagnostic: Basic"),
+	AURD_Advanced = 2	UMETA(DisplayName = "Diagnostic: Advanced")
+};
+
 USTRUCT(BlueprintType)
 struct FAURVideoFrame
 {
@@ -191,6 +199,18 @@ public:
 	virtual bool IsNewFrameAvailable() const;
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	EAURDiagnosticInfoLevel GetDiagnosticInfoLevel() const
+	{
+		return DiagnosticLevel;
+	}
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual void SetDiagnosticInfoLevel(EAURDiagnosticInfoLevel NewLevel);
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	void ToggleDiagnosticInfoLevel();
+
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual FString GetDiagnosticText() const;
 
 	// Start tracking a board - called by the static board list mechanism (RegisterBoardForTracking)
@@ -237,6 +257,10 @@ protected:
 	// The video is drawn on this dynamic texture
 	UPROPERTY(BlueprintReadOnly, Transient, Category = AugmentedReality)
 	UTexture2D* OutputTexture;
+
+	// How much diagnostic information should be displayed. High value may reduce performance.
+	UPROPERTY(EditAnywhere, Category = AugmentedReality)
+	EAURDiagnosticInfoLevel DiagnosticLevel;
 
 	// Is the driver turned on
 	uint32 bActive : 1;

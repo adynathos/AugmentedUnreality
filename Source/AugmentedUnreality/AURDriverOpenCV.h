@@ -88,6 +88,7 @@ public:
 	virtual void StartCalibration() override;
 	virtual void CancelCalibration() override;
 
+	virtual void SetDiagnosticInfoLevel(EAURDiagnosticInfoLevel NewLevel) override;
 	virtual FString GetDiagnosticText() const override;
 
 protected:

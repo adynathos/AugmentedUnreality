@@ -36,6 +36,8 @@ void UAURDriverOpenCV::Initialize(AActor* parent_actor)
 
 	//FAUROpenCV::SetGstreamerPluginEnv();
 
+	Tracker.SetBoardVisibility(DiagnosticLevel >= EAURDiagnosticInfoLevel::AURD_Basic);
+
 	Super::Initialize(parent_actor);
 }
 
@@ -228,6 +230,19 @@ void UAURDriverOpenCV::CancelCalibration()
 	NotifyCalibrationStatusChange();
 }
 
+void UAURDriverOpenCV::SetDiagnosticInfoLevel(EAURDiagnosticInfoLevel NewLevel)
+{
+	Super::SetDiagnosticInfoLevel(NewLevel);
+
+	/**
+	Diagnostic levels
+		0 - nothing
+		1 - show boards
+		2 - show boards and positions of detected markers
+	*/
+	Tracker.SetBoardVisibility(DiagnosticLevel >= EAURDiagnosticInfoLevel::AURD_Basic);
+}
+
 FString UAURDriverOpenCV::GetDiagnosticText() const
 {
 	return this->DiagnosticText;
@@ -251,7 +266,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Worker thread start"))
 
 	UAURVideoSource* current_video_source = nullptr;
-
+	
 	while (this->bContinue)
 	{
 		bool new_video_source = false;
@@ -336,7 +351,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 					*/
 					{
 						FScopeLock lock(&Driver->TrackerLock);
-						Driver->Tracker.DetectMarkers(CapturedFrame);
+						Driver->Tracker.DetectMarkers(CapturedFrame, Driver->GetDiagnosticInfoLevel() >= EAURDiagnosticInfoLevel::AURD_Advanced);
 					}
 				}
 

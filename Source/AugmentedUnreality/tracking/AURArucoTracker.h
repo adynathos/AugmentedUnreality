@@ -34,17 +34,12 @@ struct FArucoTrackerSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	float TranslationScale;
 
-	// Whether the marker outlines should be displayed on the screen
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	uint32 bDisplayDetectedMarkers : 1;
-
 	// Value in range (0, 1), the higher, the more smoothed
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	float SmoothingStrength;
 
 	FArucoTrackerSettings()
 		: TranslationScale(1.0)
-		, bDisplayDetectedMarkers(false)
 		, SmoothingStrength(0.5)
 	{
 	}
@@ -102,7 +97,7 @@ public:
 		Calculate camera's position/rotation relative to the markers
 		Returns true if any markers were detected
 	*/
-	bool DetectMarkers(cv::Mat& image);
+	bool DetectMarkers(cv::Mat& image, bool draw_found_markers = false);
 
 	// Start tracking a board
 	bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false);
@@ -116,8 +111,12 @@ public:
 	*/
 	void PublishTransformUpdatesOnTick();
 
+	void SetBoardVisibility(bool NewBoardVisibility);
+
 private:
 	FArucoTrackerSettings Settings;
+
+	bool BoardVisibility;
 
 	// Marker information
 	// Collection of all boards to track
