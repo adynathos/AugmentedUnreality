@@ -118,7 +118,7 @@ void FFreeFormBoardData::AddMarker(FMarkerDefinitionData const & marker_def)
 AAURMarkerBoardDefinitionBase::AAURMarkerBoardDefinitionBase()
 	: MarkerFileDir("AugmentedUnreality/Markers")
 	, ActorToMove(nullptr)
-	//, AutomaticMarkerIds(true)
+	, AutomaticMarkerIds(false)
 {
 	PrimaryActorTick.bStartWithTickEnabled = false;
 	SetActorTickEnabled(false);
@@ -279,6 +279,22 @@ void AAURMarkerBoardDefinitionBase::TransformMeasured(FTransform const & new_tra
 	OnTransformUpdate.Broadcast(new_transform);
 
 	//UE_LOG(LogAUR, Log, TEXT("TransformMeasured: %s"), *new_transform.ToString())
+}
+
+void AAURMarkerBoardDefinitionBase::RefreshAfterEdit()
+{
+	if (AutomaticMarkerIds)
+	{
+		AssignAutomaticMarkerIds();
+	}
+
+	TInlineComponentArray<UAURMarkerComponentBase*, 32> marker_components;
+	GetComponents(marker_components);
+
+	for (auto & marker : marker_components)
+	{
+		marker->RedrawSurface();
+	}
 }
 
 void AAURMarkerBoardDefinitionBase::AssignAutomaticMarkerIds()

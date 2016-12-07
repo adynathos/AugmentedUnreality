@@ -172,8 +172,8 @@ public:
 		Set this to true to automatically set different ids to child markers.
 		Generated ids are consecutive integers ordered by component names.
 	*/
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ArucoTracking)
-	//bool AutomaticMarkerIds;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = ArucoTracking)
+	bool AutomaticMarkerIds;
 
 	/**
 		Save all markers to image files.
@@ -197,6 +197,10 @@ public:
 	void TransformMeasured(FTransform const& new_transform, bool used_as_viewpoint_origin);
 
 protected:
+	// Call from "Construction Script"
+	UFUNCTION(BlueprintCallable, Category = ArucoTracking)
+	void RefreshAfterEdit();
+
 	TSharedPtr<FFreeFormBoardData> BoardData;
 
 	void AssignAutomaticMarkerIds();

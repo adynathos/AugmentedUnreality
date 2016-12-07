@@ -20,6 +20,16 @@ limitations under the License.
 const float UAURMarkerComponentBase::MARKER_DEFAULT_SIZE = 10.0;
 const float UAURMarkerComponentBase::MARKER_TEXT_RELATIVE_SCALE = 0.5;
 
+const int32 MATERIAL_INDEX = 0;
+
+const FName TEXTURE_PARAM_NAME = FName("ContentTexture");
+const int32 TEXTURE_SIZE = 128;
+const FMatrix MATRIX_VERTICAL_MIRROR = FRotationTranslationMatrix(
+	FRotator(0, 180, 0),
+	FVector(TEXTURE_SIZE / 2, TEXTURE_SIZE / 2, 0)
+);
+
+
 /**
 The order in ArUco is top-left, top-right, bottom-right, bottom-left,
 but since OpenCV's vectors have different handedness, we need to have different order here.
@@ -37,15 +47,90 @@ UAURMarkerComponentBase::UAURMarkerComponentBase()
 	: Id(1)
 	, BoardSizeCm(MARKER_DEFAULT_SIZE)
 	, MarginCm(1.0)
+	, MarkerIdFontColor(0.16, 0.5, 1.0, 1.0)
+	, MarkerCenterColor(0.35, 0.35, 0.35, 0.6)
+	, MarkerBackgroundColor(1.0, 1.0, 1.0, 0.6)
+	, SurfaceDynamicMaterial(nullptr)
+	, SurfaceDynamicTexture(nullptr)
 {
-	PrimaryComponentTick.bStartWithTickEnabled = false;
-	SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	bWantsInitializeComponent = true;
 
-	MarkerText = CreateDefaultSubobject<UTextRenderComponent>("MarkerText");
-	MarkerText->SetHorizontalAlignment(EHorizTextAligment::EHTA_Center);
-	MarkerText->SetVerticalAlignment(EVerticalTextAligment::EVRTA_TextCenter);
-	MarkerText->SetTextRenderColor(FColor(50, 200, 50));
-	MarkerText->SetAbsolute(false, false, false);
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.bCanEverTick = false;
+	SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void UAURMarkerComponentBase::InitializeComponent()
+{
+	Super::InitializeComponent();
+
+	//UE_LOG(LogAUR, Log, TEXT("UAURMarkerComponentBase::InitializeComponent"));
+	//InitDynamicCanvas();
+	//RedrawSurface();
+}
+
+void UAURMarkerComponentBase::InitDynamicCanvas()
+{
+	if (GetWorld() == nullptr)
+	{
+		UE_LOG(LogAUR, Error, TEXT("UAURMarkerComponentBase: Trying to init canvas but GetWorld is null"));
+		return;
+	}
+
+	if (SurfaceDynamicMaterial == nullptr)
+	{
+		UMaterialInterface* material = this->GetMaterial(MATERIAL_INDEX);
+		UTexture* texture_param_value = nullptr;
+		if (material->GetTextureParameterValue(TEXTURE_PARAM_NAME, texture_param_value))
+		{
+			UMaterialInstanceDynamic* dynamic_material_instance = Cast<UMaterialInstanceDynamic>(material);
+			if (!dynamic_material_instance)
+			{
+				dynamic_material_instance = UMaterialInstanceDynamic::Create(material, this);
+				this->SetMaterial(MATERIAL_INDEX, dynamic_material_instance);
+			}
+
+			SurfaceDynamicMaterial = dynamic_material_instance;
+		}
+	}
+
+	if (SurfaceDynamicMaterial && SurfaceDynamicTexture == nullptr)
+	{
+		SurfaceDynamicTexture = UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(this->GetWorld(), UCanvasRenderTarget2D::StaticClass(), 128, 128);
+
+		if (!SurfaceDynamicMaterial)
+		{
+			UE_LOG(LogAUR, Error, TEXT("UAURMarkerComponentBase: CreateCanvasRenderTarget2D returned NULL"));
+			return;
+		}
+		SurfaceDynamicTexture->OnCanvasRenderTargetUpdate.Clear();
+		SurfaceDynamicTexture->OnCanvasRenderTargetUpdate.AddUniqueDynamic(this, &UAURMarkerComponentBase::OnTexturePaint);
+
+		SurfaceDynamicMaterial->SetTextureParameterValue(TEXTURE_PARAM_NAME, SurfaceDynamicTexture);
+	}
+}
+
+void UAURMarkerComponentBase::RedrawSurface()
+{
+	if (!SurfaceDynamicTexture)
+	{
+		InitDynamicCanvas();
+	}
+
+	if (SurfaceDynamicTexture)
+	{
+		SurfaceDynamicTexture->UpdateResource();
+	}
+	else
+	{
+		UE_LOG(LogAUR, Error, TEXT("UAURMarkerComponentBase: Dynamic texture not initialized"));
+	}
+}
+
+void UAURMarkerComponentBase::SetId(int32 new_id)
+{
+	Id = new_id;
+	//RedrawSurface();
 }
 
 void UAURMarkerComponentBase::SetBoardSize(float new_board_size)
@@ -56,20 +141,40 @@ void UAURMarkerComponentBase::SetBoardSize(float new_board_size)
 	this->SetWorldScale3D(FVector(scale, scale, scale));
 }
 
-void UAURMarkerComponentBase::PostLoad()
+void UAURMarkerComponentBase::OnTexturePaint(UCanvas* CanvasWrapper, int32 Width, int32 Height)
 {
-	Super::PostLoad();	
+	FCanvas* const canvas = CanvasWrapper->Canvas;
+	const FVector2D canvas_size(Width, Height);
+	const FVector2D center = canvas_size * 0.5;
 
-	if (MarkerText->GetAttachParent() != this) 
-	{
-		MarkerText->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform, "Text");
-	}
-	MarkerText->SetRelativeRotation(FRotator(90.0f, 0.0f, 180.0f));
-	MarkerText->SetRelativeScale3D(FVector(1, 1, 1) * 0.25);
-	MarkerText->SetRelativeLocation(FVector(0, 0, 0.1));
+	// whole background
+	canvas->Clear(MarkerBackgroundColor);
 
-	SetBoardSize(BoardSizeCm);
-	SetId(Id);
+	// center (inside margin)
+	const FVector2D margin_offset = canvas_size * (MarginCm / BoardSizeCm);
+	FCanvasTileItem TileItem(
+		margin_offset, 
+		GWhiteTexture, 
+		canvas_size - margin_offset*2, 
+		MarkerCenterColor
+	);
+	//TileItem.BlendMode = SE_BLEND_Translucent;
+	canvas->DrawItem(TileItem);
+
+	// marker ID
+	canvas->PushRelativeTransform(MATRIX_VERTICAL_MIRROR);
+
+	FCanvasTextItem text_item(
+		FVector2D::ZeroVector, //center,
+		FText::Format(NSLOCTEXT("AUR", "MarkerEditorText", "{0}"), FText::AsNumber(Id)),
+		MarkerIdFontInfo,
+		MarkerIdFontColor
+	);
+	text_item.bCentreX = true;
+	text_item.bCentreY = true;
+	//text_item.
+	canvas->DrawItem(text_item);
+
 }
 
 FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
@@ -109,11 +214,6 @@ FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
 	return def_data;
 }
 
-void UAURMarkerComponentBase::SetId(int32 new_id)
-{
-	Id = new_id;
-	MarkerText->SetText(FText::Format(NSLOCTEXT("AUR", "MarkerEditorText", "{0}"), FText::AsNumber(Id)));
-}
 
 #if WITH_EDITOR
 void UAURMarkerComponentBase::PostEditChangeProperty(FPropertyChangedEvent & property_change_event)
@@ -123,14 +223,20 @@ void UAURMarkerComponentBase::PostEditChangeProperty(FPropertyChangedEvent & pro
 	const FName property_name = (property_change_event.Property != nullptr) ? property_change_event.Property->GetFName() : NAME_None;
 	
 	//UE_LOG(LogAUR, Warning, TEXT("UAURMarkerComponentBase::PostEditChangeProperty %s"), *property_name.ToString());
-
-	if (property_name == GET_MEMBER_NAME_CHECKED(UAURMarkerComponentBase, Id))
-	{
-		SetId(Id);
-	}
-	else if (property_name == GET_MEMBER_NAME_CHECKED(UAURMarkerComponentBase, BoardSizeCm))
+	if (property_name == GET_MEMBER_NAME_CHECKED(UAURMarkerComponentBase, BoardSizeCm))
 	{
 		SetBoardSize(BoardSizeCm);
 	}
+/*	
+	else if (property_name == GET_MEMBER_NAME_CHECKED(UAURMarkerComponentBase, Id))
+	{
+		SetId(Id);
+	}
+	else if (property_name == GET_MEMBER_NAME_CHECKED(UAURMarkerComponentBase, MarginCm))
+	{
+		RedrawSurface();
+	}
+*/
 }
 #endif
+

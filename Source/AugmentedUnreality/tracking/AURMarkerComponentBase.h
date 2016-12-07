@@ -46,9 +46,6 @@ public:
 	static const float MARKER_TEXT_RELATIVE_SCALE;
 	static const std::vector<FVector> LOCAL_CORNERS;
 
-	UPROPERTY()
-	UTextRenderComponent* MarkerText;
-
 	/** 
 		Unique id encoded into the pattern of the marker.
 		Each marker used should have different Id.
@@ -70,17 +67,51 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AUR Marker")
 	float MarginCm;
 
+	UPROPERTY(EditAnywhere, Category = "AUR Marker")
+	FSlateFontInfo MarkerIdFontInfo;
+
+	UPROPERTY(EditAnywhere, Category = "AUR Marker")
+	FLinearColor MarkerIdFontColor;
+
+	UPROPERTY(EditAnywhere, Category = "AUR Marker")
+	FLinearColor MarkerCenterColor;
+
+	UPROPERTY(EditAnywhere, Category = "AUR Marker")
+	FLinearColor MarkerBackgroundColor;
+
 	UFUNCTION(BlueprintCallable, Category = "AUR Marker")
 	void SetBoardSize(float new_border_size);
 
 	UFUNCTION(BlueprintCallable, Category = "AUR Marker")
 	void SetId(int32 new_id);
 
+	// Initiate redraw of dynamic texture
+	//UFUNCTION(BlueprintCallable, Category = "AUR Marker")
+	void RedrawSurface();
+
 	UAURMarkerComponentBase();
 
-	virtual void PostLoad() override;
-
 	FMarkerDefinitionData GetDefinition() const;
+
+	/* UActorComponent */
+	virtual void InitializeComponent() override;
+	/* end UActorComponent */
+
+protected:
+	// Material with texture parameter to which we assign SurfaceDynamicTexture
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "AUR Marker")
+	UMaterialInstanceDynamic* SurfaceDynamicMaterial;
+
+	// Dynamic texture on which we draw the marker ID
+	UPROPERTY(BlueprintReadOnly, Transient, Category = "AUR Marker")
+	UCanvasRenderTarget2D* SurfaceDynamicTexture;
+
+	// Create dynamic material, texture and assign the texture parameter
+	void InitDynamicCanvas();
+
+	// Draws the dynamic texture - displays ID and margin size
+	UFUNCTION()
+	void OnTexturePaint(UCanvas* Canvas, int32 Width, int32 Height);
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& property_change_event) override;
