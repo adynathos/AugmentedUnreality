@@ -50,6 +50,17 @@ public class AugmentedUnreality : ModuleRules
 		"opencv_video"		// Kalman filter, suprisingly it is in modules/video/...
 	};
 
+	protected List<string> LinuxAdditionalLibs = new List<string>()
+	{
+		"libippicv.a"
+	};
+	
+	protected List<string> LinuxStdLibs = new List<string>()
+	{
+		"libc++.so",
+		"libc++abi.so"
+	};
+
 	protected string OpenCVVersion = "310";
 
 	public AugmentedUnreality(TargetInfo Target)
@@ -60,7 +71,8 @@ public class AugmentedUnreality : ModuleRules
 			"Engine",
 			"InputCore",
 			"RHI",
-			"RenderCore"
+			"RenderCore",
+			"SlateCore"
 		});
 
 		LoadOpenCV(Target);
@@ -139,9 +151,17 @@ public class AugmentedUnreality : ModuleRules
 			Console.WriteLine("AUR: OpenCV for Linux");
 
 			var opencv_libs = OpenCVModules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), "lib" + m + ".so"));
-
-
+			//var lib_dir = Path.Combine(opencv_dir, "install", "Linux", "lib");
+			//var opencv_libs = OpenCVModules.ConvertAll(m => Path.Combine(lib_dir, "lib" + m + ".a"));
 			PublicAdditionalLibraries.AddRange(opencv_libs);
+
+			PublicAdditionalLibraries.AddRange(
+				LinuxStdLibs.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), m))
+			);
+			
+			//var lib_dir_other = Path.Combine(opencv_dir, "install", "Linux", "share", "OpenCV", "3rdparty", "lib");
+			//var opencv_libs_other = LinuxAdditionalLibs.ConvertAll(m => Path.Combine(lib_dir_other, m));
+			//PublicAdditionalLibraries.AddRange(opencv_libs_other);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
@@ -159,7 +179,7 @@ public class AugmentedUnreality : ModuleRules
 			PublicAdditionalLibraries.AddRange(opencv_libs);
 
 			var thirdparty_lib_dir = Path.Combine(src_dir, "3rdparty", "libs", arch);
-			var thirdparty_libs = new List<string>(Directory.GetFiles(thirdparty_lib_dir)).ConvertAll( 
+			var thirdparty_libs = new List<string>(Directory.GetFiles(thirdparty_lib_dir)).ConvertAll(
 				fn => Path.Combine(thirdparty_lib_dir, fn)
 			);
 			PublicLibraryPaths.Add(thirdparty_lib_dir);

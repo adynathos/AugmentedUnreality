@@ -50,13 +50,14 @@ bool UAURVideoSourceVideoFile::Connect()
 		// Determine time needed to wait
 		float fps = GetFrequency();
 
-		UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceVideoFile::Connect: Opened video file %s, reported FPS = %lf"),
-			*full_path, fps)
+		// Now this returns -1...
+		FrameCount = FPlatformMath::RoundToInt(Capture.get(cv::CAP_PROP_FRAME_COUNT));
+
+		UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceVideoFile::Connect: Opened video file %s, reported: FPS = %lf, frames = %d"),
+			*full_path, fps, FrameCount)
 
 		fps = FMath::Clamp(fps, MIN_FPS, MAX_FPS);
-		Period = 1.0 / fps;
-
-		FrameCount = FPlatformMath::RoundToInt(Capture.get(cv::CAP_PROP_FRAME_COUNT));
+		Period = 1.0 / fps;		
 
 		LoadCalibration();
 	}
@@ -76,7 +77,13 @@ bool UAURVideoSourceVideoFile::GetNextFrame(cv::Mat & frame)
 	bool success = Capture.read(frame);
 
 	// Loop the video
-	if (Capture.get(cv::CAP_PROP_POS_FRAMES) >= FrameCount - 1)
+
+	// If we received a number of frames, then use it
+	if ((FrameCount > 0 && Capture.get(cv::CAP_PROP_POS_FRAMES) >= FrameCount - 1)
+		||
+	// but sometimes the frame count is -1 - in that case use the relative position
+		Capture.get(cv::CAP_PROP_POS_AVI_RATIO) > 0.97
+	)
 	{
 		Capture.set(cv::CAP_PROP_POS_FRAMES, 0);
 	}

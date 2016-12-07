@@ -124,6 +124,7 @@ void FOpenCVCameraProperties::DeriveFOV()
 
 void FOpenCVCameraProperties::PrintToLog() const
 {
+#ifndef __linux__
 	std::stringstream param_ss;
 
 	param_ss << "\n"
@@ -134,6 +135,7 @@ void FOpenCVCameraProperties::PrintToLog() const
 		<< "Distortion coefficients: " << DistortionCoefficients << '\n';
 
 	UE_LOG(LogAUR, Log, TEXT("OpenCVCameraProperties: %s"), UTF8_TO_TCHAR(param_ss.str().c_str()))
+#endif
 }
 
 FOpenCVCameraCalibrationProcess::FOpenCVCameraCalibrationProcess()

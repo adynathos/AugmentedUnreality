@@ -38,28 +38,42 @@ FText UAURVideoSourceCamera::GetSourceName() const
 
 bool UAURVideoSourceCamera::Connect()
 {
-	Capture.open(CameraIndex);
-
-	if (Capture.isOpened())
+#ifndef __ANDROID__
+	try
 	{
-		UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceCamera::Connect: Connected to Camera %d"), CameraIndex)
+#endif
+		Capture.open(CameraIndex);
 
-		// Suggest resolution
-		if(DesiredResolution.GetMin() > 0)
+		if (Capture.isOpened())
 		{
-			Capture.set(cv::CAP_PROP_FRAME_WIDTH, DesiredResolution.X);
-			Capture.set(cv::CAP_PROP_FRAME_HEIGHT, DesiredResolution.Y);
+			UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceCamera::Connect: Connected to Camera %d"), CameraIndex)
+
+#ifndef __linux__
+			// Suggest resolution
+			if(DesiredResolution.GetMin() > 0)
+			{
+				Capture.set(cv::CAP_PROP_FRAME_WIDTH, DesiredResolution.X);
+				Capture.set(cv::CAP_PROP_FRAME_HEIGHT, DesiredResolution.Y);
+			}
+
+			// Suggest autofocus
+			Capture.set(cv::CAP_PROP_AUTOFOCUS, Autofocus ? 1 : 0);
+#endif
+
+			LoadCalibration();
 		}
-
-		// Suggest autofocus
-		Capture.set(cv::CAP_PROP_AUTOFOCUS, Autofocus ? 1 : 0);
-
-		LoadCalibration();
+		else
+		{
+			UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceCamera::Connect: Failed to open Camera %d"), CameraIndex)
+		}
+#ifndef __ANDROID__
 	}
-	else
+	catch (std::exception& exc)
 	{
-		UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceCamera::Connect: Failed to open Camera %d"), CameraIndex)
+		UE_LOG(LogAUR, Error, TEXT("Exception in UAURVideoSourceCamera::Connect:\n	%s\n"), UTF8_TO_TCHAR(exc.what()))
+		return false;
 	}
+#endif
 	
 	return Capture.isOpened();
 }
