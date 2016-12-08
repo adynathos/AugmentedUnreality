@@ -46,9 +46,6 @@ public:
 	static const float MARKER_TEXT_RELATIVE_SCALE;
 	static const std::vector<FVector> LOCAL_CORNERS;
 
-	UPROPERTY()
-	UTextRenderComponent* MarkerText;
-
 	/** 
 		Unique id encoded into the pattern of the marker.
 		Each marker used should have different Id.
@@ -78,11 +75,16 @@ public:
 
 	UAURMarkerComponentBase();
 
-	virtual void PostLoad() override;
-
 	FMarkerDefinitionData GetDefinition() const;
-
+	
+	/* UActorComponent */
+	virtual void InitializeComponent() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& property_change_event) override;
 #endif
+	/* end UActorComponent */
+
+protected:
+	UPROPERTY(Transient)
+	UTextRenderComponent* MarkerText;
 };

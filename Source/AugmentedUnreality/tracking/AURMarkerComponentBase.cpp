@@ -38,29 +38,25 @@ UAURMarkerComponentBase::UAURMarkerComponentBase()
 	, BoardSizeCm(MARKER_DEFAULT_SIZE)
 	, MarginCm(1.0)
 {
+	bWantsInitializeComponent = true;
+
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	MarkerText = CreateDefaultSubobject<UTextRenderComponent>("MarkerText");
+	MarkerText->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MarkerText->SetAbsolute(false, false, false);
+
 	MarkerText->SetHorizontalAlignment(EHorizTextAligment::EHTA_Center);
 	MarkerText->SetVerticalAlignment(EVerticalTextAligment::EVRTA_TextCenter);
 	MarkerText->SetTextRenderColor(FColor(50, 200, 50));
-	MarkerText->SetAbsolute(false, false, false);
 }
 
-void UAURMarkerComponentBase::SetBoardSize(float new_board_size)
+void UAURMarkerComponentBase::InitializeComponent()
 {
-	BoardSizeCm = new_board_size;
+	Super::InitializeComponent();
 
-	const float scale = BoardSizeCm / MARKER_DEFAULT_SIZE;
-	this->SetWorldScale3D(FVector(scale, scale, scale));
-}
-
-void UAURMarkerComponentBase::PostLoad()
-{
-	Super::PostLoad();	
-
-	if (MarkerText->GetAttachParent() != this) 
+	if (MarkerText->GetAttachParent() != this)
 	{
 		MarkerText->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform, "Text");
 	}
@@ -112,7 +108,18 @@ FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
 void UAURMarkerComponentBase::SetId(int32 new_id)
 {
 	Id = new_id;
-	MarkerText->SetText(FText::Format(NSLOCTEXT("AUR", "MarkerEditorText", "{0}"), FText::AsNumber(Id)));
+	if (MarkerText)
+	{
+		MarkerText->SetText(FText::Format(NSLOCTEXT("AUR", "MarkerEditorText", "{0}"), FText::AsNumber(Id)));
+	}
+}
+
+void UAURMarkerComponentBase::SetBoardSize(float new_board_size)
+{
+	BoardSizeCm = new_board_size;
+
+	const float scale = BoardSizeCm / MARKER_DEFAULT_SIZE;
+	this->SetWorldScale3D(FVector(scale, scale, scale));
 }
 
 #if WITH_EDITOR
