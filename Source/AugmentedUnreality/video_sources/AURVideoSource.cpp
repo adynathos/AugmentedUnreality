@@ -26,7 +26,7 @@ UAURVideoSource::UAURVideoSource()
 
 FText UAURVideoSource::GetSourceName() const
 {
-	return FText::FromString("Not implemented");
+	return SourceName;
 }
 
 bool UAURVideoSource::Connect()
