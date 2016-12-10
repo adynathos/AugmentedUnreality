@@ -38,7 +38,7 @@ FText UAURVideoSourceCamera::GetSourceName() const
 
 bool UAURVideoSourceCamera::Connect()
 {
-#ifndef __ANDROID__
+#if !PLATFORM_ANDROID
 	try
 	{
 #endif
@@ -48,7 +48,7 @@ bool UAURVideoSourceCamera::Connect()
 		{
 			UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceCamera::Connect: Connected to Camera %d"), CameraIndex)
 
-#ifndef __linux__
+#if !PLAFROM_LINUX
 			// Suggest resolution
 			if(DesiredResolution.GetMin() > 0)
 			{
@@ -66,7 +66,7 @@ bool UAURVideoSourceCamera::Connect()
 		{
 			UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceCamera::Connect: Failed to open Camera %d"), CameraIndex)
 		}
-#ifndef __ANDROID__
+#if !PLATFORM_ANDROID
 	}
 	catch (std::exception& exc)
 	{

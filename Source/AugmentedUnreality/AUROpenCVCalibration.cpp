@@ -24,7 +24,7 @@ const char* FOpenCVCameraProperties::KEY_DISTORTION = "DistortionCoefficients";
 
 bool FOpenCVCameraProperties::LoadFromFile(FString const & file_path)
 {
-#ifndef __ANDROID__
+#if !PLATFORM_ANDROID
 	try
 	{
 #endif
@@ -47,7 +47,7 @@ bool FOpenCVCameraProperties::LoadFromFile(FString const & file_path)
 		cam_param_file[KEY_DISTORTION] >> DistortionCoefficients;
 
 		this->DeriveFOV();
-#ifndef __ANDROID__
+#if !PLATFORM_ANDROID
 	}
 	catch (std::exception& exc)
 	{
@@ -219,7 +219,7 @@ void FOpenCVCameraCalibrationProcess::CalculateCalibration()
 	// OpenCV writes directoy to those vectors, so they need to be allocated/deleted outside AUR binary
 	CvWrapper< std::vector<cv::Mat> > r_vecs, t_vecs;
 
-#ifndef __ANDROID__
+#if !PLATFORM_ANDROID
 	try
 	{
 #endif
@@ -235,7 +235,7 @@ void FOpenCVCameraCalibrationProcess::CalculateCalibration()
 
 		CameraProperties.DeriveFOV();
 		CameraProperties.PrintToLog();
-#ifndef __ANDROID__
+#if !PLATFORM_ANDROID
 	}
 	catch (std::exception& exc)
 	{

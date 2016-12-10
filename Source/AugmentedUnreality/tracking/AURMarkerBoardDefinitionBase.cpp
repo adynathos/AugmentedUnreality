@@ -165,6 +165,7 @@ void AAURMarkerBoardDefinitionBase::EndPlay(const EEndPlayReason::Type reason)
 
 void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dpi)
 {
+#if !PLATFORM_ANDROID
 	if (output_dir.IsEmpty())
 	{
 		output_dir = FPaths::GameSavedDir() / MarkerFileDir / GetName();
@@ -176,10 +177,9 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 	float pixels_per_cm = float(dpi) / INCH;
 
 	FString dict_name = DictionaryDefinition.GetName();
-#ifndef __ANDROID__
+
 	try
 	{
-#endif
 		TInlineComponentArray<UAURMarkerComponentBase*, 32> marker_components;
 		GetComponents(marker_components);
 
@@ -196,7 +196,6 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 
 			//UE_LOG(LogAUR, Log, TEXT("AAURMarkerBoardDefinitionBase::SaveMarkerFiles: Saved marker image to: %s"), *filename);
 		}
-#ifndef __ANDROID__
 	}
 	catch (std::exception& exc)
 	{

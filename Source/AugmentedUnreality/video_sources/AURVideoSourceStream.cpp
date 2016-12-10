@@ -44,7 +44,7 @@ FText UAURVideoSourceStream::GetSourceName() const
 bool UAURVideoSourceStream::Connect()
 {
 	bool success = false;
-#ifndef __ANDROID__
+#if !PLATFORM_ANDROID
 	try
 	{
 #endif
@@ -72,7 +72,7 @@ bool UAURVideoSourceStream::Connect()
 		}
 
 		return Capture.isOpened();
-#ifndef __ANDROID__
+#if !PLATFORM_ANDROID
 	}
 	catch (std::exception& exc)
 	{
