@@ -1,0 +1,8 @@
+# Filter for files to be included into distributed package
+
+# ignore:
+- sdk/native/jni
+- sdk/java
+- sdk/etc
+- bin
+- apk

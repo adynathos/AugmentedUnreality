@@ -1,11 +1,15 @@
 # Filter for files to be included into distributed package
 
 # ignore:
-- build
-
 - install/Android/sdk/native/jni
 - install/Android/sdk/java
 - install/Android/sdk/etc
 - install/Android/bin
 - install/Android/apk
 
+- install/Linux
+
+- install/Win64/etc
+- install/Win64/include
+- install/Win64/x64/vc14/bin
+- install/Win64/x64/vc14/staticlib

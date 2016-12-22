@@ -8,5 +8,5 @@ src/opencv
 src/opencv_contrib/*
 !src/opencv_contrib/modules
 src/opencv_contrib/modules/*
-!src/opencv_contrib/modules/aur_allocator
-!src/opencv_contrib/modules/aur_allocator/CMakeLists.txt
+!src/opencv_contrib/modules/augmented_unreality
+!src/opencv_contrib/modules/augmented_unreality/CMakeLists.txt
