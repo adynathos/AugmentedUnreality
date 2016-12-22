@@ -81,6 +81,7 @@ public:
 	virtual void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor) override;
 
 	virtual FVector2D GetFieldOfView() const override;
+	virtual FTransform GetCurrentViewportTransform() const override;
 	
 	virtual bool IsConnected() const override;
 	virtual bool IsCalibrated() const override;
@@ -146,6 +147,6 @@ protected:
 		// Set to false to stop the thread
 		FThreadSafeBool bContinue;
 
-		cv::Mat CapturedFrame;
+		cv::Mat_<cv::Vec3b> CapturedFrame;
 	};
 };

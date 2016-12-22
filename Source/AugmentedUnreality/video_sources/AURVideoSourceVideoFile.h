@@ -33,7 +33,7 @@ public:
 
 	virtual FText GetSourceName() const override;
 	virtual bool Connect() override;
-	virtual bool GetNextFrame(cv::Mat & frame) override;
+	virtual bool GetNextFrame(cv::Mat_<cv::Vec3b>& frame) override;
 
 protected:
 	// Time between consecutive frames

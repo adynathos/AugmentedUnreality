@@ -29,7 +29,7 @@ class UAURVideoSourceCvCapture : public UAURVideoSource
 public:
 	virtual bool IsConnected() const override;
 	virtual void Disconnect() override;
-	virtual bool GetNextFrame(cv::Mat & frame) override;
+	virtual bool GetNextFrame(cv::Mat_<cv::Vec3b>& frame) override;
 	virtual FIntPoint GetResolution() const override;
 	virtual float GetFrequency() const override;
 

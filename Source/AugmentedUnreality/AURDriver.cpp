@@ -25,10 +25,10 @@ TArray<UAURDriver::BoardRegistration> UAURDriver::RegisteredBoards;
 
 UAURDriver::UAURDriver()
 	: bPerformOrientationTracking(true)
-	, FrameResolution(1, 1)
-	, bActive(false)
-	, bCalibrationInProgress(false)
 	, DiagnosticLevel(EAURDiagnosticInfoLevel::AURD_Silent)
+	, bActive(false)
+	, FrameResolution(1, 1)
+	, bCalibrationInProgress(false)
 {
 }
 
@@ -321,4 +321,10 @@ void UAURDriver::UnregisterDriver(UAURDriver* driver)
 		CurrentDriver = nullptr;
 		OnDriverInstanceChange.Broadcast(CurrentDriver);
 	}
+}
+
+FTransform UAURDriver::GetCurrentViewportTransform() const
+{
+	UE_LOG(LogAUR, Warning, TEXT("UAURDriver::GetCurrentViewportTransform(): Not implemented, returning identity"))
+	return FTransform::Identity;
 }

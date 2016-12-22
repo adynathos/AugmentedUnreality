@@ -30,7 +30,7 @@ void UAURVideoSourceCvCapture::Disconnect()
 	}
 }
 
-bool UAURVideoSourceCvCapture::GetNextFrame(cv::Mat & frame)
+bool UAURVideoSourceCvCapture::GetNextFrame(cv::Mat_<cv::Vec3b>& frame)
 {
 	return Capture.read(frame);
 }

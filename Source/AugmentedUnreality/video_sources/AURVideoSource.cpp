@@ -44,7 +44,7 @@ void UAURVideoSource::Disconnect()
 {
 }
 
-bool UAURVideoSource::GetNextFrame(cv::Mat & frame)
+bool UAURVideoSource::GetNextFrame(cv::Mat_<cv::Vec3b>& frame)
 {
 	UE_LOG(LogAUR, Error, TEXT("UAURVideoSource::GetNextFrame: Not implemented"))
 	return false;

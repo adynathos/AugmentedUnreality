@@ -37,17 +37,14 @@ However, we resolve them wit the following tricks
 #pragma warning(push)
 #pragma warning(disable : 4946)
 
-	#include <opencv2/opencv.hpp>
-	#include <opencv2/calib3d.hpp>
-	#include <opencv2/aruco.hpp>
+	#include <opencv2/aruco.hpp> 	// tracking
+	#include <opencv2/augmented_unreality.hpp> 	// tracking
 
-	#ifdef WIN32
-		#include <opencv2/aur_allocator.hpp>
-		#define CvWrapper cv::aur_allocator::OpenCvWrapper
-	#else
-		#include <memory>
-		#define CvWrapper std::unique_ptr
-	#endif
+	#include <opencv2/core.hpp>
+	#include <opencv2/videoio.hpp>	// VideoCapture
+	#include <opencv2/calib3d.hpp>	// camera calibration
+	#include <opencv2/imgproc.hpp>	// cvtColor, putText
+	#include <opencv2/imgcodecs.hpp>	// imwrite
 
 #pragma warning(pop)
 
@@ -76,6 +73,14 @@ public:
 		// UE.y = CV.x
 		// UE.z = CV.z
 		return cv::Vec3f(unreal_vector.Y, unreal_vector.X, unreal_vector.Z);
+	}
+
+	static cv::Point3f ConvertUnrealVectorToOpenCvPoint(FVector const& unreal_vector)
+	{
+		// UE.x = CV.y
+		// UE.y = CV.x
+		// UE.z = CV.z
+		return cv::Point3f(unreal_vector.Y, unreal_vector.X, unreal_vector.Z);
 	}
 
 	static void SetGstreamerPluginEnv();

@@ -16,6 +16,8 @@ limitations under the License.
 
 #include "AugmentedUnreality.h"
 #include "AURMarkerComponentBase.h"
+#include "AUROpenCV.h"
+#include <vector>
 
 const float UAURMarkerComponentBase::MARKER_DEFAULT_SIZE = 10.0;
 const float UAURMarkerComponentBase::MARKER_TEXT_RELATIVE_SCALE = 0.5;
@@ -28,9 +30,9 @@ bottom-right, top-right, top-left, bottom-left
 **/
 const std::vector<FVector> UAURMarkerComponentBase::LOCAL_CORNERS{
 	FVector(0.5, -0.5, 0.0),
-	FVector(0.5, 0.5, 0.0), 
+	FVector(0.5, 0.5, 0.0),
 	FVector(-0.5, 0.5, 0.0),
-	FVector(-0.5, -0.5, 0.0) 
+	FVector(-0.5, -0.5, 0.0)
 };
 
 UAURMarkerComponentBase::UAURMarkerComponentBase()
@@ -97,12 +99,52 @@ FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
 	// But calculate what part of the board is taken by the margin
 	const float pattern_size_relative = (BoardSizeCm - 2 * MarginCm) * MARKER_DEFAULT_SIZE/BoardSizeCm;
 
+	//UE_LOG(LogAUR, Log, TEXT("Marker %d"), Id);
+
 	for (int idx = 0; idx < 4; idx++)
 	{
 		def_data.Corners[idx] = transform_this_to_actor.TransformPosition(LOCAL_CORNERS[idx] * pattern_size_relative);
+		//UE_LOG(LogAUR, Log, TEXT("	%s"), *def_data.Corners[idx].ToString());
 	}
 
 	return def_data;
+}
+
+void UAURMarkerComponentBase::AppendToBoardDefinition(cv::aur::ArucoBoardDefinition& board_def)
+{
+	FTransform transform_this_to_actor = this->GetRelativeTransform();
+
+	USceneComponent* root_component = GetAttachmentRoot();
+	USceneComponent* parent_comp = GetAttachParent();
+
+	while (parent_comp && parent_comp != root_component)
+	{
+		// Runtime/Core/Public/Math/Transform.h:
+		// C = A * B will yield a transform C that logically first applies A then B to any subsequent transformation.
+		// (we want the parent-most transform done first)
+		transform_this_to_actor *= parent_comp->GetRelativeTransform();
+		parent_comp = parent_comp->GetAttachParent();
+	}
+
+	// Transform the corners
+	FMarkerDefinitionData def_data(Id);
+
+	// Don't multiply by this marker's size becuase the transform's scale will do it.
+	// But calculate what part of the board is taken by the margin
+	const float pattern_size_relative = (BoardSizeCm - 2 * MarginCm) * MARKER_DEFAULT_SIZE/BoardSizeCm;
+
+	//UE_LOG(LogAUR, Log, TEXT("Marker %d"), Id);
+
+	std::vector<cv::Point3f> raw_corners(4);
+
+	for (int idx = 0; idx < 4; idx++)
+	{
+		raw_corners[idx] = FAUROpenCV::ConvertUnrealVectorToOpenCvPoint(
+			transform_this_to_actor.TransformPosition(LOCAL_CORNERS[idx] * pattern_size_relative)
+		);
+	}
+
+	board_def.AddMarker(Id, raw_corners);
 }
 
 void UAURMarkerComponentBase::SetId(int32 new_id)
@@ -128,7 +170,7 @@ void UAURMarkerComponentBase::PostEditChangeProperty(FPropertyChangedEvent & pro
 	Super::PostEditChangeProperty(property_change_event);
 
 	const FName property_name = (property_change_event.Property != nullptr) ? property_change_event.Property->GetFName() : NAME_None;
-	
+
 	//UE_LOG(LogAUR, Warning, TEXT("UAURMarkerComponentBase::PostEditChangeProperty %s"), *property_name.ToString());
 
 	if (property_name == GET_MEMBER_NAME_CHECKED(UAURMarkerComponentBase, Id))

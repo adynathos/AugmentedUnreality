@@ -84,10 +84,6 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FAURDriverInstanceChangeSingle, UAURDriver*, Driver);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverInstanceChange, UAURDriver*, Driver);
 
-	/** True if it should track markers and calculate camera position+rotation */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
-	uint32 bPerformOrientationTracking : 1;
-
 	/** Called when the resolution / FOV changes / connection status changes */
 	UPROPERTY(BlueprintAssignable)
 	FAURDriverVideoPropertiesChange OnVideoPropertiesChange;
@@ -95,6 +91,10 @@ public:
 	/** Called when calibration starts or ends */
 	UPROPERTY(BlueprintAssignable)
 	FAURDriverCalibrationStatusChange OnCalibrationStatusChange;
+
+	/** True if it should track markers and calculate camera position+rotation */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
+	uint32 bPerformOrientationTracking : 1;
 
 	/** Called when a new viewpoint (camera) position is measured by the tracker */
 	//UPROPERTY(BlueprintAssignable)
@@ -182,6 +182,9 @@ public:
 		field_of_view = this->GetFieldOfView();
 	}
 
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual FTransform GetCurrentViewportTransform() const;
+	
 	/**
 	 * Returns a pointer to FAURVideoFrame containing the current camera frame.
 	 * Do not delete the pointer.
@@ -283,7 +286,7 @@ protected:
 	}
 
 private:
-	// The rendering scheduled by ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER 
+	// The rendering scheduled by ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER
 	// takes place in the rendering thread:
 	// https://docs.unrealengine.com/latest/INT/Programming/Rendering/ThreadedRendering/index.html
 	// so data has to be passed through a struct.

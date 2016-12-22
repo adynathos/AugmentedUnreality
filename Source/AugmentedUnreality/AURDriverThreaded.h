@@ -50,7 +50,7 @@ protected:
 
 	FAURVideoFrame FrameInstances[3];
 
-	FCriticalSection TrackerLock; // mutex which needs to be obtained before using marker tracker
+	//FCriticalSection TrackerLock; // mutex which needs to be obtained before using marker tracker
 	
 	TUniquePtr<FRunnable> Worker;
 	TUniquePtr<FRunnableThread> WorkerThread;

@@ -56,7 +56,7 @@ public:
 	virtual void Disconnect();
 
 	// Read the next frame from the source - BLOCKING.
-	virtual bool GetNextFrame(cv::Mat & frame);
+	virtual bool GetNextFrame(cv::Mat_<cv::Vec3b>& frame);
 
 	UFUNCTION(BlueprintCallable, Category = VideoSource)
 	virtual FIntPoint GetResolution() const;

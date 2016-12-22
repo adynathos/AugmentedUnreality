@@ -69,7 +69,7 @@ bool UAURVideoSourceVideoFile::Connect()
 	return success;
 }
 
-bool UAURVideoSourceVideoFile::GetNextFrame(cv::Mat & frame)
+bool UAURVideoSourceVideoFile::GetNextFrame(cv::Mat_<cv::Vec3b>& frame)
 {
 	// Simulate camera delay by waiting
 	FPlatformProcess::Sleep(Period);

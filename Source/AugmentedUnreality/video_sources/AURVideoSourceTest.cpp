@@ -51,7 +51,7 @@ void UAURVideoSourceTest::Disconnect()
 
 cv::RNG random_gen;
 
-bool UAURVideoSourceTest::GetNextFrame(cv::Mat & frame)
+bool UAURVideoSourceTest::GetNextFrame(cv::Mat_<cv::Vec3b>& frame)
 {
 	if (FramesPerSecond < 0.5)
 	{
@@ -60,7 +60,7 @@ bool UAURVideoSourceTest::GetNextFrame(cv::Mat & frame)
 	}
 	FPlatformProcess::Sleep(1.0 / FramesPerSecond);
 
-	frame.create(DesiredResolution.Y, DesiredResolution.X, CV_8UC3);
+	frame.create(DesiredResolution.Y, DesiredResolution.X);
 	frame.setTo(cv::Vec3b(random_gen.uniform(0, 255), random_gen.uniform(0, 255), random_gen.uniform(0, 255)));
 
 	return true;

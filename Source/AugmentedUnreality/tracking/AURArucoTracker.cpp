@@ -18,13 +18,33 @@ limitations under the License.
 #include "AURArucoTracker.h"
 
 #include <vector>
+#include <functional>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
 const FTransform FAURArucoTracker::CameraAdditionalRotation = FTransform(FQuat(FVector(0, 1, 0), -M_PI / 2), FVector(0, 0, 0), FVector(1, 1, 1));
 
 FAURArucoTracker::FAURArucoTracker()
+	: ViewpointTransform(FTransform::Identity)
 {
+	ViewpointTransformCamera = CameraAdditionalRotation * ViewpointTransform;
+
+	cv::aur::setLogCallback([](cv::aur::LogLevel level, std::string msg) {
+		switch(level)
+		{
+			case cv::aur::LogLevel::Log:
+				UE_LOG(LogAUR, Log, TEXT("cv::aur log: %s"), UTF8_TO_TCHAR(msg.c_str()));
+				break;
+			case cv::aur::LogLevel::Warning:
+				UE_LOG(LogAUR, Warning, TEXT("cv::aur warning: %s"), UTF8_TO_TCHAR(msg.c_str()));
+				break;
+			case cv::aur::LogLevel::Error:
+				UE_LOG(LogAUR, Error, TEXT("cv::aur error: %s"), UTF8_TO_TCHAR(msg.c_str()));
+				break;
+			default:
+				;
+		}
+	});
 }
 
 void FAURArucoTracker::SetSettings(FArucoTrackerSettings const& settings)
@@ -35,110 +55,62 @@ void FAURArucoTracker::SetSettings(FArucoTrackerSettings const& settings)
 void FAURArucoTracker::SetCameraProperties(FOpenCVCameraProperties const & camera_properties)
 {
 	this->CameraProperties = camera_properties;
+	TrackerModule.setCameraInfo(camera_properties.CameraMatrix, camera_properties.DistortionCoefficients);
 }
 
-bool FAURArucoTracker::DetectMarkers(cv::Mat& image, bool draw_found_markers)
+bool FAURArucoTracker::DetectMarkers(cv::Mat_<cv::Vec3b>& image, bool draw_found_markers)
 {
-	// http://docs.opencv.org/3.1.0/db/da9/tutorial_aruco_board_detection.html
-#if !PLATFORM_ANDROID
-	try
+	// this outside of lock so doesn't block
+	TrackerModule.processFrame(image);
+	
 	{
-#endif
-		cv::aruco::detectMarkers(image, ArucoDictionary,
-			*FoundMarkerCorners, *FoundMarkerIds);
-
-		// we cannot see any markers at all
-		const size_t found_marker_count = FoundMarkerIds->size();
-		if (found_marker_count <= 0)
-		{
-			return false;
-		}
-
-		if (draw_found_markers)
-		{
-			cv::aruco::drawDetectedMarkers(image, *FoundMarkerCorners, *FoundMarkerIds);
-		}
+		FScopeLock lock(&PoseLock);
 
 		DetectedBoards.Empty();
-		for(size_t idx = 0; idx < found_marker_count; idx++)
+		for (auto detected_pose : TrackerModule.getDetectedPoses())
 		{
-			int found_marker_id = FoundMarkerIds->at(idx);
+			TrackedBoardInfo* tbi = (TrackedBoardInfo*)detected_pose->userObject;
 
-			TrackedBoardInfo* tracker_info = TrackedBoardsByMarker.FindRef(found_marker_id);
-			if (tracker_info)
-			{
-				DetectedBoards.Add(tracker_info);
-				tracker_info->FoundMarkerIds.push_back(found_marker_id);
-				tracker_info->FoundMarkerCorners.push_back(FoundMarkerCorners->at(idx));
-			}
-		}
+			// Write the projection matrix to Unreal's datastructures
+			FMatrix t_mat;
+			t_mat.SetIdentity();
 
-		for (TrackedBoardInfo* detected_board_info : DetectedBoards)
-		{
-			if (detected_board_info != nullptr)
-			{
-				DetermineBoardPosition(detected_board_info);
-			}
-			else
-			{
-				UE_LOG(LogAUR, Error, TEXT("detected_board_info is null"))
-			}
-		}
+			// Unreal's projection matrices are for some reason transposed from the traditional representation
+			// so we index [c][r] to contruct that transposed mat
 
-		/*
-		if (draw_found_markers)
-		{
-			cv::aruco::drawAxis(image, CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
-				rotation_raw, translation_raw, 10);
+			cv::Mat_<double> const& detected_rot = detected_pose->getRotationCameraUnreal();
+			for (int32 r : {0, 1, 2}) for (int32 c : {0, 1, 2})
+			{
+				t_mat.M[c][r] = detected_rot(r, c);
+			}
+
+			cv::Mat_<double> const& detected_trans = detected_pose->getTranslationCameraUnreal();
+			for (int32 r : {0, 1, 2})
+			{
+				t_mat.M[3][r] = detected_trans(r);
+			}
+
+			// Smoothly merge measured transform with current transform
+			tbi->CurrentTransform.BlendWith(FTransform(t_mat), (1.0 - Settings.SmoothingStrength));
+
+			// This board provides the location of the camera
+			if (tbi->UseAsViewpointOrigin)
+			{
+				ViewpointTransform = tbi->CurrentTransform;
+				ViewpointTransformCamera = CameraAdditionalRotation * ViewpointTransform;
+			}
+
+			DetectedBoards.Add(tbi);
 		}
-		*/
-#if !PLATFORM_ANDROID
 	}
-	catch (std::exception& exc)
-	{
-		UE_LOG(LogAUR, Error, TEXT("Exception in ArucoWrapper::DetectMarkers:\n	%s\n"), UTF8_TO_TCHAR(exc.what()))
-		return false;
-	}
-#endif
+
 
 	return true;
 }
 
-void FAURArucoTracker::DetermineBoardPosition(TrackedBoardInfo * tracking_info)
-{
-	//UE_LOG(LogAUR, Log, TEXT("Determine %d"), tracking_info->Id);
-
-	// Translation and rotation reported by detector
-	cv::Vec3d rotation_raw, translation_raw;
-
-	int number_of_markers = cv::aruco::estimatePoseBoard(tracking_info->FoundMarkerCorners, tracking_info->FoundMarkerIds,
-		tracking_info->BoardData->GetArucoBoard(), CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients,
-		rotation_raw, translation_raw);
-
-	tracking_info->FoundMarkerIds.clear();
-	tracking_info->FoundMarkerCorners.clear();
-	
-	// if markers fit
-	if (number_of_markers > 0)
-	{
-		FTransform measured_transform;
-		ConvertTransformToUnreal(translation_raw, rotation_raw, measured_transform, tracking_info->UseAsViewpointOrigin);
-
-		// Smoothly merge measured transform with current transform
-		tracking_info->CurrentTransform.BlendWith(measured_transform, (1.0 - Settings.SmoothingStrength));
-
-		// This board provides the location of the camera
-		if (tracking_info->UseAsViewpointOrigin)
-		{
-			ViewpointTransform = tracking_info->CurrentTransform;
-			//ViewpointTransformChanged = true;
-		}
-	}
-}
-
 void FAURArucoTracker::PublishTransformUpdate(TrackedBoardInfo * tracking_info)
 {
-	auto board_actor = tracking_info->BoardData->GetBoardActor();
+	auto board_actor = tracking_info->BoardActor;
 
 	if (board_actor)
 	{
@@ -179,25 +151,6 @@ void FAURArucoTracker::PublishTransformUpdate(TrackedBoardInfo * tracking_info)
 	}
 }
 
-void FAURArucoTracker::ConvertTransformToUnreal(cv::Vec3d const& opencv_translation, cv::Vec3d const& opencv_rotation, FTransform & out_transform, bool camera_viewpoint) const
-{
-	FVector rotation_axis = FAUROpenCV::ConvertOpenCvVectorToUnreal(opencv_rotation);
-	FVector cv_translation = FAUROpenCV::ConvertOpenCvVectorToUnreal(opencv_translation);
-
-	// cv_rotation = R^-1? because other direction of angle in UE4?
-	float angle = rotation_axis.Size();
-	rotation_axis.Normalize();
-	FQuat cv_rotation(rotation_axis, angle);
-
-	// The reported translation vector "translation_vec" is the marker location
-	// relative to camera in camera's coordinate system.
-	// To obtain camera position in 3D, rotate by the provided rotation.
-	FVector ue_translation = cv_rotation.RotateVector(cv_translation);
-	ue_translation *= -1.0 / Settings.TranslationScale;
-
-	out_transform.SetComponents(cv_rotation, ue_translation, FVector(1, 1, 1));
-}
-
 bool FAURArucoTracker::RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin)
 {
 	if (!board_actor)
@@ -211,44 +164,20 @@ bool FAURArucoTracker::RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor,
 	// Save marker images
 	board_actor->SaveMarkerFiles();
 
-	if (TrackedBoardsById.Num() > 0)
-	{
-		// If we already have boards registered, the new board's dictionary must be the same
-		if(board_data->GetArucoDictionaryId() != DictionaryId)
-		{
-			UE_LOG(LogAUR, Error, TEXT("AURArucoTracker::RegisterBoard New board uses dictionary %d but existing boards use dictionary %d"),
-				board_data->GetArucoDictionaryId(), DictionaryId);
-			return false;
-		}
+	cv::aur::TrackerAruco::TrackedPose* pose_handle = TrackerModule.registerPoseToTrack(board_actor->GetBoardDef());
 
-		// The marker IDs must be kept unique - if we detect a marker we want to know which board it is from
-		for (const int marker_id : board_data->GetMarkerIds())
-		{
-			if (TrackedBoardsByMarker.Contains(marker_id))
-			{
-				UE_LOG(LogAUR, Error, TEXT("AURArucoTracker::RegisterBoard Marker Id %d is used by another registered board"),
-					marker_id);
-				return false;
-			}
-		}
-	}
-	else
+	if(!pose_handle)
 	{
-		// That is the first board so set the dictionary to match it
-		DictionaryId = board_data->GetArucoDictionaryId();
-		ArucoDictionary = board_data->GetArucoDictionary();
+		return false;
 	}
 
 	// Construct and add to map
-	TrackedBoardInfo* tracker_info = new TrackedBoardInfo(board_data);
+	TrackedBoardInfo* tracker_info = new TrackedBoardInfo(board_actor, pose_handle);
+	pose_handle->userObject = tracker_info;
 	tracker_info->UseAsViewpointOrigin = use_as_viewpoint_origin;
 
+	// keep the shared ptr here
 	TrackedBoardsById.Emplace(tracker_info->Id, tracker_info);
-
-	for (const int marker_id : board_data->GetMarkerIds())
-	{
-		TrackedBoardsByMarker.Add(marker_id, tracker_info);
-	}
 
 	board_actor->SetActorHiddenInGame(!BoardVisibility);
 
@@ -268,21 +197,22 @@ void FAURArucoTracker::UnregisterBoard(AAURMarkerBoardDefinitionBase * board_act
 
 	TrackedBoardInfo* tracking_info = TrackedBoardsById[board_id].Get();
 
-	// unregister all marker ids
-	for (const int marker_id : tracking_info->BoardData->GetMarkerIds())
+	if(tracking_info->PoseHandle)
 	{
-		TrackedBoardsByMarker.Remove(marker_id);
+		tracking_info->PoseHandle->unregister();
 	}
 
 	// Since this object will be deleted, remove it from being potentially used in Publish
 	DetectedBoards.Remove(tracking_info);
 
 	// Remove the unique ptr and also delete object
-	TrackedBoardsByMarker.Remove(board_id);
+	TrackedBoardsById.Remove(board_id);
 }
 
 void FAURArucoTracker::PublishTransformUpdatesOnTick()
 {
+	FScopeLock lock(&PoseLock);
+
 	for (auto detected_board_info : DetectedBoards)
 	{
 		PublishTransformUpdate(detected_board_info);
@@ -291,12 +221,30 @@ void FAURArucoTracker::PublishTransformUpdatesOnTick()
 	DetectedBoards.Empty();
 }
 
+void FAURArucoTracker::SetDiagnosticInfoLevel(EAURDiagnosticInfoLevel NewLevel)
+{
+	/**
+	Diagnostic levels
+		0 - nothing
+		1 - show boards
+		2 - show boards and positions of detected markers
+	*/
+	SetBoardVisibility(NewLevel >= EAURDiagnosticInfoLevel::AURD_Basic);
+	
+	// Pass to cv::aur module
+	cv::aur::DiagnosticLevel lvl = cv::aur::DiagnosticLevel::Silent;
+	if(NewLevel == EAURDiagnosticInfoLevel::AURD_Basic) lvl = cv::aur::DiagnosticLevel::Basic;
+	else if (NewLevel == EAURDiagnosticInfoLevel::AURD_Advanced) lvl = cv::aur::DiagnosticLevel::Full;
+	
+	TrackerModule.setDiagnosticLevel(lvl);
+}
+
 void FAURArucoTracker::SetBoardVisibility(bool NewBoardVisibility)
 {
 	BoardVisibility = NewBoardVisibility;
 
-	for (auto& bi : TrackedBoardsByMarker)
+	for (auto& bi : TrackedBoardsById)
 	{
-		bi.Value->BoardData->GetBoardActor()->SetActorHiddenInGame(!BoardVisibility);
+		bi.Value->BoardActor->SetActorHiddenInGame(!BoardVisibility);
 	}
 }

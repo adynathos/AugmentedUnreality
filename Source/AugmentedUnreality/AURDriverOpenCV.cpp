@@ -30,8 +30,15 @@ void UAURDriverOpenCV::Initialize(AActor* parent_actor)
 
 	for (auto const& vid_src_class : DefaultVideoSources)
 	{
-		UAURVideoSource* vid_src = NewObject<UAURVideoSource>(this, vid_src_class);
-		AvailableVideoSources.Add(vid_src);
+		if(vid_src_class)
+		{
+			UAURVideoSource* vid_src = NewObject<UAURVideoSource>(this, vid_src_class);
+			AvailableVideoSources.Add(vid_src);
+		}
+		else
+		{
+			UE_LOG(LogAUR, Error, TEXT("UAURDriverOpenCV::Initialize Null entry in DefaultVideoSources"));
+		}
 	}
 
 	//FAUROpenCV::SetGstreamerPluginEnv();
@@ -47,7 +54,8 @@ void UAURDriverOpenCV::Tick()
 
 	if (bActive)
 	{
-		FScopeLock lock(&this->TrackerLock);
+		// lock moved to AURArucoTracker
+		//FScopeLock lock(&this->TrackerLock);
 		Tracker.PublishTransformUpdatesOnTick();
 	}
 }
@@ -181,6 +189,11 @@ FVector2D UAURDriverOpenCV::GetFieldOfView() const
 	}
 }
 
+FTransform UAURDriverOpenCV::GetCurrentViewportTransform() const
+{
+	return Tracker.GetViewpointTransform();
+}
+
 bool UAURDriverOpenCV::IsConnected() const
 {
 	if (VideoSource)
@@ -234,13 +247,7 @@ void UAURDriverOpenCV::SetDiagnosticInfoLevel(EAURDiagnosticInfoLevel NewLevel)
 {
 	Super::SetDiagnosticInfoLevel(NewLevel);
 
-	/**
-	Diagnostic levels
-		0 - nothing
-		1 - show boards
-		2 - show boards and positions of detected markers
-	*/
-	Tracker.SetBoardVisibility(DiagnosticLevel >= EAURDiagnosticInfoLevel::AURD_Basic);
+	Tracker.SetDiagnosticInfoLevel(NewLevel);
 }
 
 FString UAURDriverOpenCV::GetDiagnosticText() const
@@ -251,7 +258,9 @@ FString UAURDriverOpenCV::GetDiagnosticText() const
 UAURDriverOpenCV::FWorkerRunnable::FWorkerRunnable(UAURDriverOpenCV * driver)
 	: Driver(driver)
 {
-	CapturedFrame = cv::Mat(1920, 1080, CV_8UC3, cv::Scalar(0, 0, 255));
+	//CapturedFrame = cv::Mat(1920, 1080, CV_8UC3, cv::Scalar(0, 0, 255));
+	CapturedFrame.create(1920, 1080);
+	CapturedFrame.setTo(cv::Scalar(0, 0, 255));
 }
 
 bool UAURDriverOpenCV::FWorkerRunnable::Init()
@@ -277,7 +286,8 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 
 			if (current_video_source != Driver->NextVideoSource)
 			{
-				UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Switching video source"))
+				FString vid_src_name = Driver->NextVideoSource ? Driver->NextVideoSource->GetSourceName().ToString() : "null";
+				UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Switching video source to [%s]"), *vid_src_name);
 
 				if (current_video_source)
 				{
@@ -350,8 +360,9 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 					* Tracking markers and relative position with respect to them
 					*/
 					{
-						FScopeLock lock(&Driver->TrackerLock);
-						Driver->Tracker.DetectMarkers(CapturedFrame, Driver->GetDiagnosticInfoLevel() >= EAURDiagnosticInfoLevel::AURD_Advanced);
+						// lock moved to AURArucoTracker
+						//FScopeLock lock(&Driver->TrackerLock);
+						Driver->Tracker.DetectMarkers(CapturedFrame);
 					}
 				}
 

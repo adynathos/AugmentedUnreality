@@ -15,6 +15,7 @@ limitations under the License.
 */
 #pragma once
 
+#include "AUROpenCV.h"
 #include "AURMarkerComponentBase.generated.h"
 
 struct FMarkerDefinitionData {
@@ -46,7 +47,7 @@ public:
 	static const float MARKER_TEXT_RELATIVE_SCALE;
 	static const std::vector<FVector> LOCAL_CORNERS;
 
-	/** 
+	/**
 		Unique id encoded into the pattern of the marker.
 		Each marker used should have different Id.
 	**/
@@ -76,7 +77,8 @@ public:
 	UAURMarkerComponentBase();
 
 	FMarkerDefinitionData GetDefinition() const;
-	
+	void AppendToBoardDefinition(cv::aur::ArucoBoardDefinition& board_def);
+
 	/* UActorComponent */
 	virtual void InitializeComponent() override;
 #if WITH_EDITOR

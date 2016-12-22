@@ -130,7 +130,7 @@ protected:
 		so it can be deleted in AUR binary too.
 	**/
 	cv::aruco::Board ArucoBoard;
-	
+
 	/**
 		A full copy of the dictionary returned by cv::ArUco is stored here
 		so that we avoid the crash-inducing Ptr<Dictionary>
@@ -187,6 +187,7 @@ public:
 	void BuildBoardData();
 
 	TSharedPtr<FFreeFormBoardData> GetBoardData();
+	cv::aur::ArucoBoardDefinition const& GetBoardDef();
 
 	virtual void EndPlay(const EEndPlayReason::Type reason) override;
 
@@ -198,10 +199,12 @@ public:
 
 protected:
 	TSharedPtr<FFreeFormBoardData> BoardData;
+	bool BoardDefBuilt;
+	cv::aur::ArucoBoardDefinition BoardDef;
 
 	void AssignAutomaticMarkerIds();
 
-	// size_cm is used only for displaying the text showing 
+	// size_cm is used only for displaying the text showing
 	//cv::Mat RenderMarker(int32 id, int32 canvas_side, int32 margin, float size_cm = 0.0);
 	cv::Mat RenderMarker(int32 id, int32 canvas_side, int32 margin);
 };

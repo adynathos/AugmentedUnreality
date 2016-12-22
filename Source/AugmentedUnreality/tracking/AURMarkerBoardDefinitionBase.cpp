@@ -34,7 +34,7 @@ bool FArucoDictionaryDefinition::operator==(FArucoDictionaryDefinition const & o
 	}
 	else
 	{
-		return (CustomDictionaryCount == other.CustomDictionaryCount 
+		return (CustomDictionaryCount == other.CustomDictionaryCount
 			&& CustomDictionaryMarkerSize == other.CustomDictionaryMarkerSize);
 	}
 	*/
@@ -115,9 +115,11 @@ void FFreeFormBoardData::AddMarker(FMarkerDefinitionData const & marker_def)
 	ArucoBoard.objPoints.push_back(corners);
 }
 
+
 AAURMarkerBoardDefinitionBase::AAURMarkerBoardDefinitionBase()
 	: MarkerFileDir("AugmentedUnreality/Markers")
 	, ActorToMove(nullptr)
+	, BoardDefBuilt(false)
 	//, AutomaticMarkerIds(true)
 {
 	PrimaryActorTick.bStartWithTickEnabled = false;
@@ -143,6 +145,15 @@ void AAURMarkerBoardDefinitionBase::BuildBoardData()
 	{
 		BoardData->AddMarker(marker->GetDefinition());
 	}
+
+	BoardDef.Clear();
+
+	for (auto & marker : marker_components)
+	{
+		marker->AppendToBoardDefinition(BoardDef);
+	}
+
+	BoardDefBuilt = true;
 }
 
 TSharedPtr<FFreeFormBoardData> AAURMarkerBoardDefinitionBase::GetBoardData()
@@ -153,6 +164,16 @@ TSharedPtr<FFreeFormBoardData> AAURMarkerBoardDefinitionBase::GetBoardData()
 	}
 
 	return BoardData;
+}
+
+cv::aur::ArucoBoardDefinition const& AAURMarkerBoardDefinitionBase::GetBoardDef()
+{
+	if(!BoardDefBuilt)
+	{
+		BuildBoardData();
+	}
+
+	return BoardDef;
 }
 
 void AAURMarkerBoardDefinitionBase::EndPlay(const EEndPlayReason::Type reason)
@@ -188,7 +209,7 @@ void AAURMarkerBoardDefinitionBase::SaveMarkerFiles(FString output_dir, int32 dp
 		for (auto & marker : marker_components)
 		{
 			FString filename = output_dir / FString::Printf(TEXT("marker_%s_%02d.png"), *dict_name, marker->Id);
-				
+
 			int32 canvas_pixels = FMath::RoundToInt(pixels_per_cm*marker->BoardSizeCm);
 			int32 margin_pixels = FMath::RoundToInt(pixels_per_cm*marker->MarginCm);
 
@@ -213,7 +234,7 @@ cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side,
 		UE_LOG(LogAUR, Error, TEXT("AAURMarkerBoardDefinitionBase::RenderMarker: margin is bigger than half of square size"))
 		return cv::Mat(canvas_side, canvas_side, CV_8UC1, cv::Scalar(255));
 	}
-	
+
 	cv::Mat canvas(cv::Size(canvas_side, canvas_side), CV_8UC1, cv::Scalar(255));
 
 	cv::Mat img_marker;
@@ -242,7 +263,7 @@ cv::Mat AAURMarkerBoardDefinitionBase::RenderMarker(int32 id, int32 canvas_side,
 	{
 		std::string description_size = "size " + std::to_string(size_cm) + " cm";
 		cv::putText(canvas, description_size, cv::Point(canvas_side-50, canvas_side - 8),
-			font_index, font_size, font_color, font_line_width);	
+			font_index, font_size, font_color, font_line_width);
 	}
 	*/
 
