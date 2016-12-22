@@ -40,21 +40,22 @@ public class AugmentedUnreality : ModuleRules
 	protected List<string> OpenCVModules = new List<string>()
 	{
 		"opencv_core",
+		"opencv_augmented_unreality", // parts of our plugin that are easier to build as a custom OpenCV module
+		"opencv_aruco",		// Aruco markers
 		"opencv_calib3d",	// camera calibration
 		"opencv_features2d", // cv::SimpleBlobDetector for calibration
-		"opencv_videoio",	// VideoCapture
-		"opencv_aruco",		// Aruco markers
-		"opencv_imgproc",   // Aruco needs this
 		"opencv_flann",     // Aruco needs this
 		"opencv_imgcodecs",	// imwrite
-		"opencv_video"		// Kalman filter, suprisingly it is in modules/video/...
+		"opencv_imgproc",   // Aruco needs this
+		"opencv_video",		// Kalman filter, suprisingly it is in modules/video/...
+		"opencv_videoio",	// VideoCapture
 	};
 
 	protected List<string> LinuxAdditionalLibs = new List<string>()
 	{
 		"libippicv.a"
 	};
-	
+
 	protected List<string> LinuxStdLibs = new List<string>()
 	{
 		"libc++.so",
@@ -85,6 +86,8 @@ public class AugmentedUnreality : ModuleRules
 
 		Console.WriteLine("Libraries - dynamic:");
 		PublicDelayLoadDLLs.ForEach(m => Console.WriteLine("	" + m));
+
+		RegisterAndroidCameraBridge();
 	}
 
 	protected string PlatformString(TargetInfo Target)
@@ -132,33 +135,34 @@ public class AugmentedUnreality : ModuleRules
 			// Add the aur_allocator fix for crashes on windows
 			List<string> modules = new List<string>();
 			modules.AddRange(OpenCVModules);
-			modules.Add("opencv_aur_allocator");
+			//modules.Add("opencv_aur_allocator");
 
 			// Static linking
-			var lib_dir = Path.Combine(opencv_dir, "lib", "Win64");
+			var lib_dir = Path.Combine(opencv_dir, "install", "Win64", "x64", "vc14", "lib");
 			PublicAdditionalLibraries.AddRange(
-				modules.ConvertAll(m => Path.Combine(lib_dir, m + suffix + ".lib"))
+				OpenCVModules.ConvertAll(m => Path.Combine(lib_dir, m + suffix + ".lib"))
 			);
 
 			// Dynamic libraries
 			// The DLLs need to be in Binaries/Win64 anyway, so let us keep them there instead of ThirdParty/opencv
 			PublicDelayLoadDLLs.AddRange(
-				modules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), m + suffix + ".dll"))
+				OpenCVModules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), m + suffix + ".dll"))
 			);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux )
 		{
 			Console.WriteLine("AUR: OpenCV for Linux");
 
-			var opencv_libs = OpenCVModules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), "lib" + m + ".so"));
 			//var lib_dir = Path.Combine(opencv_dir, "install", "Linux", "lib");
 			//var opencv_libs = OpenCVModules.ConvertAll(m => Path.Combine(lib_dir, "lib" + m + ".a"));
+
+			var opencv_libs = OpenCVModules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), "lib" + m + ".so"));
 			PublicAdditionalLibraries.AddRange(opencv_libs);
 
 			PublicAdditionalLibraries.AddRange(
 				LinuxStdLibs.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), m))
 			);
-			
+
 			//var lib_dir_other = Path.Combine(opencv_dir, "install", "Linux", "share", "OpenCV", "3rdparty", "lib");
 			//var opencv_libs_other = LinuxAdditionalLibs.ConvertAll(m => Path.Combine(lib_dir_other, m));
 			//PublicAdditionalLibraries.AddRange(opencv_libs_other);
@@ -192,5 +196,14 @@ public class AugmentedUnreality : ModuleRules
 
 		// Force execption handling across all modules.
 		UEBuildConfiguration.bForceEnableExceptions = true;
+	}
+
+	public void RegisterAndroidCameraBridge()
+	{
+		var android_mod_file = Path.Combine(ModuleDirectory, "AugmentedUnrealityAndroid_UPL.xml");
+		Console.WriteLine("Android modification: " + android_mod_file);
+		AdditionalPropertiesForReceipt.Add(
+			new ReceiptProperty("AndroidPlugin", android_mod_file)
+		);
 	}
 }

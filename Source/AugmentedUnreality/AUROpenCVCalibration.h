@@ -37,34 +37,16 @@ struct FOpenCVCameraProperties
 		center_x = res_x/2
 		center_y = res_y/2
 	*/
-	cv::Mat CameraMatrix;
+	cv::Mat_<double> CameraMatrix;
 
-	cv::Mat DistortionCoefficients;
+	cv::Mat_<double> DistortionCoefficients;
 
 	// Field of view, X is horizontal, Y is vertical,
 	// calculated from CameraMatrix and Resolution.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = CameraCalibration)
 	FVector2D FOV;
 
-	FOpenCVCameraProperties()
-		: Resolution(800, 600)
-	{
-		// Default camera matrix:
-		// f = 900
-		// res = 800x600
-		CameraMatrix.create(3, 3, CV_64FC1);
-		CameraMatrix.setTo(0.0);
-		double f = 900.0;
-		CameraMatrix.at<double>(0, 0) = f;
-		CameraMatrix.at<double>(1, 1) = f;
-		CameraMatrix.at<double>(0, 2) = 0.5 * double(Resolution.X);
-		CameraMatrix.at<double>(1, 2) = 0.5 * double(Resolution.Y);
-
-		DistortionCoefficients.create(5, 1, CV_64FC1);
-		DistortionCoefficients.setTo(0);
-
-		DeriveFOV();
-	}
+	FOpenCVCameraProperties();
 
 	/**
 	 * Attempts to load calibration data from file in OpenCV format.

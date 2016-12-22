@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+	Copyright 2016 Krzysztof Lis (adynathos.net)
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+	http ://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+	<init>
+		<log text="AugmentedUnrealityAndroid_UPL"/>
+	</init>
+
+	<!-- Add CAMERA permissions -->
+	<androidManifestUpdates>
+		<addPermission android:name="android.permission.CAMERA"/>
+		<addFeature android:name="android.hardware.camera"/>
+		<addFeature android:name="android.hardware.camera.autofocus"/>
+	</androidManifestUpdates>
+
+	<gameActivityImportAdditions>
+		<insert>
+			import android.util.Log;
+			import android.widget.Toast;
+			import android.hardware.Camera;
+			import android.hardware.Camera.CameraInfo;
+			import android.hardware.Camera.Parameters;
+			import android.hardware.Camera.PreviewCallback;
+			import android.graphics.SurfaceTexture;
+			import android.graphics.ImageFormat;
+			import android.graphics.PixelFormat;
+			import java.util.List; 
+			import java.io.IOException;
+		</insert>
+	</gameActivityImportAdditions>
+
+		<gameActivityClassAdditions>
+		<insert>
+
+private Camera AUR_Camera;
+private boolean AUR_ShouldReconnect = false;
+private SurfaceTexture AUR_CameraTexture;
+private int AUR_FrameWidth = 1280;
+private int AUR_FrameHeight = 720;
+
+public void AUR_Message(final String msg)
+{
+	try
+	{
+		runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
+			}
+		});
+	}
+	catch (Exception e)
+	{
+		android.util.Log.e("AUR", "Toast failed with exception " + e.getMessage());
+	}
+
+	AURNotify();
+}
+
+public int AUR_GetFrameWidth()
+{
+	return AUR_FrameWidth;
+}
+
+public int AUR_GetFrameHeight()
+{
+	return AUR_FrameHeight;
+}
+
+public boolean AUR_IsCameraConnected()
+{
+	return AUR_Camera != null;
+}
+
+public boolean AUR_CameraStartCapture(int suggested_width, int suggested_height)
+{
+	Log.debug("AUR Camera Start");
+
+	try {
+		AUR_Camera = Camera.open();
+	} catch (RuntimeException exc) {
+		Log.error("LogAUR: Exception in Camera.open: " + exc.getMessage());
+		return false;
+	} 
+	
+	Parameters camera_params = AUR_Camera.getParameters();
+
+	// Use the preferred size
+	camera_params.setPreviewFormat(ImageFormat.NV21);
+
+	if(suggested_width &gt; 0 &amp;&amp; suggested_height &gt; 0)
+	{
+		camera_params.setPreviewSize(suggested_width, suggested_height);
+	}
+	else
+	{		
+		Camera.Size cam_size = camera_params.getPreferredPreviewSizeForVideo();
+		camera_params.setPreviewSize(cam_size.width, cam_size.height);
+	}
+	AUR_Camera.setParameters(camera_params);
+
+	// Read the resulting frame size
+	AUR_FrameWidth = AUR_Camera.getParameters().getPreviewSize().width;
+	AUR_FrameHeight = AUR_Camera.getParameters().getPreviewSize().height;
+
+	// Create texture
+	AUR_CameraTexture = new SurfaceTexture(10);
+	AUR_CameraTexture.setDefaultBufferSize(AUR_FrameWidth, AUR_FrameHeight);
+	try {
+		AUR_Camera.setPreviewTexture(AUR_CameraTexture);
+	} catch (IOException exc) {
+		Log.error("LogAUR: Exception in AUR_Camera.setPreviewTexture: " + exc.getMessage());
+		return false;
+	} 
+	
+	AUR_Message("AUR: Camera start capture");
+	
+	AUR_Camera.setPreviewCallback(new PreviewCallback() {
+		@Override
+		public void onPreviewFrame(byte[] data, Camera camera) {
+			AURReceiveFrame(data);
+		}
+	});
+
+	// TODO setErrorCallback
+
+	AUR_Camera.startPreview();
+
+	AUR_ShouldReconnect = true;
+
+	return true;
+}
+
+public void AUR_CameraStopCapture()
+{
+	AUR_ShouldReconnect = false;
+	AUR_ReleaseCamera();
+}
+
+private void AUR_ReleaseCamera()
+{
+	if (AUR_Camera != null) 
+	{
+		AUR_Camera.stopPreview();
+		AUR_Camera.release();
+		AUR_Camera = null;
+	}
+}
+
+public native void AURNotify();
+public native void AURReceiveFrame(byte[] data);
+		</insert>
+	</gameActivityClassAdditions>
+
+	<gameActivityOnPauseAdditions>
+		<insert>
+			if(AUR_Camera != null)
+			{
+				AUR_ReleaseCamera();
+			}
+		</insert>
+	</gameActivityOnPauseAdditions>
+
+	<gameActivityOnResumeAdditions>
+		<insert>
+			if(AUR_ShouldReconnect)
+			{
+				AUR_CameraStartCapture(AUR_FrameWidth, AUR_FrameHeight);
+			}
+		</insert>
+	</gameActivityOnResumeAdditions>
+
+	<gameActivityOnStopAdditions>
+		<insert>
+			AUR_CameraStopCapture();
+		</insert>
+	</gameActivityOnStopAdditions>
+</root>

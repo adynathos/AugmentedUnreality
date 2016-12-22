@@ -22,6 +22,26 @@ const char* FOpenCVCameraProperties::KEY_RESOLUTION = "Resolution";
 const char* FOpenCVCameraProperties::KEY_CAMERA_MATRIX = "CameraMatrix";
 const char* FOpenCVCameraProperties::KEY_DISTORTION = "DistortionCoefficients";
 
+FOpenCVCameraProperties::FOpenCVCameraProperties()
+	: Resolution(1920, 1080)
+{
+	// Default camera matrix:
+	// f = 2200
+	// res = 1920x1080
+	CameraMatrix.create(3, 3);
+	CameraMatrix.setTo(0.0);
+	double f = 2200.0;
+	CameraMatrix.at<double>(0, 0) = f;
+	CameraMatrix.at<double>(1, 1) = f;
+	CameraMatrix.at<double>(0, 2) = 0.5 * double(Resolution.X);
+	CameraMatrix.at<double>(1, 2) = 0.5 * double(Resolution.Y);
+
+	DistortionCoefficients.create(5, 1);
+	DistortionCoefficients << 0.203, 0.114, 0.00, 0.00, -1.492;
+
+	DeriveFOV();
+}
+
 bool FOpenCVCameraProperties::LoadFromFile(FString const & file_path)
 {
 #if !PLATFORM_ANDROID
@@ -124,7 +144,7 @@ void FOpenCVCameraProperties::DeriveFOV()
 
 void FOpenCVCameraProperties::PrintToLog() const
 {
-#ifndef __linux__
+#if !PLATFORM_LINUX
 	std::stringstream param_ss;
 
 	param_ss << "\n"
@@ -217,7 +237,9 @@ void FOpenCVCameraCalibrationProcess::CalculateCalibration()
 	object_points.resize(DetectedPointSets.size(), object_points[0]);
 
 	// OpenCV writes directoy to those vectors, so they need to be allocated/deleted outside AUR binary
-	CvWrapper< std::vector<cv::Mat> > r_vecs, t_vecs;
+	//CvWrapper< std::vector<cv::Mat> > r_vecs, t_vecs;
+
+	//std::vector<cv::Mat> r_vecs, t_vecs;
 
 #if !PLATFORM_ANDROID
 	try
@@ -228,7 +250,7 @@ void FOpenCVCameraCalibrationProcess::CalculateCalibration()
 
 		// the error is root-square-mean
 		double calibration_error = cv::calibrateCamera(object_points, DetectedPointSets, cv::Size(CameraProperties.Resolution.X, CameraProperties.Resolution.Y),
-			CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients, *r_vecs, *t_vecs,
+			CameraProperties.CameraMatrix, CameraProperties.DistortionCoefficients, cv::noArray(), cv::noArray(),
 			CalibrationFlags);
 
 		UE_LOG(LogAUR, Log, TEXT("FOpenCVCameraCalibrationProcess: Calibration finished, error: %lf"), calibration_error)
