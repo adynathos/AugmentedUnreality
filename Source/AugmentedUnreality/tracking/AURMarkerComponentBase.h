@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Krzysztof Lis
+Copyright 2016-2017 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -80,7 +80,6 @@ public:
 	void AppendToBoardDefinition(cv::aur::ArucoBoardDefinition& board_def);
 
 	/* UActorComponent */
-	virtual void InitializeComponent() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& property_change_event) override;
 #endif
@@ -89,4 +88,8 @@ public:
 protected:
 	UPROPERTY(Transient)
 	UTextRenderComponent* MarkerText;
+
+	/* UActorComponent */
+	virtual void OnRegister() override;
+	/* end UActorComponent */
 };

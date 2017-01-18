@@ -40,32 +40,32 @@ UAURMarkerComponentBase::UAURMarkerComponentBase()
 	, BoardSizeCm(MARKER_DEFAULT_SIZE)
 	, MarginCm(1.0)
 {
-	bWantsInitializeComponent = true;
-
+	// No tick, no collision
+	SetComponentTickEnabled(false);
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	MarkerText = CreateDefaultSubobject<UTextRenderComponent>("MarkerText");
-	MarkerText->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// Show the marker ID using a TextRenderComponent:
+	MarkerText = CreateDefaultSubobject<UTextRenderComponent>("MarkerText", true);
+	MarkerText->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform, "Text");
+
+	// Text position: Transform of text relative to (this)
 	MarkerText->SetAbsolute(false, false, false);
-
-	MarkerText->SetHorizontalAlignment(EHorizTextAligment::EHTA_Center);
-	MarkerText->SetVerticalAlignment(EVerticalTextAligment::EVRTA_TextCenter);
-	MarkerText->SetTextRenderColor(FColor(50, 200, 50));
-}
-
-void UAURMarkerComponentBase::InitializeComponent()
-{
-	Super::InitializeComponent();
-
-	if (MarkerText->GetAttachParent() != this)
-	{
-		MarkerText->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform, "Text");
-	}
 	MarkerText->SetRelativeRotation(FRotator(90.0f, 0.0f, 180.0f));
 	MarkerText->SetRelativeScale3D(FVector(1, 1, 1) * 0.25);
 	MarkerText->SetRelativeLocation(FVector(0, 0, 0.1));
 
+	// Text display: align to center, color
+	MarkerText->SetHorizontalAlignment(EHorizTextAligment::EHTA_Center);
+	MarkerText->SetVerticalAlignment(EVerticalTextAligment::EVRTA_TextCenter);
+	MarkerText->SetTextRenderColor(FColor(50, 230, 50));
+
+	// Text component: No tick, no collision
+	MarkerText->SetComponentTickEnabled(false);
+	MarkerText->PrimaryComponentTick.bStartWithTickEnabled = false;
+	MarkerText->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
+	// Text: set initial size and text 
 	SetBoardSize(BoardSizeCm);
 	SetId(Id);
 }
@@ -183,3 +183,16 @@ void UAURMarkerComponentBase::PostEditChangeProperty(FPropertyChangedEvent & pro
 	}
 }
 #endif
+
+void UAURMarkerComponentBase::OnRegister()
+{
+	Super::OnRegister();
+
+	// Doing this in InitializeComponent does not update the text subcomponent
+	// when asset is opened in editor.
+
+	// Update the displayed marker number
+	SetId(Id);
+	// and square size
+	SetBoardSize(BoardSizeCm);
+}
