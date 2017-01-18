@@ -224,12 +224,9 @@ The IDs of the markers in the editor need to match the numbers present in the im
 <h3 name="platforms">Platforms</h3>
 <ul>
 	<li><i>Windows</i> - fully functional, pre-built packages available.</li>
-	<li><i>Linux</i> - the plugin compiles and editor can open the project, but when the game is launched a crash occurs,
-		which is potentially related to differences in memory management between Unreal Engine and OpenCV.
-		I would be grateful for help from someone experience with memory management across shared libraries.
+	<li><i>Android</i> - core features work but not packaged yet, work is in progress.
 	</li>
-	<li><i>Android</i> - there is an Android version of OpenCV so it should be possible to port the plugin to that platform.
-		This is outside the scope of my project but I am willing to help if someone wants to try this.
+	<li><i>Linux</i> - fully functional but not packaged yet.
 	</li>
 </ul>
 
