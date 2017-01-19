@@ -127,7 +127,7 @@ public boolean AUR_CameraStartCapture(int suggested_width, int suggested_height)
 		return false;
 	} 
 	
-	AUR_Message("AUR: Camera start capture");
+	//AUR_Message("AUR: Camera start capture");
 	
 	AUR_Camera.setPreviewCallback(new PreviewCallback() {
 		@Override
@@ -139,8 +139,6 @@ public boolean AUR_CameraStartCapture(int suggested_width, int suggested_height)
 	// TODO setErrorCallback
 
 	AUR_Camera.startPreview();
-
-	AUR_ShouldReconnect = true;
 
 	return true;
 }
@@ -170,10 +168,12 @@ public native void AURReceiveFrame(byte[] data);
 		<insert>
 			if(AUR_Camera != null)
 			{
+				AUR_ShouldReconnect = true;
 				AUR_ReleaseCamera();
 			}
 		</insert>
 	</gameActivityOnPauseAdditions>
+	<!-- onStop is always called after onPause, when the program stops being visible -->
 
 	<gameActivityOnResumeAdditions>
 		<insert>
@@ -184,9 +184,9 @@ public native void AURReceiveFrame(byte[] data);
 		</insert>
 	</gameActivityOnResumeAdditions>
 
-	<gameActivityOnStopAdditions>
+	<gameActivityOnDestroyAdditions>
 		<insert>
 			AUR_CameraStopCapture();
 		</insert>
-	</gameActivityOnStopAdditions>
+	</gameActivityOnDestroyAdditions>
 </root>
