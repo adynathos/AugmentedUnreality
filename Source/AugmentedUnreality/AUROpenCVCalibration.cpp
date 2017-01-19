@@ -48,30 +48,55 @@ bool FOpenCVCameraProperties::LoadFromFile(FString const & file_path)
 	try
 	{
 #endif
-		cv::FileStorage cam_param_file(TCHAR_TO_UTF8(*file_path), cv::FileStorage::READ);
-
-		if (!cam_param_file.isOpened())
+		if (FPaths::FileExists(file_path))
 		{
+			// Write and read files using UE functions instead of OpenCV to ensure it works on Android.
+			// (writing through cv::FileStorage fails on Android)
+			// cv::FileStorage cam_param_file(TCHAR_TO_UTF8(*file_path), cv::FileStorage::READ);
+
+			FString data_str_ue;
+			if (FFileHelper::LoadFileToString(data_str_ue, *file_path))
+			{
+				const std::string data_str_std(TCHAR_TO_UTF8(*data_str_ue));
+				cv::FileStorage cam_param_file(data_str_std, cv::FileStorage::READ | cv::FileStorage::MEMORY);
+
+				if (!cam_param_file.isOpened())
+				{
+					UE_LOG(LogAUR, Warning, TEXT("Calibration: Failed to parse file %s"), *file_path);
+					return false;
+				}
+
+				// Extract the data finally
+				std::vector<int32> res;
+				cam_param_file[KEY_RESOLUTION] >> res;
+				if (res.size() == 2)
+				{
+					Resolution.X = FPlatformMath::RoundToInt(res[0]);
+					Resolution.Y = FPlatformMath::RoundToInt(res[1]);
+				}
+
+				cam_param_file[KEY_CAMERA_MATRIX] >> CameraMatrix;
+				cam_param_file[KEY_DISTORTION] >> DistortionCoefficients;
+
+				this->DeriveFOV();
+			}
+			else
+			{
+				UE_LOG(LogAUR, Warning, TEXT("Calibration: Failed to read file %s"), *file_path);
+				return false;
+			}
+		}
+		else
+		{
+			UE_LOG(LogAUR, Warning, TEXT("Calibration: File %s does not exist"), *file_path);
 			return false;
 		}
 
-		std::vector<int32> res;
-		cam_param_file[KEY_RESOLUTION] >> res;
-		if (res.size() == 2)
-		{
-			Resolution.X = FPlatformMath::RoundToInt(res[0]);
-			Resolution.Y = FPlatformMath::RoundToInt(res[1]);
-		}
-
-		cam_param_file[KEY_CAMERA_MATRIX] >> CameraMatrix;
-		cam_param_file[KEY_DISTORTION] >> DistortionCoefficients;
-
-		this->DeriveFOV();
 #if !PLATFORM_ANDROID
 	}
 	catch (std::exception& exc)
 	{
-		UE_LOG(LogAUR, Error, TEXT("Exception while reading file %s:\n%s"), *file_path, UTF8_TO_TCHAR(exc.what()))
+		UE_LOG(LogAUR, Error, TEXT("Calibration: Exception while reading file %s:\n%s"), *file_path, UTF8_TO_TCHAR(exc.what()))
 		return false;
 	}
 #endif
@@ -83,16 +108,29 @@ bool FOpenCVCameraProperties::SaveToFile(FString const & file_path) const
 {
 	// ensure directory exists
 	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*FPaths::GetPath(file_path));
-	cv::FileStorage cam_param_file(TCHAR_TO_UTF8(*file_path), cv::FileStorage::WRITE);
+
+	// Write and read files using UE functions instead of OpenCV to ensure it works on Android.
+	// (writing through cv::FileStorage fails on Android)
+	// cv::FileStorage cam_param_file(TCHAR_TO_UTF8(*file_path), cv::FileStorage::WRITE);
+	
+	cv::FileStorage cam_param_file(TCHAR_TO_UTF8(*file_path), cv::FileStorage::WRITE | cv::FileStorage::MEMORY);
 
 	if (!cam_param_file.isOpened())
 	{
+		UE_LOG(LogAUR, Error, TEXT("Calibration: Failed to initialize cv::FileStorage"));
 		return false;
 	}
 
 	cam_param_file << KEY_RESOLUTION << std::vector<int32>{ Resolution.X, Resolution.Y };
 	cam_param_file << KEY_CAMERA_MATRIX << CameraMatrix;
 	cam_param_file << KEY_DISTORTION << DistortionCoefficients;
+
+	FString data_str_ue(UTF8_TO_TCHAR(cam_param_file.releaseAndGetString().c_str()));
+	if (!FFileHelper::SaveStringToFile(data_str_ue, *file_path, FFileHelper::EEncodingOptions::ForceUTF8))
+	{
+		UE_LOG(LogAUR, Error, TEXT("Calibration: Failed to write file %s"), *file_path);
+		return false;
+	}
 
 	return true;
 }

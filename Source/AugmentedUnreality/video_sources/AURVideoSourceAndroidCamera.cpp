@@ -115,9 +115,9 @@ void UAURVideoSourceAndroidCamera::OnFrameCaptured(JNIEnv* LocalJNIEnv, jobject 
 bool UAURVideoSourceAndroidCamera::Connect()
 {
 	UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceAndroidCamera::Connect"));
-	
+
 	NewFrameReady = false;
-	
+
 #if PLATFORM_ANDROID
 	if (Instance == nullptr)
 	{
@@ -130,9 +130,18 @@ bool UAURVideoSourceAndroidCamera::Connect()
 	}
 
 	InitJNI();
-	bConnected = FJavaWrapper::CallBooleanMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_CameraStartCapture, DesiredResolution.X, DesiredResolution.Y);	
-	Resolution.X = FJavaWrapper::CallIntMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_GetFrameWidth);
-	Resolution.Y = FJavaWrapper::CallIntMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_GetFrameHeight);
+	bConnected = FJavaWrapper::CallBooleanMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_CameraStartCapture, DesiredResolution.X, DesiredResolution.Y);
+
+	if (bConnected)
+	{
+		Resolution.X = FJavaWrapper::CallIntMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_GetFrameWidth);
+		Resolution.Y = FJavaWrapper::CallIntMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_GetFrameHeight);
+		LoadCalibration();
+	}
+	else
+	{
+		UE_LOG(LogAUR, Warning, TEXT("UAURVideoSourceAndroidCamera failed to connect"));
+	}
 
 	return bConnected;
 #else
