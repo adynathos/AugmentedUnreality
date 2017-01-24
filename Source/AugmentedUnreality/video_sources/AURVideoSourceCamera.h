@@ -26,7 +26,7 @@ UCLASS(Blueprintable, BlueprintType)
 class UAURVideoSourceCamera : public UAURVideoSourceCvCapture
 {
 	GENERATED_BODY()
-	
+
 public:
 	// Index (0-based) of the camera to use.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
@@ -44,10 +44,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
 	TArray<FIntPoint> OfferedResolutions;
 
-	// Tell the camera whether autofocus should be used
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
-	bool Autofocus;
-
 	UAURVideoSourceCamera();
 
 	virtual FText GetSourceName() const override;
@@ -55,4 +51,3 @@ public:
 	virtual void DiscoverConfigurations() override;
 	virtual bool Connect(FAURVideoConfiguration const& configuration) override;
 };
-	

@@ -21,7 +21,6 @@ UAURVideoSourceCamera::UAURVideoSourceCamera()
 	: CameraIndex(0)
 	, DesiredResolution(0, 0)
 	, OfferedResolutions{FIntPoint(1920, 1080), FIntPoint(1280, 720), FIntPoint(640, 480), FIntPoint(480, 360)}
-	, Autofocus(true)
 {
 }
 
@@ -33,17 +32,6 @@ FString UAURVideoSourceCamera::GetIdentifier() const
 FText UAURVideoSourceCamera::GetSourceName() const
 {
 	return FText::Format(NSLOCTEXT("AUR", "VideoSourceDesktopCamera", "Camera {0}"), FText::AsNumber(CameraIndex));
-
-	/*
-	if(!SourceName.IsEmpty())
-	{
-		return SourceName;
-	}
-	else
-	{
-		return FText::FromString(FString::Printf(TEXT("Camera %d"), CameraIndex));
-	}
-	*/
 }
 
 void UAURVideoSourceCamera::DiscoverConfigurations()
@@ -74,7 +62,6 @@ bool UAURVideoSourceCamera::Connect(FAURVideoConfiguration const& configuration)
 		{
 			UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceCamera::Connect: Connected to Camera %d"), CameraIndex)
 
-#if !PLAFROM_LINUX
 			// Suggest resolution
 			if(configuration.Resolution.GetMin() > 0)
 			{
@@ -82,9 +69,8 @@ bool UAURVideoSourceCamera::Connect(FAURVideoConfiguration const& configuration)
 				Capture.set(cv::CAP_PROP_FRAME_HEIGHT, configuration.Resolution.Y);
 			}
 
-			// Suggest autofocus
-			Capture.set(cv::CAP_PROP_AUTOFOCUS, Autofocus ? 1 : 0);
-#endif
+			// Disable autofocus, because we assume a constant focal length
+			Capture.set(cv::CAP_PROP_AUTOFOCUS,  0);
 
 			LoadCalibration();
 		}
@@ -100,6 +86,6 @@ bool UAURVideoSourceCamera::Connect(FAURVideoConfiguration const& configuration)
 		return false;
 	}
 #endif
-	
+
 	return Capture.isOpened();
 }

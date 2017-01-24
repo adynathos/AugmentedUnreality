@@ -23,23 +23,53 @@ const char* FOpenCVCameraProperties::KEY_CAMERA_MATRIX = "CameraMatrix";
 const char* FOpenCVCameraProperties::KEY_DISTORTION = "DistortionCoefficients";
 
 FOpenCVCameraProperties::FOpenCVCameraProperties()
-	: Resolution(1920, 1080)
 {
-	// Default camera matrix:
-	// f = 2200
-	// res = 1920x1080
-	CameraMatrix.create(3, 3);
-	CameraMatrix.setTo(0.0);
-	double f = 2200.0;
-	CameraMatrix.at<double>(0, 0) = f;
-	CameraMatrix.at<double>(1, 1) = f;
-	CameraMatrix.at<double>(0, 2) = 0.5 * double(Resolution.X);
-	CameraMatrix.at<double>(1, 2) = 0.5 * double(Resolution.Y);
-
 	DistortionCoefficients.create(5, 1);
 	DistortionCoefficients << 0.203, 0.114, 0.00, 0.00, -1.492;
 
+	// Default camera matrix:
+	// f = 2200
+	// res = 1920x1080
+	SetFromResolutionAndFocal(FIntPoint(1920, 1080), 2200);
+}
+
+void FOpenCVCameraProperties::SetFromResolutionAndFocal(FIntPoint const & resolution, double focal_pixels)
+{
+	Resolution = resolution;
+
+	CameraMatrix.create(3, 3);
+	CameraMatrix.setTo(0.0);
+
+	CameraMatrix(0, 0) = focal_pixels;
+	CameraMatrix(1, 1) = focal_pixels;
+	CameraMatrix(0, 2) = resolution.X / 2;
+	CameraMatrix(1, 2) = resolution.Y / 2;
+	CameraMatrix(2, 2) = 1.0;
+
 	DeriveFOV();
+}
+
+void FOpenCVCameraProperties::SetFromResolutionAndFOV(FIntPoint const & resolution, double horizontal_fov_deg)
+{
+	// Discard low fov to prevent division by 0. FOV below 1 deg is unrealistic anyway.
+	if (horizontal_fov_deg < 1.0)
+	{
+		UE_LOG(LogAUR, Error, TEXT("OpenCVCameraProperties::SetFromResolutionAndFOV Too low FOV value: %lf"), horizontal_fov_deg);
+		return;
+	}
+
+	/* Determine focal from horizontal FOV:
+
+		Triangle(camera center, image plane center, rightmost ray):
+			tan(fov/2) = (res_x/2) / focal
+			focal = (res_x/2) / tan(fov/2)
+	*/
+	const double res_x_half = resolution.X / 2;
+	const double focal = res_x_half / FMath::Tan(FMath::DegreesToRadians(horizontal_fov_deg)*0.5);
+
+	SetFromResolutionAndFocal(resolution, focal);
+
+	//UE_LOG(LogAUR, Log, TEXT("OpenCVCameraProperties::SetFromResolutionAndFOV hfov should be %f but is %f"), (float)horizontal_fov_deg, FOV.X);
 }
 
 bool FOpenCVCameraProperties::LoadFromFile(FString const & file_path)
@@ -112,7 +142,7 @@ bool FOpenCVCameraProperties::SaveToFile(FString const & file_path) const
 	// Write and read files using UE functions instead of OpenCV to ensure it works on Android.
 	// (writing through cv::FileStorage fails on Android)
 	// cv::FileStorage cam_param_file(TCHAR_TO_UTF8(*file_path), cv::FileStorage::WRITE);
-	
+
 	cv::FileStorage cam_param_file(TCHAR_TO_UTF8(*file_path), cv::FileStorage::WRITE | cv::FileStorage::MEMORY);
 
 	if (!cam_param_file.isOpened())
@@ -148,13 +178,12 @@ void FOpenCVCameraProperties::SetResolution(FIntPoint const & new_resolution)
 	double current_f = CameraMatrix.at<double>(0, 0);
 	double new_f = current_f * resolution_new_to_old;
 
-	// Set focal distance
-	CameraMatrix.at<double>(0, 0) = new_f;
-	CameraMatrix.at<double>(1, 1) = new_f;
+	SetFromResolutionAndFocal(new_resolution, new_f);
+}
 
-	// Set center of image
-	CameraMatrix.at<double>(0, 2) = 0.5 * double(new_resolution.X);
-	CameraMatrix.at<double>(1, 2) = 0.5 * double(new_resolution.Y);
+void FOpenCVCameraProperties::SetHorizontalFOV(double horizontal_fov_deg)
+{
+	SetFromResolutionAndFOV(Resolution, horizontal_fov_deg);
 }
 
 void FOpenCVCameraProperties::DeriveFOV()

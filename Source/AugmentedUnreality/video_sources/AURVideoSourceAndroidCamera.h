@@ -48,6 +48,10 @@ public:
 	virtual FIntPoint GetResolution() const override;
 	virtual float GetFrequency() const override;
 
+	// Android API provides camera's FOV, which allows us to find focal length.
+	// So if there is no calibration file, use the FOV returned by API.
+	virtual bool LoadCalibration() override;
+
 	UAURVideoSourceAndroidCamera();
 
 #if PLATFORM_ANDROID
@@ -62,8 +66,6 @@ private:
 	bool NewFrameReady;
 	std::mutex MutexNewFrame;
 	std::condition_variable ConditionNewFrame;
-
-	void GuessCalibration();
 
 #if PLATFORM_ANDROID
 	static void AndroidMessage(FString msg);

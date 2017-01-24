@@ -131,7 +131,7 @@ bool UAURVideoSource::LoadCalibration()
 		UE_LOG(LogAUR, Warning, TEXT("AURVideoSource::LoadCalibration: Is not connected, can not determine resolution"))
 	}
 
-	return false;
+	return this->bCalibrated;
 }
 
 void UAURVideoSource::SaveCalibration(FOpenCVCameraProperties const & NewCalibration)

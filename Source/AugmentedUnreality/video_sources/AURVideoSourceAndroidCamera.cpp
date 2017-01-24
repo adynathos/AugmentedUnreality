@@ -89,7 +89,7 @@ void UAURVideoSourceAndroidCamera::OnFrameCaptured(JNIEnv* LocalJNIEnv, jobject 
 {
 	const int32 data_size = LocalJNIEnv->GetArrayLength(data_array);
 	/*
-	We receive the frames in YUV420sp format which means their size is 
+	We receive the frames in YUV420sp format which means their size is
 		width x (1.5 * height) x 1
 	as opposed to RGB's size:
 		width x height x 3
@@ -228,8 +228,6 @@ void UAURVideoSourceAndroidCamera::DiscoverConfigurations()
 
 		Configurations.Add(cfg);
 	}
-
-	GuessCalibration();
 #endif
 }
 
@@ -249,7 +247,7 @@ void UAURVideoSourceAndroidCamera::Disconnect()
 		Instance = nullptr;
 
 		JNIEnv* java_env = InitJNI();
-		
+
 		FJavaWrapper::CallVoidMethod(java_env, FJavaWrapper::GameActivityThis, ActivityMethod_CameraStopCapture);
 	}
 #else
@@ -292,13 +290,22 @@ float UAURVideoSourceAndroidCamera::GetFrequency() const
 	return 1.0;
 }
 
-void UAURVideoSourceAndroidCamera::GuessCalibration()
+bool UAURVideoSourceAndroidCamera::LoadCalibration()
 {
+	const bool loaded_from_file = Super::LoadCalibration();
+
 #if PLATFORM_ANDROID
-	JNIEnv* java_env = InitJNI();
+	if (!loaded_from_file)
+	{
+		JNIEnv* java_env = InitJNI();
 
-	float reported_fov = java_env->CallFloatMethod(FJavaWrapper::GameActivityThis, ActivityMethod_GetHorizontalFOV);
+		const float reported_horizontal_fov = java_env->CallFloatMethod(FJavaWrapper::GameActivityThis, ActivityMethod_GetHorizontalFOV);
 
-	UE_LOG(LogAUR, Log, TEXT("AndroidCamera: reported FOV %f"), reported_fov);
+		UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceAndroidCamera: reported horizontal FOV = %f deg"), reported_horizontal_fov);
+
+		CameraProperties.SetHorizontalFOV(reported_horizontal_fov);
+	}
 #endif
+
+	return loaded_from_file;
 }

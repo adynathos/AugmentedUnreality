@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-	Copyright 2016 Krzysztof Lis (adynathos.net)
+	Copyright 2016-2017 Krzysztof Lis (adynathos.net)
 
 	Licensed under the Apache License, Version 2.0 (the "License");
 	you may not use this file except in compliance with the License.
 	You may obtain a copy of the License at
 
-	http ://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 	Unless required by applicable law or agreed to in writing, software
 	distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +23,6 @@
 	<androidManifestUpdates>
 		<addPermission android:name="android.permission.CAMERA"/>
 		<addFeature android:name="android.hardware.camera"/>
-		<addFeature android:name="android.hardware.camera.autofocus"/>
 	</androidManifestUpdates>
 
 	<gameActivityImportAdditions>
@@ -137,11 +136,12 @@ public float AUR_GetHorizontalFOV()
 
 public boolean AUR_CameraStartCapture(int suggested_width, int suggested_height)
 {
-	Log.debug("AUR Camera Start");
+	Log.debug("LogAUR: CameraStartCapture");
 
 	if(AUR_Camera == null)
 	{
-		try {
+		try
+		{
 			AUR_Camera = Camera.open();
 		} catch (RuntimeException exc) {
 			Log.error("LogAUR: Exception in Camera.open: " + exc.getMessage());
@@ -149,11 +149,26 @@ public boolean AUR_CameraStartCapture(int suggested_width, int suggested_height)
 		} 
 	}
 	
+	// Set properties of video stream:
 	Parameters camera_params = AUR_Camera.getParameters();
 
-	// Use the preferred size
+	// - YUV420sp image format
 	camera_params.setPreviewFormat(ImageFormat.NV21);
 
+	// - Disable autofocus, because we assume a constant focal length
+		List &lt; String &gt; focus_modes = camera_params.getSupportedFocusModes();
+		
+		if (focus_modes.contains(Parameters.FOCUS_MODE_INFINITY))
+		{
+			camera_params.setFocusMode(Parameters.FOCUS_MODE_INFINITY);
+		}
+		else if(focus_modes.contains(Parameters.FOCUS_MODE_FIXED))
+		{
+			camera_params.setFocusMode(Parameters.FOCUS_MODE_FIXED);
+		} 
+	// -------
+
+	// - Requested resolution
 	if(suggested_width &gt; 0 &amp;&amp; suggested_height &gt; 0)
 	{
 		camera_params.setPreviewSize(suggested_width, suggested_height);
@@ -163,7 +178,16 @@ public boolean AUR_CameraStartCapture(int suggested_width, int suggested_height)
 		Camera.Size cam_size = camera_params.getPreferredPreviewSizeForVideo();
 		camera_params.setPreviewSize(cam_size.width, cam_size.height);
 	}
-	AUR_Camera.setParameters(camera_params);
+	// -------
+	
+	// - commit video parameters
+	try {
+		AUR_Camera.setParameters(camera_params);
+	} catch (RuntimeException exc) {
+		Log.error("LogAUR: Exception in AUR_Camera.setParameters: " + exc.getMessage());
+		return false;
+	}
+	// -------
 
 	// Read the resulting frame size
 	AUR_FrameWidth = AUR_Camera.getParameters().getPreviewSize().width;
@@ -179,18 +203,18 @@ public boolean AUR_CameraStartCapture(int suggested_width, int suggested_height)
 		return false;
 	} 
 	
-	//AUR_Message("AUR: Camera start capture");
-	
+	// On received frame: send it to C++ program
 	AUR_Camera.setPreviewCallback(new PreviewCallback() {
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
 			AURReceiveFrame(data);
 		}
 	});
-
 	// TODO setErrorCallback
 
 	AUR_Camera.startPreview();
+
+	// When application is resumed, reconnect
 	AUR_ShouldReconnect = true;
 
 	return true;

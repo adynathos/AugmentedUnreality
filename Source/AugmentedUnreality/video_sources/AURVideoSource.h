@@ -51,7 +51,7 @@ UCLASS(Abstract, Blueprintable, BlueprintType)
 class UAURVideoSource : public UObject
 {
 	GENERATED_BODY()
-	
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VideoSource)
 	FText Description;
@@ -103,9 +103,9 @@ public:
 	}
 
 	// Loads the calibration from file, returns true if file was found and correct.
-	bool LoadCalibration();
+	virtual bool LoadCalibration();
 
-	FOpenCVCameraProperties const& GetCameraProperties() const 
+	FOpenCVCameraProperties const& GetCameraProperties() const
 	{
 		return CameraProperties;
 	}
