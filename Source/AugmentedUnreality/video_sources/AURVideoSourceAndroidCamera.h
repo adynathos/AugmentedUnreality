@@ -32,10 +32,11 @@ UCLASS(Blueprintable, BlueprintType)
 class UAURVideoSourceAndroidCamera : public UAURVideoSource
 {
 	GENERATED_BODY()
-	
+
 public:
-	//UPROPERTY(EditAnywhere, Category = AugmentedReality)
-	//FIntPoint DesiredResolution;
+	// Resolutions near this will be given higher priority
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
+	int32 PreferredResolutionX;
 
 	virtual FString GetIdentifier() const override;
 	virtual FText GetSourceName() const override;
@@ -75,4 +76,4 @@ private:
 	static JNIEnv* InitJNI();
 #endif
 };
-	
+

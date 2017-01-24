@@ -21,7 +21,7 @@ UAURVideoSourceTest::UAURVideoSourceTest()
 	: DesiredResolution(1280, 720)
 	, FramesPerSecond(2.0)
 {
-
+	PriorityMultiplier = 0.5;
 }
 
 FString UAURVideoSourceTest::GetIdentifier() const
@@ -45,6 +45,8 @@ void UAURVideoSourceTest::DiscoverConfigurations()
 
 bool UAURVideoSourceTest::Connect(FAURVideoConfiguration const& configuration)
 {
+	Super::Connect(configuration);
+
 	UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceTest::Connect()"));
 
 	if (DesiredResolution.X <= 0 || DesiredResolution.Y <= 0)

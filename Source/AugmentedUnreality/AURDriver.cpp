@@ -168,11 +168,24 @@ bool UAURDriver::OpenVideoSourceDefault()
 	{
 		return true;
 	}
-	// if its the first time, open the first on the list
+	// if its the first time, open the one with highest priority
 	else if(VideoConfigurations.Num() > 0)
 	{
-		OpenVideoSource(VideoConfigurations[0]);
-		return true;
+		FAURVideoConfiguration* best_cfg = nullptr;
+
+		for (auto& cfg : VideoConfigurations)
+		{
+			if ((!best_cfg) || cfg.Priority > best_cfg->Priority)
+			{
+				best_cfg = &cfg;
+			}
+		}
+
+		if (best_cfg)
+		{
+			OpenVideoSource(*best_cfg);
+			return true;
+		}
 	}
 
 	return false;

@@ -32,10 +32,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
 	int32 CameraIndex;
 
-	// The resolution that will be suggested to the camera
-	// (0, 0) means no suggestion will be made
+	// Resolutions near this will be given higher priority
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
-	FIntPoint DesiredResolution;
+	int32 PreferredResolutionX;
 
 	/*
 		Resolutions to be selectable in the program.

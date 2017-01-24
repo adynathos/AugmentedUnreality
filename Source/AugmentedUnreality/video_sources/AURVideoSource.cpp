@@ -23,11 +23,13 @@ FAURVideoConfiguration::FAURVideoConfiguration()
 	: Identifier("INVALID")
 	, VideoSourceObject(nullptr)
 	, DisplayName(NSLOCTEXT("AUR", "InvalidVideoSourceConfiguration", "INVALID"))
+	, Priority(-1.0)
 {}
 
 FAURVideoConfiguration::FAURVideoConfiguration(UAURVideoSource* parent, FString const& variant)
 	: Identifier(parent->GetIdentifier() + "_" + variant)
 	, VideoSourceObject(parent)
+	, Priority(parent->PriorityMultiplier)
 {
 	if (variant.IsEmpty())
 	{
@@ -39,8 +41,15 @@ FAURVideoConfiguration::FAURVideoConfiguration(UAURVideoSource* parent, FString 
 	}
 }
 
+void FAURVideoConfiguration::SetPriorityFromDesiredResolution(int32 desired_resolution_x, int32 stdev)
+{
+	Priority = 1.0 + FMath::Exp(-(float)FMath::Abs(Resolution.X - desired_resolution_x) / stdev);
+	Priority *= VideoSourceObject->PriorityMultiplier;
+}
+
 UAURVideoSource::UAURVideoSource()
-	: bCalibrated(false)
+	: PriorityMultiplier(1.0)
+	, bCalibrated(false)
 {
 }
 
@@ -59,15 +68,9 @@ void UAURVideoSource::DiscoverConfigurations()
 	Configurations.Empty();
 }
 
-bool UAURVideoSource::Connect()
-{
-	UE_LOG(LogAUR, Error, TEXT("UAURVideoSource::Connect: Not implemented"))
-		return false;
-}
-
 bool UAURVideoSource::Connect(FAURVideoConfiguration const& configuration)
 {
-	UE_LOG(LogAUR, Error, TEXT("UAURVideoSource::Connect: Not implemented"))
+	CurrentConfiguration = configuration;
 	return false;
 }
 

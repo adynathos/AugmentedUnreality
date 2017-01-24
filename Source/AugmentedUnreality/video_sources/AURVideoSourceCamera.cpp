@@ -19,7 +19,7 @@ limitations under the License.
 
 UAURVideoSourceCamera::UAURVideoSourceCamera()
 	: CameraIndex(0)
-	, DesiredResolution(0, 0)
+	, PreferredResolutionX(720)
 	, OfferedResolutions{FIntPoint(1920, 1080), FIntPoint(1280, 720), FIntPoint(640, 480), FIntPoint(480, 360)}
 {
 }
@@ -44,6 +44,7 @@ void UAURVideoSourceCamera::DiscoverConfigurations()
 	{
 		FAURVideoConfiguration cfg(this, ResolutionToString(resolution));
 		cfg.Resolution = resolution;
+		cfg.SetPriorityFromDesiredResolution(PreferredResolutionX);
 
 		Configurations.Add(cfg);
 	}
@@ -52,6 +53,8 @@ void UAURVideoSourceCamera::DiscoverConfigurations()
 
 bool UAURVideoSourceCamera::Connect(FAURVideoConfiguration const& configuration)
 {
+	Super::Connect(configuration);
+
 #if !PLATFORM_ANDROID
 	try
 	{

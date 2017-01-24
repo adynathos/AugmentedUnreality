@@ -71,11 +71,13 @@ void UAURVideoSourceStream::DiscoverConfigurations()
 		{
 			UE_LOG(LogAUR, Warning, TEXT("UAURVideoSourceStream:: File %s does not exist"), *full_path)
 		}
-	}	
+	}
 }
 
 bool UAURVideoSourceStream::Connect(FAURVideoConfiguration const& configuration)
 {
+	Super::Connect(configuration);
+
 	bool success = false;
 #if !PLATFORM_ANDROID
 	try

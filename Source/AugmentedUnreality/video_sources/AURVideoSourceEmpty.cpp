@@ -17,6 +17,11 @@ limitations under the License.
 #include "AugmentedUnreality.h"
 #include "AURVideoSourceEmpty.h"
 
+UAURVideoSourceEmpty::UAURVideoSourceEmpty()
+{
+	PriorityMultiplier = 0.0;
+}
+
 FString UAURVideoSourceEmpty::GetIdentifier() const
 {
 	return "empty";
@@ -37,6 +42,7 @@ void UAURVideoSourceEmpty::DiscoverConfigurations()
 
 bool UAURVideoSourceEmpty::Connect(FAURVideoConfiguration const& configuration)
 {
+	Super::Connect(configuration);
 	return false;
 }
 

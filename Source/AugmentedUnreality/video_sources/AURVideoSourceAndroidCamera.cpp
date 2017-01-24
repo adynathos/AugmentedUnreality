@@ -19,6 +19,7 @@ limitations under the License.
 
 #if PLATFORM_ANDROID
 #include "../../../Core/Public/Android/AndroidApplication.h"
+#include "Algo/Reverse.h"
 
 static UAURVideoSourceAndroidCamera* Instance = nullptr;
 
@@ -129,6 +130,8 @@ void UAURVideoSourceAndroidCamera::OnFrameCaptured(JNIEnv* LocalJNIEnv, jobject 
 
 bool UAURVideoSourceAndroidCamera::Connect(FAURVideoConfiguration const& configuration)
 {
+	Super::Connect(configuration);
+
 	UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceAndroidCamera::Connect"));
 
 	NewFrameReady = false;
@@ -167,8 +170,8 @@ bool UAURVideoSourceAndroidCamera::Connect(FAURVideoConfiguration const& configu
 }
 
 UAURVideoSourceAndroidCamera::UAURVideoSourceAndroidCamera()
-	//: DesiredResolution(640, 360)
-	: bConnected(false)
+	: PreferredResolutionX(640)
+	, bConnected(false)
 	, NewFrameReady(false)
 {
 }
@@ -219,12 +222,14 @@ void UAURVideoSourceAndroidCamera::DiscoverConfigurations()
 		}
 
 		java_env->ReleaseIntArrayElements(java_array_of_res, java_array_elems, 0);
+		Algo::Reverse(resolutions);
 	}
 
 	for (auto const& resolution : resolutions)
 	{
 		FAURVideoConfiguration cfg(this, ResolutionToString(resolution));
 		cfg.Resolution = resolution;
+		cfg.SetPriorityFromDesiredResolution(PreferredResolutionX);
 
 		Configurations.Add(cfg);
 	}

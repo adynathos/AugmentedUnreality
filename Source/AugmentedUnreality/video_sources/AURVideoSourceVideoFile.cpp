@@ -50,6 +50,8 @@ void UAURVideoSourceVideoFile::DiscoverConfigurations()
 
 bool UAURVideoSourceVideoFile::Connect(FAURVideoConfiguration const& configuration)
 {
+	Super::Connect(configuration);
+
 	if (!FPaths::FileExists(configuration.FilePath))
 	{
 		UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceVideoFile::Connect: File %s does not exist"), *configuration.FilePath)
@@ -71,7 +73,7 @@ bool UAURVideoSourceVideoFile::Connect(FAURVideoConfiguration const& configurati
 			*configuration.FilePath, fps, FrameCount)
 
 		fps = FMath::Clamp(fps, MIN_FPS, MAX_FPS);
-		Period = 1.0 / fps;		
+		Period = 1.0 / fps;
 
 		LoadCalibration();
 	}

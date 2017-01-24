@@ -27,6 +27,8 @@ class UAURVideoSourceEmpty : public UAURVideoSource
 	GENERATED_BODY()
 
 public:
+	UAURVideoSourceEmpty();
+
 	virtual FString GetIdentifier() const override;
 	virtual FText GetSourceName() const override;
 	virtual void DiscoverConfigurations() override;
@@ -38,4 +40,4 @@ public:
 	virtual FIntPoint GetResolution() const override;
 	virtual float GetFrequency() const override;
 };
-	
+

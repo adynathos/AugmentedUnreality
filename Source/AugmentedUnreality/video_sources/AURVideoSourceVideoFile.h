@@ -25,7 +25,7 @@ UCLASS(Blueprintable, BlueprintType)
 class UAURVideoSourceVideoFile : public UAURVideoSourceCvCapture
 {
 	GENERATED_BODY()
-	
+
 public:
 	// Path to the video file, relative to FPaths::GameDir()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
@@ -33,11 +33,10 @@ public:
 
 	virtual FString GetIdentifier() const override;
 	virtual FText GetSourceName() const override;
-	virtual void DiscoverConfigurations() override; 
-	
+	virtual void DiscoverConfigurations() override;
+
 	virtual bool Connect(FAURVideoConfiguration const& configuration) override;
 	virtual bool GetNextFrame(cv::Mat_<cv::Vec3b>& frame) override;
-
 
 protected:
 	// Time between consecutive frames
@@ -49,4 +48,4 @@ protected:
 	static const float MAX_FPS;
 	static const float MIN_FPS;
 };
-	
+

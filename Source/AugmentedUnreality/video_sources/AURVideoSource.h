@@ -35,12 +35,18 @@ struct FAURVideoConfiguration
 	UPROPERTY(BlueprintReadOnly, Category = VideoSource)
 	FText DisplayName;
 
+	// How appropriate this configuration is for default at first launch
+	UPROPERTY(BlueprintReadOnly, Category = VideoSource)
+	float Priority;
+
 // Information stored by VideoSource
 	FIntPoint Resolution;
 	FString FilePath;
 
 	FAURVideoConfiguration();
 	FAURVideoConfiguration(UAURVideoSource* parent, FString const& variant);
+
+	void SetPriorityFromDesiredResolution(int32 desired_resolution_x, int32 stdev = 1024.0);
 };
 
 /**
@@ -63,6 +69,12 @@ public:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = VideoSource)
 	TArray<FAURVideoConfiguration> Configurations;
 
+	UPROPERTY(Transient, BlueprintReadOnly, Category = VideoSource)
+	FAURVideoConfiguration CurrentConfiguration;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
+	float PriorityMultiplier;
+
 	// Name to be displayed in the list of available sources
 	UFUNCTION(BlueprintCallable, Category = VideoSource)
 	virtual FText GetSourceName() const;
@@ -74,8 +86,6 @@ public:
 	virtual void DiscoverConfigurations();
 
 	UAURVideoSource();
-
-	virtual bool Connect();
 
 	// Attempt to start streaming the video, returns true on success.
 	virtual bool Connect(FAURVideoConfiguration const& configuration);
