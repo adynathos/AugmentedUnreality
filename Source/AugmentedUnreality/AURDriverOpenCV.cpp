@@ -18,28 +18,12 @@ limitations under the License.
 #include "AURDriverOpenCV.h"
 
 UAURDriverOpenCV::UAURDriverOpenCV()
-	: DefaultVideoSourceIndex(1)
 {
 }
 
 void UAURDriverOpenCV::Initialize(AActor* parent_actor)
 {
 	this->Tracker.SetSettings(this->TrackerSettings);
-
-	AvailableVideoSources.Add(nullptr);
-
-	for (auto const& vid_src_class : DefaultVideoSources)
-	{
-		if(vid_src_class)
-		{
-			UAURVideoSource* vid_src = NewObject<UAURVideoSource>(this, vid_src_class);
-			AvailableVideoSources.Add(vid_src);
-		}
-		else
-		{
-			UE_LOG(LogAUR, Error, TEXT("UAURDriverOpenCV::Initialize Null entry in DefaultVideoSources"));
-		}
-	}
 
 	//FAUROpenCV::SetGstreamerPluginEnv();
 
@@ -66,48 +50,15 @@ UAURVideoSource * UAURDriverOpenCV::GetVideoSource()
 	return VideoSource;
 }
 
-void UAURDriverOpenCV::SetVideoSource(UAURVideoSource * NewVideoSource)
+void UAURDriverOpenCV::OpenVideoSource(FAURVideoConfiguration const& VideoConfiguration)
 {
-	FScopeLock lock(&VideoSourceLock);
-	NextVideoSource = NewVideoSource;
-}
-
-void UAURDriverOpenCV::SetVideoSourceByIndex(const int32 index)
-{
-	if (index < 0 || index >= AvailableVideoSources.Num())
+	Super::OpenVideoSource(VideoConfiguration);
+	
 	{
-		UE_LOG(LogAUR, Error, TEXT("UAURDriverOpenCV::SetVideoSourceByIndex index outside of range: %d"), index)
+		FScopeLock lock(&VideoSourceLock);
+		NextVideoConfiguration = VideoConfiguration;
+		SwitchToNextVideoSource = true;
 	}
-	else
-	{
-		SetVideoSource(AvailableVideoSources[index]);
-
-		// Save the index to open same source on next run
-		DefaultVideoSourceIndex = index;
-		SaveConfig();
-	}
-}
-
-bool UAURDriverOpenCV::OpenDefaultVideoSource()
-{
-	if (DefaultVideoSourceIndex >= 0 && DefaultVideoSourceIndex < AvailableVideoSources.Num())
-	{
-		SetVideoSourceByIndex(DefaultVideoSourceIndex);
-		return true;
-	}
-	else
-	{
-		for (int32 idx = 0; idx < AvailableVideoSources.Num(); idx++)
-		{
-			if (AvailableVideoSources[idx])
-			{
-				SetVideoSourceByIndex(idx);
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 bool UAURDriverOpenCV::RegisterBoard(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
@@ -278,15 +229,20 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 	
 	while (this->bContinue)
 	{
-		bool new_video_source = false;
+		// whether we switch to a new vid src in this iteration
+		bool new_video_source_now = false;
+		FAURVideoConfiguration video_config_to_open;
 
 		// Switch video source
 		{
 			FScopeLock lock(&Driver->VideoSourceLock);
 
-			if (current_video_source != Driver->NextVideoSource)
+			if (Driver->SwitchToNextVideoSource)
 			{
-				FString vid_src_name = Driver->NextVideoSource ? Driver->NextVideoSource->GetSourceName().ToString() : "null";
+				video_config_to_open = Driver->NextVideoConfiguration; //save in local var in case it is modified before we connect to video source
+				UAURVideoSource* next_src_obj = video_config_to_open.VideoSourceObject;
+
+				const FString vid_src_name = next_src_obj ? next_src_obj->GetIdentifier() : "NULL";
 				UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Switching video source to [%s]"), *vid_src_name);
 
 				if (current_video_source)
@@ -294,20 +250,23 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 					current_video_source->Disconnect();
 				}
 
-				current_video_source = Driver->NextVideoSource;
+				current_video_source = next_src_obj;
 				// need to be kept in UPROPERTY for GC
 				Driver->VideoSource = current_video_source;
 
-				new_video_source = true;
+				new_video_source_now = true;
+				Driver->SwitchToNextVideoSource = false;
 			}
 		}
 		
 		// activate new video source after switch
-		if (new_video_source)
+		// this is outside the previous block because opening connection can take time
+		// and we don't want to block VideoSourceLock
+		if (new_video_source_now)
 		{
 			if (current_video_source)
 			{
-				current_video_source->Connect();
+				current_video_source->Connect(video_config_to_open);
 			}
 
 			Driver->OnVideoSourceSwitch();

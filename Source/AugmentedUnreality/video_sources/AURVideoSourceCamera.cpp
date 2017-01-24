@@ -20,12 +20,21 @@ limitations under the License.
 UAURVideoSourceCamera::UAURVideoSourceCamera()
 	: CameraIndex(0)
 	, DesiredResolution(0, 0)
+	, OfferedResolutions{FIntPoint(1920, 1080), FIntPoint(1280, 720), FIntPoint(640, 480), FIntPoint(480, 360)}
 	, Autofocus(true)
 {
 }
 
+FString UAURVideoSourceCamera::GetIdentifier() const
+{
+	return FString::Printf(TEXT("DesktopCamera_%d"), CameraIndex);
+}
+
 FText UAURVideoSourceCamera::GetSourceName() const
 {
+	return FText::Format(NSLOCTEXT("AUR", "VideoSourceDesktopCamera", "Camera {0}"), FText::AsNumber(CameraIndex));
+
+	/*
 	if(!SourceName.IsEmpty())
 	{
 		return SourceName;
@@ -34,9 +43,26 @@ FText UAURVideoSourceCamera::GetSourceName() const
 	{
 		return FText::FromString(FString::Printf(TEXT("Camera %d"), CameraIndex));
 	}
+	*/
 }
 
-bool UAURVideoSourceCamera::Connect()
+void UAURVideoSourceCamera::DiscoverConfigurations()
+{
+	Configurations.Empty();
+
+	//= cv::VideoCapture does not work on Android
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	for (auto const& resolution : OfferedResolutions)
+	{
+		FAURVideoConfiguration cfg(this, ResolutionToString(resolution));
+		cfg.Resolution = resolution;
+
+		Configurations.Add(cfg);
+	}
+#endif
+}
+
+bool UAURVideoSourceCamera::Connect(FAURVideoConfiguration const& configuration)
 {
 #if !PLATFORM_ANDROID
 	try
@@ -50,10 +76,10 @@ bool UAURVideoSourceCamera::Connect()
 
 #if !PLAFROM_LINUX
 			// Suggest resolution
-			if(DesiredResolution.GetMin() > 0)
+			if(configuration.Resolution.GetMin() > 0)
 			{
-				Capture.set(cv::CAP_PROP_FRAME_WIDTH, DesiredResolution.X);
-				Capture.set(cv::CAP_PROP_FRAME_HEIGHT, DesiredResolution.Y);
+				Capture.set(cv::CAP_PROP_FRAME_WIDTH, configuration.Resolution.X);
+				Capture.set(cv::CAP_PROP_FRAME_HEIGHT, configuration.Resolution.Y);
 			}
 
 			// Suggest autofocus

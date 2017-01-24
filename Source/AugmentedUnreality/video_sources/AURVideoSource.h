@@ -19,6 +19,29 @@ limitations under the License.
 #include "AUROpenCV.h"
 #include "AUROpenCVCalibration.h"
 #include "AURVideoSource.generated.h"
+class UAURVideoSource;
+
+USTRUCT(BlueprintType)
+struct FAURVideoConfiguration
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = VideoSource)
+	FString Identifier;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = VideoSource)
+	UAURVideoSource* VideoSourceObject;
+
+	UPROPERTY(BlueprintReadOnly, Category = VideoSource)
+	FText DisplayName;
+
+// Information stored by VideoSource
+	FIntPoint Resolution;
+	FString FilePath;
+
+	FAURVideoConfiguration();
+	FAURVideoConfiguration(UAURVideoSource* parent, FString const& variant);
+};
 
 /**
  * Base class for a video stream source.
@@ -30,23 +53,32 @@ class UAURVideoSource : public UObject
 	GENERATED_BODY()
 	
 public:
-	// Name to be displayed in the list of available sources
-	// Leave empty to generate use a name created from the source's settings
-	UPROPERTY(EditAnywhere, Category = VideoSource)
-	FText SourceName;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VideoSource)
+	FText Description;
 
 	// Name of the file to save/load calibration from, relative to Saved/AugmentedUnreality/Calibration
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
 	FString CalibrationFileName;
 
+	UPROPERTY(Transient, BlueprintReadOnly, Category = VideoSource)
+	TArray<FAURVideoConfiguration> Configurations;
+
 	// Name to be displayed in the list of available sources
 	UFUNCTION(BlueprintCallable, Category = VideoSource)
 	virtual FText GetSourceName() const;
 
+	virtual FString GetIdentifier() const;
+
+	// Populates the Configurations list with available video versions.
+	UFUNCTION(BlueprintCallable, Category = VideoSource)
+	virtual void DiscoverConfigurations();
+
 	UAURVideoSource();
 
-	// Attempt to start streaming the video, returns true on success.
 	virtual bool Connect();
+
+	// Attempt to start streaming the video, returns true on success.
+	virtual bool Connect(FAURVideoConfiguration const& configuration);
 
 	// Is the stream open
 	UFUNCTION(BlueprintCallable, Category = VideoSource)
@@ -80,6 +112,8 @@ public:
 
 	// Use CameraProperties obtained during calibration and save them to file.
 	void SaveCalibration(FOpenCVCameraProperties const& NewCalibration);
+
+	static FString ResolutionToString(FIntPoint const& resolution);
 
 protected:
 	bool bCalibrated;

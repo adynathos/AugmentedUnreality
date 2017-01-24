@@ -22,12 +22,13 @@ limitations under the License.
 
 static UAURVideoSourceAndroidCamera* Instance = nullptr;
 
-static JNIEnv* JavaEnv = nullptr;
-static jmethodID ActivityMethod_Message;
-static jmethodID ActivityMethod_CameraStartCapture;
-static jmethodID ActivityMethod_CameraStopCapture;
-static jmethodID ActivityMethod_GetFrameWidth;
-static jmethodID ActivityMethod_GetFrameHeight;
+static jmethodID ActivityMethod_Message = nullptr;
+static jmethodID ActivityMethod_CameraStartCapture = nullptr;
+static jmethodID ActivityMethod_CameraStopCapture = nullptr;
+static jmethodID ActivityMethod_GetFrameWidth = nullptr;
+static jmethodID ActivityMethod_GetFrameHeight = nullptr;
+static jmethodID ActivityMethod_GetAvailableResolutions = nullptr;
+static jmethodID ActivityMethod_GetHorizontalFOV = nullptr;
 
 extern "C" void Java_com_epicgames_ue4_GameActivity_AURNotify(JNIEnv* LocalJNIEnv, jobject LocalThiz)
 {
@@ -46,28 +47,42 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_AURReceiveFrame(JNIEnv* Loca
 	}
 }
 
-void UAURVideoSourceAndroidCamera::InitJNI()
+JNIEnv* UAURVideoSourceAndroidCamera::InitJNI()
 {
-	if (!JavaEnv)
-	{
-		JavaEnv = FAndroidApplication::GetJavaEnv();
-		ActivityMethod_Message = FJavaWrapper::FindMethod(JavaEnv, FJavaWrapper::GameActivityClassID, "AUR_Message", "(Ljava/lang/String;)V", true);
-		ActivityMethod_CameraStartCapture = FJavaWrapper::FindMethod(JavaEnv, FJavaWrapper::GameActivityClassID, "AUR_CameraStartCapture", "(II)Z", true);
-		ActivityMethod_CameraStopCapture = FJavaWrapper::FindMethod(JavaEnv, FJavaWrapper::GameActivityClassID, "AUR_CameraStopCapture", "()V", true);
-		ActivityMethod_GetFrameWidth = FJavaWrapper::FindMethod(JavaEnv, FJavaWrapper::GameActivityClassID, "AUR_GetFrameWidth", "()I", true);
-		ActivityMethod_GetFrameHeight = FJavaWrapper::FindMethod(JavaEnv, FJavaWrapper::GameActivityClassID, "AUR_GetFrameHeight", "()I", true);
+	// fresh JNI
+	JNIEnv* java_env = FAndroidApplication::GetJavaEnv();
 
-		UE_LOG(LogAUR, Warning, TEXT("UAURVideoSourceAndroidCamera::InitJNI"));
+	if (!java_env)
+	{
+		UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceAndroidCamera: Failed to get JNI"));
+		return nullptr;
 	}
+
+	// load methods if not loaded before
+	if (! ActivityMethod_CameraStartCapture)
+	{
+		ActivityMethod_Message = FJavaWrapper::FindMethod(java_env, FJavaWrapper::GameActivityClassID, "AUR_Message", "(Ljava/lang/String;)V", true);
+		ActivityMethod_CameraStartCapture = FJavaWrapper::FindMethod(java_env, FJavaWrapper::GameActivityClassID, "AUR_CameraStartCapture", "(II)Z", true);
+		ActivityMethod_CameraStopCapture = FJavaWrapper::FindMethod(java_env, FJavaWrapper::GameActivityClassID, "AUR_CameraStopCapture", "()V", true);
+		ActivityMethod_GetFrameWidth = FJavaWrapper::FindMethod(java_env, FJavaWrapper::GameActivityClassID, "AUR_GetFrameWidth", "()I", true);
+		ActivityMethod_GetFrameHeight = FJavaWrapper::FindMethod(java_env, FJavaWrapper::GameActivityClassID, "AUR_GetFrameHeight", "()I", true);
+		ActivityMethod_GetAvailableResolutions = FJavaWrapper::FindMethod(java_env, FJavaWrapper::GameActivityClassID, "AUR_GetAvailableResolutions", "()[I", true);
+		ActivityMethod_GetHorizontalFOV = FJavaWrapper::FindMethod(java_env, FJavaWrapper::GameActivityClassID, "AUR_GetHorizontalFOV", "()F", true);
+
+		UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceAndroidCamera: Methods loaded"));
+	}
+
+	return java_env;
 }
 
 void UAURVideoSourceAndroidCamera::AndroidMessage(FString msg)
 {
 	UE_LOG(LogAUR, Warning, TEXT("UAURVideoSourceAndroidCamera::AndroidMessage %s"), *msg);
 
-	InitJNI();
-	jstring jstr = JavaEnv->NewStringUTF(TCHAR_TO_UTF8(*msg));
-	FJavaWrapper::CallVoidMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_Message, jstr);
+	JNIEnv* java_env = InitJNI();
+
+	jstring jstr = java_env->NewStringUTF(TCHAR_TO_UTF8(*msg));
+	FJavaWrapper::CallVoidMethod(java_env, FJavaWrapper::GameActivityThis, ActivityMethod_Message, jstr);
 }
 
 void UAURVideoSourceAndroidCamera::OnFrameCaptured(JNIEnv* LocalJNIEnv, jobject LocalThiz, jbyteArray data_array)
@@ -112,11 +127,12 @@ void UAURVideoSourceAndroidCamera::OnFrameCaptured(JNIEnv* LocalJNIEnv, jobject 
 
 // TODO add a function through which Android can tell us about the camera being disconnected
 
-bool UAURVideoSourceAndroidCamera::Connect()
+bool UAURVideoSourceAndroidCamera::Connect(FAURVideoConfiguration const& configuration)
 {
 	UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceAndroidCamera::Connect"));
 
 	NewFrameReady = false;
+	Resolution = configuration.Resolution;
 
 #if PLATFORM_ANDROID
 	if (Instance == nullptr)
@@ -129,13 +145,13 @@ bool UAURVideoSourceAndroidCamera::Connect()
 		return false;
 	}
 
-	InitJNI();
-	bConnected = FJavaWrapper::CallBooleanMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_CameraStartCapture, DesiredResolution.X, DesiredResolution.Y);
+	JNIEnv* java_env = InitJNI();
+	bConnected = FJavaWrapper::CallBooleanMethod(java_env, FJavaWrapper::GameActivityThis, ActivityMethod_CameraStartCapture, Resolution.X, Resolution.Y);
 
 	if (bConnected)
 	{
-		Resolution.X = FJavaWrapper::CallIntMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_GetFrameWidth);
-		Resolution.Y = FJavaWrapper::CallIntMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_GetFrameHeight);
+		Resolution.X = FJavaWrapper::CallIntMethod(java_env, FJavaWrapper::GameActivityThis, ActivityMethod_GetFrameWidth);
+		Resolution.Y = FJavaWrapper::CallIntMethod(java_env, FJavaWrapper::GameActivityThis, ActivityMethod_GetFrameHeight);
 		LoadCalibration();
 	}
 	else
@@ -150,6 +166,74 @@ bool UAURVideoSourceAndroidCamera::Connect()
 #endif
 }
 
+UAURVideoSourceAndroidCamera::UAURVideoSourceAndroidCamera()
+	//: DesiredResolution(640, 360)
+	: bConnected(false)
+	, NewFrameReady(false)
+{
+}
+
+FString UAURVideoSourceAndroidCamera::GetIdentifier() const
+{
+	return "Android";
+}
+
+FText UAURVideoSourceAndroidCamera::GetSourceName() const
+{
+	return NSLOCTEXT("AUR", "VideoSourceAndroidCamera", "Android");
+}
+
+void UAURVideoSourceAndroidCamera::DiscoverConfigurations()
+{
+	Configurations.Empty();
+
+	// Only register available sources if we are on the right platform
+#if PLATFORM_ANDROID
+
+	TArray<FIntPoint> resolutions;
+
+	{
+		JNIEnv* java_env = InitJNI();
+
+		// AUR_GetAvailableResolutions returns an int array where indices x*2 and x*2+1 represent x-th resolution
+		jintArray java_array_of_res = (jintArray)FJavaWrapper::CallObjectMethod(java_env, FJavaWrapper::GameActivityThis, ActivityMethod_GetAvailableResolutions);
+		if (!java_array_of_res)
+		{
+			UE_LOG(LogAUR, Error, TEXT("VideoSourceAndroidCamera::DiscoverConfigurations: received NULL array of resolutions"));
+			return;
+		}
+
+		const int32 java_array_len = java_env->GetArrayLength(java_array_of_res);
+		jint* java_array_elems = java_env->GetIntArrayElements(java_array_of_res, nullptr);
+
+		if (!java_array_elems)
+		{
+			UE_LOG(LogAUR, Error, TEXT("VideoSourceAndroidCamera::DiscoverConfigurations: received NULL array content"));
+			return;
+		}
+
+		const int32 res_count = java_array_len / 2;
+		for (int32 res_id = 0; res_id < res_count; res_id++)
+		{
+			resolutions.Emplace(java_array_elems[2 * res_id], java_array_elems[2 * res_id + 1]);
+		}
+
+		java_env->ReleaseIntArrayElements(java_array_of_res, java_array_elems, 0);
+	}
+
+	for (auto const& resolution : resolutions)
+	{
+		FAURVideoConfiguration cfg(this, ResolutionToString(resolution));
+		cfg.Resolution = resolution;
+
+		Configurations.Add(cfg);
+	}
+
+	GuessCalibration();
+#endif
+}
+
+
 bool UAURVideoSourceAndroidCamera::IsConnected() const
 {
 	return bConnected;
@@ -163,20 +247,18 @@ void UAURVideoSourceAndroidCamera::Disconnect()
 	if (Instance == this)
 	{
 		Instance = nullptr;
-		InitJNI();
-		FJavaWrapper::CallVoidMethod(JavaEnv, FJavaWrapper::GameActivityThis, ActivityMethod_CameraStopCapture);
+
+		JNIEnv* java_env = InitJNI();
+		
+		FJavaWrapper::CallVoidMethod(java_env, FJavaWrapper::GameActivityThis, ActivityMethod_CameraStopCapture);
 	}
 #else
 	UE_LOG(LogAUR, Warning, TEXT("UAURVideoSourceAndroidCamera not available on this platform"));
 #endif
 }
 
-cv::RNG random_gen2;
-
 bool UAURVideoSourceAndroidCamera::GetNextFrame(cv::Mat_<cv::Vec3b>& frame_out)
 {
-	UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceAndroidCamera::GetNewFrame"));
-	
 	{
 		// acquire lock on FrameYUV and NewFrameReady
 		std::unique_lock<std::mutex> lock(MutexNewFrame);
@@ -210,10 +292,13 @@ float UAURVideoSourceAndroidCamera::GetFrequency() const
 	return 1.0;
 }
 
-UAURVideoSourceAndroidCamera::UAURVideoSourceAndroidCamera()
-	: DesiredResolution(640, 360)
-	, bConnected(false)
-	, NewFrameReady(false)
+void UAURVideoSourceAndroidCamera::GuessCalibration()
 {
-}
+#if PLATFORM_ANDROID
+	JNIEnv* java_env = InitJNI();
 
+	float reported_fov = java_env->CallFloatMethod(FJavaWrapper::GameActivityThis, ActivityMethod_GetHorizontalFOV);
+
+	UE_LOG(LogAUR, Log, TEXT("AndroidCamera: reported FOV %f"), reported_fov);
+#endif
+}

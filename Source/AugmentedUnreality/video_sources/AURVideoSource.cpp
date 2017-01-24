@@ -19,6 +19,26 @@ limitations under the License.
 
 const FString UAURVideoSource::CalibrationDir = "AugmentedUnreality/Calibration";
 
+FAURVideoConfiguration::FAURVideoConfiguration()
+	: Identifier("INVALID")
+	, VideoSourceObject(nullptr)
+	, DisplayName(NSLOCTEXT("AUR", "InvalidVideoSourceConfiguration", "INVALID"))
+{}
+
+FAURVideoConfiguration::FAURVideoConfiguration(UAURVideoSource* parent, FString const& variant)
+	: Identifier(parent->GetIdentifier() + "_" + variant)
+	, VideoSourceObject(parent)
+{
+	if (variant.IsEmpty())
+	{
+		DisplayName = parent->GetSourceName();
+	}
+	else
+	{
+		DisplayName = FText::Format(NSLOCTEXT("AUR", "VideoConfigurationNameFmt", "{0}: {1}"), parent->GetSourceName(), FText::FromString(variant));
+	}
+}
+
 UAURVideoSource::UAURVideoSource()
 	: bCalibrated(false)
 {
@@ -26,10 +46,26 @@ UAURVideoSource::UAURVideoSource()
 
 FText UAURVideoSource::GetSourceName() const
 {
-	return SourceName;
+	return NSLOCTEXT("AUR", "VideoSourceBase", "INVALID");
+}
+
+FString UAURVideoSource::GetIdentifier() const
+{
+	return "INVALID";
+}
+
+void UAURVideoSource::DiscoverConfigurations()
+{
+	Configurations.Empty();
 }
 
 bool UAURVideoSource::Connect()
+{
+	UE_LOG(LogAUR, Error, TEXT("UAURVideoSource::Connect: Not implemented"))
+		return false;
+}
+
+bool UAURVideoSource::Connect(FAURVideoConfiguration const& configuration)
 {
 	UE_LOG(LogAUR, Error, TEXT("UAURVideoSource::Connect: Not implemented"))
 	return false;
@@ -103,6 +139,11 @@ void UAURVideoSource::SaveCalibration(FOpenCVCameraProperties const & NewCalibra
 	CameraProperties = NewCalibration;
 	bCalibrated = true;
 	CameraProperties.SaveToFile(GetCalibrationFileFullPath());
+}
+
+FString UAURVideoSource::ResolutionToString(FIntPoint const & resolution)
+{
+	return FString::Printf(TEXT("%dx%d"), resolution.X, resolution.Y);
 }
 
 FString UAURVideoSource::GetCalibrationFileFullPath() const

@@ -19,14 +19,20 @@ limitations under the License.
 
 UAURVideoSourceStream::UAURVideoSourceStream()
 	: ConnectionString("udpsrc port=5000 ! application/x-rtp, encoding-name=H264,payload=96 ! rtph264depay ! queue ! h264parse ! avdec_h264 ! videoconvert ! appsink")
+	, StreamName(NSLOCTEXT("AUR", "VideoSourceVideoStream", "Stream"))
 {
+}
+
+FString UAURVideoSourceStream::GetIdentifier() const
+{
+	return StreamName.ToString();
 }
 
 FText UAURVideoSourceStream::GetSourceName() const
 {
-	if(!SourceName.IsEmpty())
+	if (!StreamName.IsEmpty())
 	{
-		return SourceName;
+		return StreamName;
 	}
 	else
 	{
@@ -34,36 +40,48 @@ FText UAURVideoSourceStream::GetSourceName() const
 		{
 			return FText::FromString("GStreamer");
 		}
-		else 
+		else
 		{
 			return FText::FromString("Stream " + FPaths::GetCleanFilename(StreamFile));
 		}
 	}
 }
 
-bool UAURVideoSourceStream::Connect()
+void UAURVideoSourceStream::DiscoverConfigurations()
+{
+	Configurations.Empty();
+
+	FAURVideoConfiguration cfg(this, "");
+
+	if (!ConnectionString.IsEmpty())
+	{
+		cfg.FilePath = ConnectionString;
+		Configurations.Add(cfg);
+	}
+	else
+	{
+		const FString full_path = FPaths::GameDir() / StreamFile;
+
+		if (FPaths::FileExists(full_path))
+		{
+			cfg.FilePath = full_path;
+			Configurations.Add(cfg);
+		}
+		else
+		{
+			UE_LOG(LogAUR, Warning, TEXT("UAURVideoSourceStream:: File %s does not exist"), *full_path)
+		}
+	}	
+}
+
+bool UAURVideoSourceStream::Connect(FAURVideoConfiguration const& configuration)
 {
 	bool success = false;
 #if !PLATFORM_ANDROID
 	try
 	{
 #endif
-		if (!ConnectionString.IsEmpty())
-		{
-			success = OpenVideoCapture(ConnectionString);
-		}
-		else
-		{
-			FString full_path = FPaths::GameDir() / StreamFile;
-
-			if (!FPaths::FileExists(full_path))
-			{
-				UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceStream::Connect: File %s does not exist"), *full_path)
-					return false;
-			}
-
-			success = OpenVideoCapture(full_path);
-		}
+		success = OpenVideoCapture(configuration.FilePath);
 
 		if (success)
 		{

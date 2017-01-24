@@ -37,9 +37,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
 	FString StreamFile;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
+	FText StreamName;
+
 	UAURVideoSourceStream();
 
+	virtual FString GetIdentifier() const override;
 	virtual FText GetSourceName() const override;
-	virtual bool Connect() override;
+	virtual void DiscoverConfigurations() override;
+
+	virtual bool Connect(FAURVideoConfiguration const& configuration) override;
 };
 	

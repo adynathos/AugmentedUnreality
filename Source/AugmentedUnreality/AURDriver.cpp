@@ -16,12 +16,10 @@ limitations under the License.
 
 #include "AugmentedUnreality.h"
 #include "AURDriver.h"
-//#include "AURSmoothingFilter.h"
 
 UAURDriver* UAURDriver::CurrentDriver = nullptr;
 UAURDriver::FAURDriverInstanceChange UAURDriver::OnDriverInstanceChange;
 TArray<UAURDriver::BoardRegistration> UAURDriver::RegisteredBoards;
-
 
 UAURDriver::UAURDriver()
 	: bPerformOrientationTracking(true)
@@ -35,10 +33,26 @@ UAURDriver::UAURDriver()
 void UAURDriver::Initialize(AActor* parent_actor)
 {
 	SetWorld(parent_actor->GetWorld());
-
 	RegisterDriver(this);
-
 	bActive = true;
+
+	// Create video sources
+	for (auto const& vid_src_class : AvailableVideoSources)
+	{
+		if (vid_src_class)
+		{
+			UAURVideoSource* vid_src = NewObject<UAURVideoSource>(this, vid_src_class);
+			VideoSourceInstances.Add(vid_src);
+
+			// Get the list of configurations offered by this source
+			vid_src->DiscoverConfigurations();
+			VideoConfigurations.Append(vid_src->Configurations);
+		}
+		else
+		{
+			UE_LOG(LogAUR, Error, TEXT("UAURDriver::Initialize Null entry in AvailableVideoSources"));
+		}
+	}
 }
 
 void UAURDriver::Tick()
@@ -125,9 +139,42 @@ void UAURDriver::Shutdown()
 	UnregisterDriver(this);
 }
 
-bool UAURDriver::OpenDefaultVideoSource()
+void UAURDriver::OpenVideoSource(FAURVideoConfiguration const& VideoConfiguration)
 {
-	UE_LOG(LogAUR, Error, TEXT("UAURDriver::OpenDefaultVideoSource: Not implemented"))
+	// Save the index to open same source on next run
+	DefaultVideoSourceName = VideoConfiguration.Identifier;
+	SaveConfig();
+}
+
+bool UAURDriver::OpenVideoSourceByName(FString const& VideoConfigurationName)
+{
+	for (auto const& cfg : VideoConfigurations)
+	{
+		if (cfg.Identifier == VideoConfigurationName)
+		{
+			OpenVideoSource(cfg);
+			return true;
+		}
+	}
+
+	UE_LOG(LogAUR, Warning, TEXT("UAURDriver::OpenVideoSourceByName: Missing configuration '%s'"), *VideoConfigurationName);
+	return false;
+}
+
+bool UAURDriver::OpenVideoSourceDefault()
+{
+	// try opening the last used video source
+	if (OpenVideoSourceByName(DefaultVideoSourceName))
+	{
+		return true;
+	}
+	// if its the first time, open the first on the list
+	else if(VideoConfigurations.Num() > 0)
+	{
+		OpenVideoSource(VideoConfigurations[0]);
+		return true;
+	}
+
 	return false;
 }
 

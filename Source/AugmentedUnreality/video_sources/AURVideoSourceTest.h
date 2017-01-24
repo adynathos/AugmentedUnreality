@@ -35,7 +35,11 @@ public:
 
 	UAURVideoSourceTest();
 
-	virtual bool Connect() override;
+	virtual FString GetIdentifier() const override;
+	virtual FText GetSourceName() const override;
+	virtual void DiscoverConfigurations() override;
+
+	virtual bool Connect(FAURVideoConfiguration const& configuration) override;
 	virtual bool IsConnected() const override;
 	virtual void Disconnect() override;
 	virtual bool GetNextFrame(cv::Mat_<cv::Vec3b>& frame) override;

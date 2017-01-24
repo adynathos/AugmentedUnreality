@@ -16,27 +16,17 @@ limitations under the License.
 #pragma once
 
 #include "AURVideoSource.h"
-
-#include <mutex>
-#include <condition_variable>
-#if PLATFORM_ANDROID
-	#include "../../../Launch/Public/Android/AndroidJNI.h"
-#endif
-
-#include "AURVideoSourceAndroidCamera.generated.h"
+#include "AURVideoSourceEmpty.generated.h"
 
 /**
- * VideoSource using a cv::VideoCapture.
+ * Test video source, shows frames filled with random colors;
  */
 UCLASS(Blueprintable, BlueprintType)
-class UAURVideoSourceAndroidCamera : public UAURVideoSource
+class UAURVideoSourceEmpty : public UAURVideoSource
 {
 	GENERATED_BODY()
-	
-public:
-	//UPROPERTY(EditAnywhere, Category = AugmentedReality)
-	//FIntPoint DesiredResolution;
 
+public:
 	virtual FString GetIdentifier() const override;
 	virtual FText GetSourceName() const override;
 	virtual void DiscoverConfigurations() override;
@@ -44,33 +34,8 @@ public:
 	virtual bool Connect(FAURVideoConfiguration const& configuration) override;
 	virtual bool IsConnected() const override;
 	virtual void Disconnect() override;
-	virtual bool GetNextFrame(cv::Mat_<cv::Vec3b>& frame_out) override;
+	virtual bool GetNextFrame(cv::Mat_<cv::Vec3b>& frame) override;
 	virtual FIntPoint GetResolution() const override;
 	virtual float GetFrequency() const override;
-
-	UAURVideoSourceAndroidCamera();
-
-#if PLATFORM_ANDROID
-	void OnFrameCaptured(JNIEnv* LocalJNIEnv, jobject LocalThiz, jbyteArray data);
-#endif
-
-private:
-	bool bConnected;
-	FIntPoint Resolution;
-	cv::Mat_<uint8_t> FrameYUV;
-
-	bool NewFrameReady;
-	std::mutex MutexNewFrame;
-	std::condition_variable ConditionNewFrame;
-
-	void GuessCalibration();
-
-#if PLATFORM_ANDROID
-	static void AndroidMessage(FString msg);
-
-	// Ensures methods are loaded and returns a fresh JNI pts.
-	// For some reason, keeping the old JNI for longer causes a crash.
-	static JNIEnv* InitJNI();
-#endif
 };
 	

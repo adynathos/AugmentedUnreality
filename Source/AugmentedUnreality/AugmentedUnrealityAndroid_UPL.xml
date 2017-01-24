@@ -86,16 +86,68 @@ public boolean AUR_IsCameraConnected()
 	return AUR_Camera != null;
 }
 
+public int[] AUR_GetAvailableResolutions()
+{
+	Log.debug("LogAUR:Android Get Available Resolutions");
+
+	if(AUR_Camera == null)
+	{
+		try {
+			AUR_Camera = Camera.open();
+		} catch (RuntimeException exc) {
+			Log.error("LogAUR: Exception in Camera.open: " + exc.getMessage());
+			return new int[0];
+		} 
+	}
+
+	Parameters camera_params = AUR_Camera.getParameters();
+
+	List &lt; Camera.Size &gt; sizes = camera_params.getSupportedVideoSizes(); 
+	//a list of Size object if camera has separate preview and video output; otherwise, null is returned.
+	if(sizes == null)
+	{
+		sizes = camera_params.getSupportedPreviewSizes();
+	}
+
+	Log.debug("LogAUR:Android resolution array " + sizes.size());
+
+
+	int[] out_size_array = new int[2*sizes.size()];
+	for(int idx=0; idx &lt; sizes.size(); idx++)
+	{
+		Camera.Size s = sizes.get(idx);
+		out_size_array[idx*2] = s.width;
+		out_size_array[idx*2+1] = s.height;
+	}
+
+	return out_size_array;
+}
+
+public float AUR_GetHorizontalFOV()
+{
+	if(AUR_Camera != null)
+	{
+		return AUR_Camera.getParameters().getHorizontalViewAngle();
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 public boolean AUR_CameraStartCapture(int suggested_width, int suggested_height)
 {
 	Log.debug("AUR Camera Start");
 
-	try {
-		AUR_Camera = Camera.open();
-	} catch (RuntimeException exc) {
-		Log.error("LogAUR: Exception in Camera.open: " + exc.getMessage());
-		return false;
-	} 
+	if(AUR_Camera == null)
+	{
+		try {
+			AUR_Camera = Camera.open();
+		} catch (RuntimeException exc) {
+			Log.error("LogAUR: Exception in Camera.open: " + exc.getMessage());
+			return false;
+		} 
+	}
 	
 	Parameters camera_params = AUR_Camera.getParameters();
 
@@ -139,6 +191,7 @@ public boolean AUR_CameraStartCapture(int suggested_width, int suggested_height)
 	// TODO setErrorCallback
 
 	AUR_Camera.startPreview();
+	AUR_ShouldReconnect = true;
 
 	return true;
 }
@@ -168,7 +221,6 @@ public native void AURReceiveFrame(byte[] data);
 		<insert>
 			if(AUR_Camera != null)
 			{
-				AUR_ShouldReconnect = true;
 				AUR_ReleaseCamera();
 			}
 		</insert>

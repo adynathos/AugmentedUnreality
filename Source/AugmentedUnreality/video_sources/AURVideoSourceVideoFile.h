@@ -31,9 +31,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
 	FString VideoFile;
 
+	virtual FString GetIdentifier() const override;
 	virtual FText GetSourceName() const override;
-	virtual bool Connect() override;
+	virtual void DiscoverConfigurations() override; 
+	
+	virtual bool Connect(FAURVideoConfiguration const& configuration) override;
 	virtual bool GetNextFrame(cv::Mat_<cv::Vec3b>& frame) override;
+
 
 protected:
 	// Time between consecutive frames

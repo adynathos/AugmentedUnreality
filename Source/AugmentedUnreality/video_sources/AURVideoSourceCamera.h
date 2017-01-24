@@ -37,6 +37,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
 	FIntPoint DesiredResolution;
 
+	/*
+		Resolutions to be selectable in the program.
+		OpenCV does not give us a way to find camera resolutions, so we need to guess.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
+	TArray<FIntPoint> OfferedResolutions;
+
 	// Tell the camera whether autofocus should be used
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = VideoSource)
 	bool Autofocus;
@@ -44,6 +51,8 @@ public:
 	UAURVideoSourceCamera();
 
 	virtual FText GetSourceName() const override;
-	virtual bool Connect() override;
+	virtual FString GetIdentifier() const override;
+	virtual void DiscoverConfigurations() override;
+	virtual bool Connect(FAURVideoConfiguration const& configuration) override;
 };
 	

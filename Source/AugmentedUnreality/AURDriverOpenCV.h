@@ -21,7 +21,6 @@ limitations under the License.
 #include "AUROpenCV.h"
 #include "AUROpenCVCalibration.h"
 #include "tracking/AURArucoTracker.h"
-#include "video_sources/AURVideoSource.h"
 
 #include "AURDriverOpenCV.generated.h"
 
@@ -38,35 +37,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	FArucoTrackerSettings TrackerSettings;
 
-	// Automatically creates those video sources on Initialize
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AugmentedReality)
-	TArray< TSubclassOf<UAURVideoSource> > DefaultVideoSources;
-
-	/* 
-	Index of the last used video source, saved in config so that
-	it is opened on next start 
-	*/
-	UPROPERTY(Config)
-	int32 DefaultVideoSourceIndex;
-
-	// Convenience list of existing instances of video sources
-	// Sources from outside this list can be used as well for SetVideoSource
-	UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
-	TArray<UAURVideoSource*> AvailableVideoSources;
-
 	// Get the currently active video source
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	UAURVideoSource* GetVideoSource();
-
-	// Switch to a new video source object, nullptr to disable video
-	// This does not intantly change the VideoSource variable - wait for the other
-	// thread to close the previous one and open new one.
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	void SetVideoSource(UAURVideoSource* NewVideoSource);
-
-	// Switch to a new video source from AvailableVideoSources list
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	void SetVideoSourceByIndex(const int32 index);
 
 	//UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	//void SetTrackingBoardDefinition(AAURMarkerBoardDefinitionBase* board_definition);
@@ -76,7 +49,7 @@ public:
 	virtual void Initialize(AActor* parent_actor) override;
 	virtual void Tick() override;
 
-	virtual bool OpenDefaultVideoSource() override;
+	virtual void OpenVideoSource(FAURVideoConfiguration const& VideoConfiguration) override;
 	virtual bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false) override;
 	virtual void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor) override;
 
@@ -102,6 +75,9 @@ protected:
 	// Switch to this video source on next iteration
 	UPROPERTY(Transient)
 	UAURVideoSource* NextVideoSource;
+
+	bool SwitchToNextVideoSource;
+	FAURVideoConfiguration NextVideoConfiguration;
 
 	// Camera calibration
 	FCriticalSection CalibrationLock;

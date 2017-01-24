@@ -17,7 +17,7 @@ limitations under the License.
 #pragma once
 
 #include "Object.h"
-//class UAURSmoothingFilter;
+#include "video_sources/AURVideoSource.h"
 #include "AURDriver.generated.h"
 
 UENUM(BlueprintType)
@@ -73,7 +73,7 @@ struct FAURVideoFrame
 /**
  * Represents a way of connecting to a camera.
  */
-UCLASS(Blueprintable, BlueprintType, Abstract)
+UCLASS(Blueprintable, BlueprintType, Abstract, Config = Game)
 class UAURDriver : public UObject
 {
 	GENERATED_BODY()
@@ -96,6 +96,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	uint32 bPerformOrientationTracking : 1;
 
+	// Automatically creates those video sources on Initialize
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AugmentedReality)
+	TArray< TSubclassOf<UAURVideoSource> > AvailableVideoSources;
+
+	// Automatically creates those video sources on Initialize
+	UPROPERTY(Transient, BlueprintReadOnly, Category = AugmentedReality)
+	TArray<FAURVideoConfiguration> VideoConfigurations;
+
+	// Switch to a new video source configuration
+	// This does not intantly change the VideoSource variable - wait for the other
+	// thread to close the previous one and open new one.
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	virtual void OpenVideoSource(FAURVideoConfiguration const& VideoConfiguration);
+
+	// Switch to a new video source configuration found by identifier string
+	// Returns true if a video configuration with that name was found.
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	bool OpenVideoSourceByName(FString const& VideoConfigurationName);
+
+	// Switch to the last used video source configuration
+	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
+	bool OpenVideoSourceDefault();
+	
 	/** Called when a new viewpoint (camera) position is measured by the tracker */
 	//UPROPERTY(BlueprintAssignable)
 	//FAURDriverViewpointTransformUpdate OnViewpointTransformUpdate;
@@ -129,9 +152,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual void Shutdown();
-
-	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	virtual bool OpenDefaultVideoSource();
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	UTexture2D* GetOutputTexture() const
@@ -264,6 +284,16 @@ protected:
 	// How much diagnostic information should be displayed. High value may reduce performance.
 	UPROPERTY(EditAnywhere, Category = AugmentedReality)
 	EAURDiagnosticInfoLevel DiagnosticLevel;
+
+	// Automatically creates those video sources on Initialize
+	UPROPERTY(Transient)
+	TArray< UAURVideoSource* > VideoSourceInstances;
+
+	/*
+	Name of the last used video source, saved in config so that it is opened on next start
+	*/
+	UPROPERTY(Config)
+	FString DefaultVideoSourceName;
 
 	// Is the driver turned on
 	uint32 bActive : 1;

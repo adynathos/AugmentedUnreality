@@ -20,29 +20,43 @@ limitations under the License.
 const float UAURVideoSourceVideoFile::MIN_FPS = 0.1;
 const float UAURVideoSourceVideoFile::MAX_FPS = 60.0;
 
+FString UAURVideoSourceVideoFile::GetIdentifier() const
+{
+	return "VideoFile";
+}
+
 FText UAURVideoSourceVideoFile::GetSourceName() const
 {
-	if(!SourceName.IsEmpty())
+	return NSLOCTEXT("AUR", "VideoSourceVideoFile", "File");
+}
+
+void UAURVideoSourceVideoFile::DiscoverConfigurations()
+{
+	Configurations.Empty();
+
+	const FString full_path = FPaths::GameDir() / VideoFile;
+
+	if (FPaths::FileExists(full_path))
 	{
-		return SourceName;
+		FAURVideoConfiguration cfg(this, FPaths::GetCleanFilename(full_path));
+		cfg.FilePath = full_path;
+		Configurations.Add(cfg);
 	}
 	else
 	{
-		return FText::FromString("File " + FPaths::GetCleanFilename(VideoFile));
+		UE_LOG(LogAUR, Warning, TEXT("UAURVideoSourceVideoFile: File %s does not exist"), *full_path)
 	}
 }
 
-bool UAURVideoSourceVideoFile::Connect()
+bool UAURVideoSourceVideoFile::Connect(FAURVideoConfiguration const& configuration)
 {
-	FString full_path = FPaths::GameDir() / VideoFile;
-
-	if (!FPaths::FileExists(full_path))
+	if (!FPaths::FileExists(configuration.FilePath))
 	{
-		UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceVideoFile::Connect: File %s does not exist"), *full_path)
+		UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceVideoFile::Connect: File %s does not exist"), *configuration.FilePath)
 		return false;
 	}
 
-	bool success = OpenVideoCapture(full_path);
+	bool success = OpenVideoCapture(configuration.FilePath);
 
 	Period = 1.0;
 	if (success)
@@ -54,7 +68,7 @@ bool UAURVideoSourceVideoFile::Connect()
 		FrameCount = FPlatformMath::RoundToInt(Capture.get(cv::CAP_PROP_FRAME_COUNT));
 
 		UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceVideoFile::Connect: Opened video file %s, reported: FPS = %lf, frames = %d"),
-			*full_path, fps, FrameCount)
+			*configuration.FilePath, fps, FrameCount)
 
 		fps = FMath::Clamp(fps, MIN_FPS, MAX_FPS);
 		Period = 1.0 / fps;		
@@ -63,7 +77,7 @@ bool UAURVideoSourceVideoFile::Connect()
 	}
 	else
 	{
-		UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceVideoFile::Connect: Failed to open video file %s"), *full_path)
+		UE_LOG(LogAUR, Error, TEXT("UAURVideoSourceVideoFile::Connect: Failed to open video file %s"), *configuration.FilePath)
 	}
 
 	return success;

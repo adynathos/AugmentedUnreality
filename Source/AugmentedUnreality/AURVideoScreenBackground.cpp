@@ -1,5 +1,5 @@
 /*
-Copyright 2016 Krzysztof Lis
+Copyright 2016-2017 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ void UAURVideoScreenBackground::SetSizeForFOV(float FOV_Horizontal)
 	// With the new texture, the XY placement of texture is swapped
 	this->SetRelativeScale3D(FVector(height / 100.0, width / 100.0, 1));
 
-	FString msg = "UAURVideoScreenBackground::InitScreenSize(" + FString::SanitizeFloat(FOV_Horizontal) + ") " 
+	const FString msg = "UAURVideoScreenBackground::SetSizeForFOV(fov_horizontal=" + FString::SanitizeFloat(FOV_Horizontal) + ") -> scale = " 
 		+ FString::SanitizeFloat(this->RelativeScale3D.X) + " x " + FString::SanitizeFloat(this->RelativeScale3D.Y);
 	UE_LOG(LogAUR, Log, TEXT("%s"), *msg)
 }

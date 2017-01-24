@@ -24,7 +24,26 @@ UAURVideoSourceTest::UAURVideoSourceTest()
 
 }
 
-bool UAURVideoSourceTest::Connect()
+FString UAURVideoSourceTest::GetIdentifier() const
+{
+	return "Test";
+}
+
+FText UAURVideoSourceTest::GetSourceName() const
+{
+	return NSLOCTEXT("AUR", "VideoSourceTest", "Test Video");
+}
+
+void UAURVideoSourceTest::DiscoverConfigurations()
+{
+	Configurations.Empty();
+
+	FAURVideoConfiguration cfg(this, "");
+	cfg.Resolution = DesiredResolution;
+	Configurations.Add(cfg);
+}
+
+bool UAURVideoSourceTest::Connect(FAURVideoConfiguration const& configuration)
 {
 	UE_LOG(LogAUR, Log, TEXT("UAURVideoSourceTest::Connect()"));
 
