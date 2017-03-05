@@ -20,8 +20,8 @@ namespace cv {
 namespace aur {
 
 static LogCallback logCallbackFunction;
-	
-void log(LogLevel level, std::string message)
+
+void log(LogLevel const level, std::string const& message)
 {
 	if(logCallbackFunction)
 	{

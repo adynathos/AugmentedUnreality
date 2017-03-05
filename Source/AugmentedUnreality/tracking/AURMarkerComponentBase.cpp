@@ -64,12 +64,13 @@ UAURMarkerComponentBase::UAURMarkerComponentBase()
 	MarkerText->SetComponentTickEnabled(false);
 	MarkerText->PrimaryComponentTick.bStartWithTickEnabled = false;
 	MarkerText->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	
-	// Text: set initial size and text 
+
+	// Text: set initial size and text
 	SetBoardSize(BoardSizeCm);
 	SetId(Id);
 }
 
+/*
 FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
 {
 	//	UE_LOG(LogAUR, Log, TEXT("Marker %d (%s)"), Id, *this->GetName());
@@ -109,8 +110,9 @@ FMarkerDefinitionData UAURMarkerComponentBase::GetDefinition() const
 
 	return def_data;
 }
+*/
 
-void UAURMarkerComponentBase::AppendToBoardDefinition(cv::aur::ArucoBoardDefinition& board_def)
+void UAURMarkerComponentBase::AppendToBoardDefinition(cv::Ptr<cv::aur::FiducialPatternArUco::Builder> & pattern_builder)
 {
 	FTransform transform_this_to_actor = this->GetRelativeTransform();
 
@@ -126,25 +128,29 @@ void UAURMarkerComponentBase::AppendToBoardDefinition(cv::aur::ArucoBoardDefinit
 		parent_comp = parent_comp->GetAttachParent();
 	}
 
-	// Transform the corners
-	FMarkerDefinitionData def_data(Id);
-
 	// Don't multiply by this marker's size becuase the transform's scale will do it.
 	// But calculate what part of the board is taken by the margin
 	const float pattern_size_relative = (BoardSizeCm - 2 * MarginCm) * MARKER_DEFAULT_SIZE/BoardSizeCm;
 
 	//UE_LOG(LogAUR, Log, TEXT("Marker %d"), Id);
 
-	std::vector<cv::Point3f> raw_corners(4);
+	//std::vector<cv::Point3f> raw_corners(4);
+	cv::Mat_<cv::Vec3f> corners;
+	corners.create(4, 1);
 
 	for (int idx = 0; idx < 4; idx++)
 	{
+		/*
 		raw_corners[idx] = FAUROpenCV::ConvertUnrealVectorToOpenCvPoint(
+			transform_this_to_actor.TransformPosition(LOCAL_CORNERS[idx] * pattern_size_relative)
+		);
+		*/
+		corners(idx, 0) = FAUROpenCV::ConvertUnrealVectorToOpenCvPoint(
 			transform_this_to_actor.TransformPosition(LOCAL_CORNERS[idx] * pattern_size_relative)
 		);
 	}
 
-	board_def.AddMarker(Id, raw_corners);
+	pattern_builder->marker(Id, corners);
 }
 
 void UAURMarkerComponentBase::SetId(int32 new_id)

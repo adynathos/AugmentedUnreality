@@ -16,13 +16,13 @@ limitations under the License.
 #include "AugmentedUnreality.h"
 #include "AURTrackingComponent.h"
 #include "AURDriver.h"
-#include "AURMarkerBoardDefinitionBase.h"
+#include "AURFiducialPattern.h"
 
 void UAURTrackingComponent::BeginPlay()
 {
-	UE_LOG(LogAUR, Warning, TEXT("TRackignCOmp:BEGIN"))
+	UE_LOG(LogAUR, Log, TEXT("AURTrackingComponent::BeginPlay"))
 
-	AAURMarkerBoardDefinitionBase* board = Cast<AAURMarkerBoardDefinitionBase>(GetChildActor());
+	AAURFiducialPattern* board = Cast<AAURFiducialPattern>(GetChildActor());
 
 	if (!board)
 	{

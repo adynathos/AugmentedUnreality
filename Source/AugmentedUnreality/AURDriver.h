@@ -16,9 +16,10 @@ limitations under the License.
 
 #pragma once
 
-#include "Object.h"
 #include "video_sources/AURVideoSource.h"
 #include "AURDriver.generated.h"
+
+class AAURFiducialPattern;
 
 UENUM(BlueprintType)
 enum class EAURDiagnosticInfoLevel : uint8
@@ -118,7 +119,7 @@ public:
 	// Switch to the last used video source configuration
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	bool OpenVideoSourceDefault();
-	
+
 	/** Called when a new viewpoint (camera) position is measured by the tracker */
 	//UPROPERTY(BlueprintAssignable)
 	//FAURDriverViewpointTransformUpdate OnViewpointTransformUpdate;
@@ -204,7 +205,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	virtual FTransform GetCurrentViewportTransform() const;
-	
+
 	/**
 	 * Returns a pointer to FAURVideoFrame containing the current camera frame.
 	 * Do not delete the pointer.
@@ -237,9 +238,9 @@ public:
 	virtual FString GetDiagnosticText() const;
 
 	// Start tracking a board - called by the static board list mechanism (RegisterBoardForTracking)
-	virtual bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false);
+	virtual bool RegisterBoard(AAURFiducialPattern* board_actor, bool use_as_viewpoint_origin = false);
 
-	virtual void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor);
+	virtual void UnregisterBoard(AAURFiducialPattern* board_actor);
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
 	static UAURDriver* GetCurrentDriver();
@@ -256,10 +257,10 @@ public:
 		it will read the list and track the board.
 	**/
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	static void RegisterBoardForTracking(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false);
+	static void RegisterBoardForTracking(AAURFiducialPattern* board_actor, bool use_as_viewpoint_origin = false);
 
 	UFUNCTION(BlueprintCallable, Category = AugmentedReality)
-	static void UnregisterBoardForTracking(AAURMarkerBoardDefinitionBase* board_actor);
+	static void UnregisterBoardForTracking(AAURFiducialPattern* board_actor);
 
 	/*
 	 * Add a callback to be notified about a new AURDriver instance being used
@@ -334,10 +335,10 @@ private:
 	// Global registry of boards to track
 	struct BoardRegistration
 	{
-		AAURMarkerBoardDefinitionBase* Board;
+		AAURFiducialPattern* Board;
 		bool ViewpointOrigin;
 
-		BoardRegistration(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false)
+		BoardRegistration(AAURFiducialPattern* board_actor, bool use_as_viewpoint_origin = false)
 			: Board(board_actor)
 			, ViewpointOrigin(use_as_viewpoint_origin)
 		{}

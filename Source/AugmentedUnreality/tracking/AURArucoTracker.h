@@ -18,7 +18,7 @@ limitations under the License.
 
 #include "AUROpenCVCalibration.h"
 #include "AUROpenCV.h"
-#include "AURMarkerBoardDefinitionBase.h"
+#include "AURFiducialPattern.h"
 #include "AURDriver.h"
 
 #include "AURArucoTracker.generated.h"
@@ -58,15 +58,15 @@ public:
 		// Tracked boards are identified by the lowest ID of their markers (marker IDs are unique)
 		int32 Id;
 
-		AAURMarkerBoardDefinitionBase* BoardActor;
+		AAURFiducialPattern* BoardActor;
 
-		cv::aur::TrackerAruco::TrackedPose* PoseHandle;
+		cv::aur::TrackedPose* PoseHandle;
 
 		FTransform CurrentTransform;
 		//
 		bool UseAsViewpointOrigin;
 
-		TrackedBoardInfo(AAURMarkerBoardDefinitionBase* board_actor, cv::aur::TrackerAruco::TrackedPose* pose)
+		TrackedBoardInfo(AAURFiducialPattern* board_actor, cv::aur::TrackedPose* pose)
 			: Id(pose->getPoseId())
 			, BoardActor(board_actor)
 			, PoseHandle(pose)
@@ -75,7 +75,7 @@ public:
 		{
 		}
 	};
-	
+
 	FAURArucoTracker();
 
 	FArucoTrackerSettings const& GetSettings()
@@ -100,10 +100,10 @@ public:
 	bool DetectMarkers(cv::Mat_<cv::Vec3b>& image, bool draw_found_markers = false);
 
 	// Start tracking a board
-	bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false);
+	bool RegisterBoard(AAURFiducialPattern* board_actor, bool use_as_viewpoint_origin = false);
 
 	// Stop tracking a board
-	void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor);
+	void UnregisterBoard(AAURFiducialPattern* board_actor);
 
 	/*
 		Tell the board actors about newly detected positions.
@@ -117,7 +117,7 @@ public:
 private:
 	FArucoTrackerSettings Settings;
 
-	cv::aur::TrackerAruco TrackerModule;
+	cv::aur::FiducialTracker TrackerModule;
 
 	bool BoardVisibility;
 
@@ -132,7 +132,7 @@ private:
 
 	FTransform ViewpointTransform;
 	FTransform ViewpointTransformCamera;
-	
+
 	FOpenCVCameraProperties CameraProperties;
 
 	void PublishTransformUpdate(TrackedBoardInfo* tracking_info);

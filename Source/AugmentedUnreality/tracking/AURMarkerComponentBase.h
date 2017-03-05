@@ -18,6 +18,7 @@ limitations under the License.
 #include "AUROpenCV.h"
 #include "AURMarkerComponentBase.generated.h"
 
+/*
 struct FMarkerDefinitionData {
 	int32 MarkerId;
 
@@ -31,7 +32,7 @@ struct FMarkerDefinitionData {
 			Corners[idx].Set(0, 0, 0);
 		}
 	}
-};
+};*/
 
 /**
  * Actor blueprint representing a spatial configuration
@@ -76,8 +77,8 @@ public:
 
 	UAURMarkerComponentBase();
 
-	FMarkerDefinitionData GetDefinition() const;
-	void AppendToBoardDefinition(cv::aur::ArucoBoardDefinition& board_def);
+	//FMarkerDefinitionData GetDefinition() const;
+	void AppendToBoardDefinition(cv::Ptr<cv::aur::FiducialPatternArUco::Builder> & pattern_builder);
 
 	/* UActorComponent */
 #if WITH_EDITOR

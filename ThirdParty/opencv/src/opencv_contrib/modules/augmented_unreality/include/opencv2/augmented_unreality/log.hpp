@@ -18,7 +18,7 @@ limitations under the License.
 /*
 	In Unreal applications, normal stdout/stderr does not print in console,
 	but instead UE_LOG is used to transmit log messages.
-	
+
 	Since we cannot use UE_LOG in this module, we will ask for a logging callback.
 */
 #include <opencv2/core.hpp> // for CV_EXPORTS
@@ -41,7 +41,7 @@ enum class DiagnosticLevel {
 
 using LogCallback = std::function<void(LogLevel, std::string)>;
 
-void log(LogLevel level, std::string message);
+void log(LogLevel const level, std::string const& message);
 CV_EXPORTS void setLogCallback(LogCallback callback);
 
 } // namepsace

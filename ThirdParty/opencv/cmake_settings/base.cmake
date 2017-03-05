@@ -18,6 +18,11 @@ set(BUILD_opencv_videoio "TRUE" CACHE BOOL "")
 set(WITH_CUDA "FALSE" CACHE BOOL "")
 set(WITH_VTK "FALSE" CACHE BOOL "")
 set(WITH_TIFF "FALSE" CACHE BOOL "")
+set(WITH_GTK "FALSE" CACHE BOOL "")
+
+# or which will not be available on target system
+set(WITH_OPENCL "FALSE" CACHE BOOL "")
+set(WITH_LAPACK "FALSE" CACHE BOOL "")
 
 # modules we don't need
 set(BUILD_OPENEXR "FALSE" CACHE BOOL "")

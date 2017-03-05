@@ -33,7 +33,7 @@ class UAURDriverOpenCV : public UAURDriverThreaded
 	GENERATED_BODY()
 
 public:
-	// ONLY SET THESE PROPERTIES BEFORE CALLING Initialize()	 
+	// ONLY SET THESE PROPERTIES BEFORE CALLING Initialize()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)
 	FArucoTrackerSettings TrackerSettings;
 
@@ -50,12 +50,12 @@ public:
 	virtual void Tick() override;
 
 	virtual void OpenVideoSource(FAURVideoConfiguration const& VideoConfiguration) override;
-	virtual bool RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin = false) override;
-	virtual void UnregisterBoard(AAURMarkerBoardDefinitionBase* board_actor) override;
+	virtual bool RegisterBoard(AAURFiducialPattern* board_actor, bool use_as_viewpoint_origin = false) override;
+	virtual void UnregisterBoard(AAURFiducialPattern* board_actor) override;
 
 	virtual FVector2D GetFieldOfView() const override;
 	virtual FTransform GetCurrentViewportTransform() const override;
-	
+
 	virtual bool IsConnected() const override;
 	virtual bool IsCalibrated() const override;
 	virtual float GetCalibrationProgress() const override;

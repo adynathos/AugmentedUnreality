@@ -2,3 +2,5 @@
 Build
 Intermediate
 Binaries
+
+*.kdev4

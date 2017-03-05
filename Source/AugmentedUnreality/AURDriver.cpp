@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "AugmentedUnreality.h"
 #include "AURDriver.h"
+#include "tracking/AURFiducialPattern.h"
 
 UAURDriver* UAURDriver::CurrentDriver = nullptr;
 UAURDriver::FAURDriverInstanceChange UAURDriver::OnDriverInstanceChange;
@@ -191,13 +192,13 @@ bool UAURDriver::OpenVideoSourceDefault()
 	return false;
 }
 
-bool UAURDriver::RegisterBoard(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
+bool UAURDriver::RegisterBoard(AAURFiducialPattern * board_actor, bool use_as_viewpoint_origin)
 {
 	UE_LOG(LogAUR, Error, TEXT("UAURDriver::RegisterBoard: Not implemented"))
 	return false;
 }
 
-void UAURDriver::UnregisterBoard(AAURMarkerBoardDefinitionBase * board_actor)
+void UAURDriver::UnregisterBoard(AAURFiducialPattern * board_actor)
 {
 	UE_LOG(LogAUR, Error, TEXT("UAURDriver::UnregisterBoard: Not implemented"))
 }
@@ -315,7 +316,7 @@ UAURDriver * UAURDriver::GetCurrentDriver()
 	return CurrentDriver;
 }
 
-void UAURDriver::RegisterBoardForTracking(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
+void UAURDriver::RegisterBoardForTracking(AAURFiducialPattern * board_actor, bool use_as_viewpoint_origin)
 {
 	RegisteredBoards.AddUnique(BoardRegistration(board_actor, use_as_viewpoint_origin));
 
@@ -325,7 +326,7 @@ void UAURDriver::RegisterBoardForTracking(AAURMarkerBoardDefinitionBase * board_
 	}
 }
 
-void UAURDriver::UnregisterBoardForTracking(AAURMarkerBoardDefinitionBase * board_actor)
+void UAURDriver::UnregisterBoardForTracking(AAURFiducialPattern * board_actor)
 {
 	RegisteredBoards.RemoveAll([&](BoardRegistration const & entry) {
 		return entry.Board == board_actor;
@@ -359,9 +360,11 @@ void UAURDriver::UnbindOnDriverInstanceChange(UObject * SlotOwner)
 
 void UAURDriver::RegisterDriver(UAURDriver* driver)
 {
+	UE_LOG(LogAUR, Log, TEXT("UAURDriver::RegisterDriver: Register driver: %s"), *driver->GetFullName())
+
 	if (CurrentDriver)
 	{
-		UE_LOG(LogAUR, Warning, TEXT("UAURDriver::Initialize: CurrentDriver is not null, replacing"))
+		UE_LOG(LogAUR, Warning, TEXT("UAURDriver::RegisterDriver: CurrentDriver is not null, replacing"))
 	}
 
 	CurrentDriver = driver;
@@ -376,6 +379,8 @@ void UAURDriver::RegisterDriver(UAURDriver* driver)
 
 void UAURDriver::UnregisterDriver(UAURDriver* driver)
 {
+	UE_LOG(LogAUR, Log, TEXT("UAURDriver::UnregisterDrive: Remove driver: %s"), *driver->GetFullName());
+
 	if (CurrentDriver == driver)
 	{
 		CurrentDriver = nullptr;

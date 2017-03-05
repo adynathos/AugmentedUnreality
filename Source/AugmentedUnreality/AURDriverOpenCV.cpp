@@ -53,7 +53,7 @@ UAURVideoSource * UAURDriverOpenCV::GetVideoSource()
 void UAURDriverOpenCV::OpenVideoSource(FAURVideoConfiguration const& VideoConfiguration)
 {
 	Super::OpenVideoSource(VideoConfiguration);
-	
+
 	{
 		FScopeLock lock(&VideoSourceLock);
 		NextVideoConfiguration = VideoConfiguration;
@@ -61,12 +61,12 @@ void UAURDriverOpenCV::OpenVideoSource(FAURVideoConfiguration const& VideoConfig
 	}
 }
 
-bool UAURDriverOpenCV::RegisterBoard(AAURMarkerBoardDefinitionBase * board_actor, bool use_as_viewpoint_origin)
+bool UAURDriverOpenCV::RegisterBoard(AAURFiducialPattern * board_actor, bool use_as_viewpoint_origin)
 {
 	return Tracker.RegisterBoard(board_actor, use_as_viewpoint_origin);
 }
 
-void UAURDriverOpenCV::UnregisterBoard(AAURMarkerBoardDefinitionBase * board_actor)
+void UAURDriverOpenCV::UnregisterBoard(AAURFiducialPattern * board_actor)
 {
 	Tracker.UnregisterBoard(board_actor);
 }
@@ -226,7 +226,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 	UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Worker thread start"))
 
 	UAURVideoSource* current_video_source = nullptr;
-	
+
 	while (this->bContinue)
 	{
 		// whether we switch to a new vid src in this iteration
@@ -258,7 +258,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 				Driver->SwitchToNextVideoSource = false;
 			}
 		}
-		
+
 		// activate new video source after switch
 		// this is outside the previous block because opening connection can take time
 		// and we don't want to block VideoSourceLock
@@ -284,7 +284,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 
 			// compare the frame size to the size we expect from capture parameters
 			auto frame_size = CapturedFrame.size();
-			
+
 			if (frame_size.width != Driver->FrameResolution.X || frame_size.height != Driver->FrameResolution.Y)
 			{
 				FIntPoint new_camera_res(frame_size.width, frame_size.height);
@@ -295,7 +295,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 				Driver->OnCameraPropertiesChange(new_camera_res);
 			}
 			else
-			{	
+			{
 				if (Driver->IsCalibrationInProgress()) // calibration
 				{
 					if (Driver->WorldReference)
@@ -312,7 +312,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 					{
 						UE_LOG(LogAUR, Error, TEXT("AURDriverOpenCV: WorldReference is null, cannot measure time for calibration"))
 					}
-				} 
+				}
 				else if (this->Driver->bPerformOrientationTracking)
 				{
 					/**
@@ -358,7 +358,7 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 		{
 			current_video_source->Disconnect();
 		}
-		
+
 		Driver->VideoSource = nullptr;
 		Driver->NextVideoSource = nullptr;
 		Driver->OnVideoSourceSwitch();

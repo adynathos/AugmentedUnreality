@@ -16,5 +16,6 @@ limitations under the License.
 #pragma once
 
 #include "augmented_unreality/log.hpp"
-#include "augmented_unreality/TrackerAruco.hpp"
-
+#include "augmented_unreality/FiducialPattern.hpp"
+#include "augmented_unreality/FiducialTracker.hpp"
+#include "augmented_unreality/TrackedPose.hpp"

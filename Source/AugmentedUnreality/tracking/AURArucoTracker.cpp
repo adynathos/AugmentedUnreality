@@ -29,7 +29,7 @@ FAURArucoTracker::FAURArucoTracker()
 {
 	ViewpointTransformCamera = CameraAdditionalRotation * ViewpointTransform;
 
-	cv::aur::setLogCallback([](cv::aur::LogLevel level, std::string msg) {
+	cv::aur::setLogCallback([](cv::aur::LogLevel level, std::string const& msg) {
 		switch(level)
 		{
 			case cv::aur::LogLevel::Log:
@@ -45,6 +45,7 @@ FAURArucoTracker::FAURArucoTracker()
 				;
 		}
 	});
+
 }
 
 void FAURArucoTracker::SetSettings(FArucoTrackerSettings const& settings)
@@ -62,7 +63,7 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat_<cv::Vec3b>& image, bool draw_found
 {
 	// this outside of lock so doesn't block
 	TrackerModule.processFrame(image);
-	
+
 	{
 		FScopeLock lock(&PoseLock);
 
@@ -90,17 +91,25 @@ bool FAURArucoTracker::DetectMarkers(cv::Mat_<cv::Vec3b>& image, bool draw_found
 				t_mat.M[3][r] = detected_trans(r);
 			}
 
-			// Smoothly merge measured transform with current transform
-			tbi->CurrentTransform.BlendWith(FTransform(t_mat), (1.0 - Settings.SmoothingStrength));
-
-			// This board provides the location of the camera
-			if (tbi->UseAsViewpointOrigin)
+			if (!t_mat.ContainsNaN())
 			{
-				ViewpointTransform = tbi->CurrentTransform;
-				ViewpointTransformCamera = CameraAdditionalRotation * ViewpointTransform;
-			}
 
-			DetectedBoards.Add(tbi);
+				// Smoothly merge measured transform with current transform
+				tbi->CurrentTransform.BlendWith(FTransform(t_mat), (1.0 - Settings.SmoothingStrength));
+
+				// This board provides the location of the camera
+				if (tbi->UseAsViewpointOrigin)
+				{
+					ViewpointTransform = tbi->CurrentTransform;
+					ViewpointTransformCamera = CameraAdditionalRotation * ViewpointTransform;
+				}
+
+				DetectedBoards.Add(tbi);
+			}
+			else
+			{
+				UE_LOG(LogAUR, Warning, TEXT("Wrong transform matrix %s"), *t_mat.ToString());
+			}
 		}
 	}
 
@@ -151,7 +160,7 @@ void FAURArucoTracker::PublishTransformUpdate(TrackedBoardInfo * tracking_info)
 	}
 }
 
-bool FAURArucoTracker::RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor, bool use_as_viewpoint_origin)
+bool FAURArucoTracker::RegisterBoard(AAURFiducialPattern* board_actor, bool use_as_viewpoint_origin)
 {
 	if (!board_actor)
 	{
@@ -159,12 +168,11 @@ bool FAURArucoTracker::RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor,
 		return false;
 	}
 
-	TSharedPtr<FFreeFormBoardData> board_data = board_actor->GetBoardData();
-
 	// Save marker images
 	board_actor->SaveMarkerFiles();
 
-	cv::aur::TrackerAruco::TrackedPose* pose_handle = TrackerModule.registerPoseToTrack(board_actor->GetBoardDef());
+	UE_LOG(LogAUR, Log, TEXT("AURArucoTracker::RegisterBoard %s"), *AActor::GetDebugName(board_actor));
+	cv::aur::TrackedPose* pose_handle = TrackerModule.registerPoseToTrack(board_actor->GetPatternDefinition());
 
 	if(!pose_handle)
 	{
@@ -184,9 +192,9 @@ bool FAURArucoTracker::RegisterBoard(AAURMarkerBoardDefinitionBase* board_actor,
 	return true;
 }
 
-void FAURArucoTracker::UnregisterBoard(AAURMarkerBoardDefinitionBase * board_actor)
+void FAURArucoTracker::UnregisterBoard(AAURFiducialPattern* board_actor)
 {
-	int board_id = board_actor->GetBoardData()->GetMinMarkerId();
+	int board_id = board_actor->GetPatternDefinition()->getMinMarkerId();
 
 	if (!TrackedBoardsById.Contains(board_id))
 	{
@@ -230,12 +238,12 @@ void FAURArucoTracker::SetDiagnosticInfoLevel(EAURDiagnosticInfoLevel NewLevel)
 		2 - show boards and positions of detected markers
 	*/
 	SetBoardVisibility(NewLevel >= EAURDiagnosticInfoLevel::AURD_Basic);
-	
+
 	// Pass to cv::aur module
 	cv::aur::DiagnosticLevel lvl = cv::aur::DiagnosticLevel::Silent;
 	if(NewLevel == EAURDiagnosticInfoLevel::AURD_Basic) lvl = cv::aur::DiagnosticLevel::Basic;
 	else if (NewLevel == EAURDiagnosticInfoLevel::AURD_Advanced) lvl = cv::aur::DiagnosticLevel::Full;
-	
+
 	TrackerModule.setDiagnosticLevel(lvl);
 }
 
