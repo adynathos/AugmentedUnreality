@@ -162,6 +162,21 @@ cv::Ptr<FiducialPatternChArUcoBoard> FiducialPatternChArUcoBoard::build(int32_t 
 		marker_id += initial_marker_id;
 	}
 
+	// shift the board in space so that origin is in the boards center
+	cv::Point3f const center(width*square_side*0.5f, height*square_side*0.5f, 0.0f);
+
+	for (auto& point_vector : board->objPoints)
+	{
+		for (auto& point : point_vector)
+		{
+			point -= center;
+		}
+	}
+	for (auto& point : board->chessboardCorners)
+	{
+		point -= center;
+	}
+
 	return cv::Ptr<FiducialPatternChArUcoBoard>(new FiducialPatternChArUcoBoard(board, dictionary_id));
 }
 

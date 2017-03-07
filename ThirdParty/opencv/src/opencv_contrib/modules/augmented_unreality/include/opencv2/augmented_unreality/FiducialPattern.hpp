@@ -29,7 +29,7 @@ class TrackedPose;
 class CV_EXPORTS FiducialPattern
 {
 public:
-	~FiducialPattern();
+	virtual ~FiducialPattern();
 
 	virtual cv::Ptr<cv::aruco::Board> getBoard() const
 	{
