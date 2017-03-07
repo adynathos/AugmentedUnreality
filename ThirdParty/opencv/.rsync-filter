@@ -11,5 +11,5 @@
 
 - install/Win64/etc
 - install/Win64/include
-- install/Win64/x64/vc14/bin
-- install/Win64/x64/vc14/staticlib
+- install/Win64/x64/vc15/bin
+- install/Win64/x64/vc15/staticlib

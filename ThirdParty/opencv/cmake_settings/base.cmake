@@ -14,6 +14,8 @@ set(BUILD_opencv_ml "TRUE" CACHE BOOL "")
 set(BUILD_opencv_video "TRUE" CACHE BOOL "")
 set(BUILD_opencv_videoio "TRUE" CACHE BOOL "")
 
+set(WITH_GSTREAMER "TRUE" CACHE BOOL "")
+
 # external libraries we don't need
 set(WITH_CUDA "FALSE" CACHE BOOL "")
 set(WITH_VTK "FALSE" CACHE BOOL "")

@@ -3,7 +3,7 @@ import os, shutil, argparse, platform
 from os.path import join as pp
 
 modules = set(lb.lower() for lb in [
-	"libffi-6.dll",
+	"libffi-7.dll",
 	"libglib-2.0-0.dll",
 	"libgmodule-2.0-0.dll",
 	"libgobject-2.0-0.dll",

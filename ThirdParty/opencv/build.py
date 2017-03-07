@@ -72,6 +72,11 @@ def build(platform, build_dir):
 	os.chdir(build_dir)
 
 	print('Running ', color.GREEN + 'CMake')
+
+	if platform == 'windows':
+		print('To play video files, install ', color.CYAN + 'GStreamer', ' (and its development files)')
+		print('and set env variable ', color.RED + 'GSTREAMER_DIR', ' to ', color.YELLOW + '(gstreamer_install_dir)/1.0/x86_64')
+	
 	print(color_background.GREEN + 80*' ')
 
 	# run cmake
@@ -81,7 +86,7 @@ def build(platform, build_dir):
 
 	if platform == 'windows':
 		cmd_cmake += [
-			'-G', 'Visual Studio 14 2015 Win64'
+			'-G', 'Visual Studio 15 2017 Win64'
 		]
 
 	cmd_cmake += [	
@@ -146,7 +151,7 @@ def copy(platform, copy_includes, copy_binaries):
 		print('copy : ', color.YELLOW + src + color.RESET, ' ---> ', color.CYAN + dest)
 		shutil.copy(src, dest)
 
-	def copy_includes():
+	def func_copy_includes():
 		print('-- Includes --')
 
 		if platform != 'android':
@@ -164,7 +169,7 @@ def copy(platform, copy_includes, copy_binaries):
 		if platform == 'windows':
 			#modules = MODULES + ["opencv_aur_allocator"]
 
-			binaries_src = pp(dir_install, 'x64', 'vc14')
+			binaries_src = pp(dir_install, 'x64', 'vc15')
 
 			shared_lib_src = pp(binaries_src, 'bin')
 			for mod in modules:
@@ -193,7 +198,7 @@ def copy(platform, copy_includes, copy_binaries):
 			print(color.GREEN + 'Android libraries are statically linked so no need to move them')
 
 	if copy_includes:
-		copy_includes()
+		func_copy_includes()
 
 	if copy_binaries:
 		copy_libs()
