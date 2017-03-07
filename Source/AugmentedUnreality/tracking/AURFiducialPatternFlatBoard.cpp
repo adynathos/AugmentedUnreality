@@ -61,6 +61,8 @@ void AAURFiducialPatternFlatBoard::SaveMarkerFiles(FString output_dir, int32 dpi
 	{
 		FString const filename = output_dir / GetClass()->GetName() + ".png";
 
+		UE_LOG(LogAUR, Log, TEXT("AAURFiducialPatternFlatBoard::SaveMarkerFiles: saving to %s"), *filename);
+
 		cv::imwrite(TCHAR_TO_UTF8(*filename), PatternData->drawPattern());
 	}
 	catch (std::exception& exc)

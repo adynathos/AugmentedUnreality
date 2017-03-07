@@ -55,6 +55,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
 	int32 PredefinedDictionaryId;
 
+	/*
+		If this is set to true and the pattern Actor is placed in the world,
+		it will be automatically used to find the camera position.
+		Does not apply to patterns in AURTrackingComponent
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ArucoTracking)
+	bool AutomaticallyUseForCameraPose;
+
 	// Event fired when this board is detected by the tracker and provides the location of the board.
 	UPROPERTY(BlueprintAssignable, Category = AugmentedReality)
 	FAURFiducialTransformUpdate OnTransformUpdate;
@@ -71,17 +79,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = ArucoTracking)
 	virtual void SaveMarkerFiles(FString output_dir = "", int32 dpi=150);
 
+	UFUNCTION(BlueprintCallable, Category = ArucoTracking)
+	bool IsInTrackingComponent() const;
+
 	AAURFiducialPattern();
 
 	virtual void BuildPatternData();
 
 	virtual cv::Ptr<cv::aur::FiducialPattern> GetPatternDefinition();
 
+	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type reason) override;
 
 	// Called by AURArucoTracker when a new transform is measured
-	// @param used_as_viewpoint_origin Is this board used to position the camera (as opposed to moving some object in scene)
-	void TransformMeasured(FTransform const& new_transform, bool used_as_viewpoint_origin);
+	void TransformMeasured(FTransform const& new_transform);
 
 protected:
 	cv::Ptr< cv::aruco::Dictionary > GetArucoDictionary() const;

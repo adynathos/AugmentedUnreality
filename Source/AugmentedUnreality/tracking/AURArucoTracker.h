@@ -109,7 +109,7 @@ public:
 		Tell the board actors about newly detected positions.
 		Should run in game thread.
 	*/
-	void PublishTransformUpdatesOnTick();
+	void PublishTransformUpdatesOnTick(UAURDriver* driver_instance);
 
 	void SetDiagnosticInfoLevel(EAURDiagnosticInfoLevel NewLevel);
 	void SetBoardVisibility(bool NewBoardVisibility);
@@ -129,6 +129,7 @@ private:
 
 	// Set of boards for which a new position was measured
 	TArray<TrackedBoardInfo*> DetectedBoards;
+	bool ViewpointPoseDetectedOnLastTick;
 
 	FTransform ViewpointTransform;
 	FTransform ViewpointTransformCamera;

@@ -72,7 +72,7 @@ void AAURFiducialPatternSpatial::SaveMarkerFiles(FString output_dir, int32 dpi)
 		TInlineComponentArray<UAURMarkerComponentBase*, 32> marker_components;
 		GetComponents(marker_components);
 
-		UE_LOG(LogAUR, Log, TEXT("Board def %s: saving marker images to %s"), *GetName(), *output_dir);
+		UE_LOG(LogAUR, Log, TEXT("AAURFiducialPatternSpatial::SaveMarkerFiles: Pattern %s, saving marker images to %s"), *GetName(), *output_dir);
 
 		for (auto & marker : marker_components)
 		{

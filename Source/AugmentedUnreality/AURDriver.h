@@ -84,6 +84,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverCalibrationStatusChange, UAURDriver*, Driver);
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FAURDriverInstanceChangeSingle, UAURDriver*, Driver);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAURDriverInstanceChange, UAURDriver*, Driver);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAURDriverViewpointTransformUpdate, UAURDriver*, Driver, FTransform, ViewportTransform);
 
 	/** Called when the resolution / FOV changes / connection status changes */
 	UPROPERTY(BlueprintAssignable)
@@ -92,6 +93,10 @@ public:
 	/** Called when calibration starts or ends */
 	UPROPERTY(BlueprintAssignable)
 	FAURDriverCalibrationStatusChange OnCalibrationStatusChange;
+
+	/** Called when a new viewpoint (camera) position is measured by the tracker */
+	UPROPERTY(BlueprintAssignable)
+	FAURDriverViewpointTransformUpdate OnViewpointTransformUpdate;
 
 	/** True if it should track markers and calculate camera position+rotation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AugmentedReality)

@@ -44,7 +44,7 @@ FString FindGstreamerPluginDir()
 	FString platform =
 #if PLATFORM_WINDOWS
 		"Win64"
-#elif PLATFOM_LINUX
+#elif PLATFORM_LINUX
 		"Linux"
 #else
 		"unknown"

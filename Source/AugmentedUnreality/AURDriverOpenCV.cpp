@@ -40,7 +40,7 @@ void UAURDriverOpenCV::Tick()
 	{
 		// lock moved to AURArucoTracker
 		//FScopeLock lock(&this->TrackerLock);
-		Tracker.PublishTransformUpdatesOnTick();
+		Tracker.PublishTransformUpdatesOnTick(this);
 	}
 }
 
