@@ -11,28 +11,31 @@ It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>E
 <h2>Features</h2>
 <p>
 <ul>
-	<li>Video stream displayed in-game</li>
-	<li>Multiple video sources: cameras, video files, network streams. Source can be switched using in-game UI</li>
+	<li>Video displayed in-game</li>
 	<li>Camera position tracked using fiducial markers, multiple independent sets of markers can be tracked at once</li>
 	<li>Editable spatial configurations of markers </li>
-	<li>Camera calibration</li>
+	<li>Camera calibration</li>	
+	<li>Multiple video sources: cameras, video files, network streams. Source can be switched using in-game UI</li>
+	<li>Shadow simulation (assuming the scene is on a plane)</li>
 </ul>
 </p>
 
+<h2>Platforms</h2>
+Windows, Linux, Android
+
 <figure>
-<a href="https://www.youtube.com/watch?v=OYQLKUhKeTk">
-	<!--<img src="images/youtube.jpg" width="600"/>-->
-	<img src="https://polybox.ethz.ch/index.php/s/UqF2pp4m4l6iahV/download" width="600"/>
+<a href="https://www.youtube.com/watch?v=Ys8br7AKW9g">
+	<img src="Documentation/images/video_link.jpg" width="600"/>
 </a>
 </figure>
 
 <h2 name="downloads">Downloads</h2>
 <p>
 <ul>
-	<li><a name="downloads_project" href="https://polybox.ethz.ch/index.php/s/ucl1amKJ7CnLtYn/download">Augmented Unreality Plugin 1.1.0</a> (UE 4.13.1)
+	<li><a name="downloads_project" href="https://polybox.ethz.ch/index.php/s/xa4KcCfudct8qwN/download">Augmented Unreality Plugin 1.2.0</a> (UE 4.15)
 		- the plugin files only, 
 	</li>
-	<li><a name="downloads_plugin" href="https://polybox.ethz.ch/index.php/s/nzkm3GrZas5Zp3X/download">Augmented Unreality Example Project 1.1.0</a> (UE 4.13.1) 
+	<li><a name="downloads_plugin" href="https://polybox.ethz.ch/index.php/s/CwC6xQtU6Bmzc8K/download">Augmented Unreality Example Project 1.2.0</a> (UE 4.15) 
 		- an example project using the plugin
 	</li> 
 </ul>
@@ -44,10 +47,10 @@ It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>E
 <p>
 <ul>
 <li><a href="#downloads">Download the example project</a></li>
-<li>Decompress the archive - and move <tt>AugmentedUnrealityPr</tt> to the location where you store your Unreal projects.</li>
-<li>Launch Unreal Engine and open <tt>AugmentedUnrealityPr/AugmentedUnrealityPr.uproject</tt>.</li>
-<li>Navigate to <tt>AugmentedUnrealityPr/Saved/AugmentedUnreality/Markers</tt> and print the board images:
-	<tt>AURBoard_SquareA_C_0/AURBoard_SquareA_C_0.png</tt>, <tt>AURBoard_SquareB_C_0/AURBoard_SquareB_C_0.png</tt>.
+<li>Decompress the archive - and move <tt>AugmentedUnrealityEx</tt> to the location where you store your Unreal projects.</li>
+<li>Launch Unreal Engine and open <tt>AugmentedUnrealityEx/AugmentedUnrealityEx.uproject</tt>.</li>
+<li>Print the following boards:
+<a href="http://adynathos.net/dev/aur/ChArUco_20_C.png">Chessboard 1</a>, <a href="http://adynathos.net/dev/aur/ChArUco_26_C.png">Chessboard 2</a>, <a href="http://adynathos.net/dev/aur/AURBoard_SquareB.png">Square B</a>
 </li>
 <li>Connect a camera and launch the game.</li>
 <li>If the virtual object are not well aligned with the markers, perform <a href="#section_calibration">camera calibration</a>.</li>
@@ -66,43 +69,21 @@ It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>E
 <li><a href="#downloads">Download the plugin</a></li>
 <li>Decompress the archive - and move directory <tt>AugmentedUnreality</tt> to <tt>YourProject/Plugins</tt></li>
 <li>Reopen your project</li>
+<li>Add to your level: <tt>AURCameraActor</tt> to show the video and one of the <a href="boards">fiducial patterns</a>: <tt>PatternChessboard_A</tt>, <tt>PatternChessboard_B</tt>,  <tt>PatternCube</tt>, <tt>PatternSquare_A</tt>, <tt>PatternSquare_B</tt></li>
+<li>Add a shadow plane actor if you want shadows cast on the surface under the markers</li>
+<li>Run the game to generate pattern images. Then print the patterns from <tt>YourProject/Saved/AugmentedUnreality/Patterns</tt>
 </ul>
 </p>
 
-<h2 name="video">Camera / Video</h2>
+<h2 name="video">Camera / Video sources</h2>
 <p>
-Video acquisition is achieved using OpenCV's <a href="http://docs.opencv.org/3.1.0/d8/dfe/classcv_1_1VideoCapture.html">VideoCapture</a>. 
-</p>
-<p>
-Video capture and processing is performed by the <tt>AURDriver</tt> object, like <tt>ExampleDriver</tt> class in the example project.
-You can adjust the video settings by creating a child blueprint of AURDriver_Default and editing its properties.
-Once you have your AURDriver blueprint, use it as the value for your PlayerController's <tt>CameraDriverClass</tt>
-(if you inherit the PlayerController from example project) or pass it as <tt>DriverClass</tt> when spawning an <tt>AURCameraActor</tt>.
-</p>
-<p>
-The key property of <tt>AURDriver</tt> is <tt>DefaultVideoSources</tt> - a list of video source classes that will be 
-automatically created and available to switch through the UI.
-</p>
-
-<h3 name="video_sources">Video sources</h3>
-<p>
-The plugin can obtain video from various sources.
-To use video from a given source, create a blueprint for it and add it to your <tt>AURDriver</tt>'s <tt>DefaultVideoSources</tt>.
-Your video source blueprint should extend one of these superclasses:
-</p>
-<p>
+The plugin tries to detect what video sources are available depending on the platform:
 <ul>
-	<li><tt>AURVideoSourceCamera</tt> - video from a camera directly connected to the computer. Properties:
-		<ul>
-			<li><tt>CameraIndex</tt> - 0-based number of the camera. If you have only one camera, the index should be 0.</li>
-			<li><tt>DesiredResolution</tt> - the driver will attempt to set the camera's resolution to the desired resolution specified in this attribute,
-				however it is not guaranteed that the camera accepts this resolution.
-				Generally, lower resolution means lower quality and accuracy but higher refresh rate.
-			</li>
-		</ul>
-	</li>
-	<li><tt>AURVideoVideoFile</tt> - video from a file. The <tt>VideoFile</tt> should be the path to the file
-		relative to <tt>FPaths::GameDir()</tt>.
+	<li>Android - the device camera will be used, available resolutions determined using the camera API</li>
+	<li>Windows, Linux - video acquisition is achieved using OpenCV's <a href="http://docs.opencv.org/3.2.0/d8/dfe/classcv_1_1VideoCapture.html">VideoCapture</a>.
+	Standard resolutions are offered, but there is no guarantee that the camera can output in all resolutions.</li>
+	<li>Video files: <tt>AURVideoVideoFile</tt>. The <tt>VideoFile</tt> should be the path to the file relative to <tt>FPaths::GameDir()</tt>.
+		GStreamer needs to be installed to play videos.
 	</li>
 	<li><tt>AURVideoSourceStream</tt> - video streamed through network. Set only one of the following:
 		<ul>
@@ -110,17 +91,15 @@ Your video source blueprint should extend one of these superclasses:
 			<li><tt>StreamFile</tt> - path to a </tt>.sdp</tt> file relative to <tt>FPaths::GameDir()</tt>.</li>
 		</ul>
 	</li>
+	<li>Test video - changes color every second</li>
 </ul>
 </p>
 <p>
-Shared properties of all <tt>VideoStream</tt>s:
-<ul>
-	<li><tt>SourceName</tt> - name to be displayed in the graphical list of video sources</li>
-	<li><tt>CalibrationFileName</tt> - location of the file storing calibration for this video source, 
-		relative to <tt>FPaths::GameSavedDir()/AugmentedUnreality/Calibration</tt>.
-		If two sources use the same camera, they should have the same calibration file.
-	</li>
-</ul>
+Select the video source from the menu on the right.
+</p>
+<p>
+The <tt>CalibrationFileName</tt> is the location of the file storing calibration for this video source, relative to <tt>FPaths::GameSavedDir()/AugmentedUnreality/Calibration</tt>.
+If two sources use the same camera, they should have the same calibration file.
 </p>
 
 <h3 name="calibration">Camera calibration</h3>
@@ -158,7 +137,7 @@ To perform calibration of your camera:
 <h2 name="tracking">Tracking</h2>
 <p>
 This plugin uses <a href="http://www.uco.es/investiga/grupos/ava/node/26">ArUco</a> boards for camera pose estimation,
-specifically the <a href="http://docs.opencv.org/3.1.0/d5/dae/tutorial_aruco_detection.html">implementation of ArUco in OpenCV contrib</a>.
+specifically the <a href="http://docs.opencv.org/3.2.0/d5/dae/tutorial_aruco_detection.html">implementation of ArUco in OpenCV contrib</a>.
 </p>
 <p>
 Boards are used for two purposes:
@@ -189,10 +168,19 @@ In Augmented Unreality, we use boards for finding the pose of the camera in game
 </p>
 <p>
 Augmented Unreality allows the user to create their own custom spatial configurations of markers in Unreal Editor.
-Please see the example boards in <tt>AugmentedUnreality/Content/Markers</tt> and <tt>AugmentedUnrealityPr/Content/AugmentedUnrealityExample/Markers</tt>.
+Please see the example boards in <tt>AugmentedUnreality/Content/Patterns</tt> and <tt>AugmentedUnrealityEx/Content/AugmentedUnrealityExample/Patterns</tt>.
 <p>
 <p>
-To design a new board, create a child blueprint of <tt>AURBoardDefinition</tt> and edit it by adding <tt>AURMarkerComponents</tt> inside it.
+<ul>
+	<li><a href="http://docs.opencv.org/3.2.0/d5/dae/tutorial_aruco_detection.html">ArUco</a> - markers can be arranged into any spatial configuration.
+	Use <tt>PatternCube</tt>, <tt>PatternSquare_A</tt>, <tt>PatternSquare_B</tt> or subclass <tt>AURFiducialPatternSpatialBP</tt>. </li>
+
+	<li><a href="http://docs.opencv.org/3.2.0/df/d4a/tutorial_charuco_detection.html">ChArUco</a> boards - markers are combined with a chessboard grid. More accurate tracking but must be on a plane. Use <tt>PatternChessboard_A</tt>, <tt>PatternChessboard_B</tt> or subclass <tt>AURFiducialPatternFlatBoardBP</tt>.</li>
+</ul>
+</p>
+<h4 name="custom_boards">Custom boards</h4>
+<p>
+To design a new board, create a child blueprint of <tt>AURFiducialPatternSpatialBP</tt> and edit it by adding <tt>AURMarkerComponents</tt> inside it.
 Each <tt>AURMarkerComponent</tt> represents one square on the board.
 <ul>
 	<li><tt>Location</tt>, <tt>Rotation</tt> - pose of square in space. You can use <tt>SceneCompoenent</tt>s to organize the board hierarchically.</li>
@@ -206,7 +194,7 @@ If you want an actor to follow the position of the board, add an <tt>AURTracking
 </p>
 <p>
 After you create or edit the board blueprint, launch the game to generate the marker images.
-Then open the directory <tt>YourProject/Saved/AugmentedUnreality/Markers/YourBoardName</tt>, print the images,
+Then open the directory <tt>YourProject/Saved/AugmentedUnreality/Patterns/YourBoardName</tt>, print the images,
 and arrange them in space to match your designed configuration.
 The IDs of the markers in the editor need to match the numbers present in the images:
 </p>
@@ -221,20 +209,14 @@ The IDs of the markers in the editor need to match the numbers present in the im
 	<img src="https://polybox.ethz.ch/index.php/s/31CTBjbqRJYoiqT/download" width="600" />
 </figure>
 
-<h3 name="platforms">Platforms</h3>
-<ul>
-	<li><i>Windows</i> - fully functional, pre-built packages available.</li>
-	<li><i>Android</i> - core features work but not packaged yet, work is in progress.
-	</li>
-	<li><i>Linux</i> - fully functional but not packaged yet.
-	</li>
-</ul>
-
 <h3 name="solutions">Education</h3>
 <p>
 The following problems have been solved in this plugin,
 if you want to learn about these topics, please see:
 <ul>
+<li>
+<a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AugmentedUnrealityAndroid_UPL.xml">Accessing Android's camera video in UE</a>
+</li>
 <li>
 <a href="https://github.com/adynathos/AugmentedUnreality/blob/master/Source/AugmentedUnreality/AugmentedUnreality.Build.cs">Including external libraries in UE4</a>
 </li>
