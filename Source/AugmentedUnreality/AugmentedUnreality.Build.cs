@@ -138,7 +138,7 @@ public class AugmentedUnreality : ModuleRules
 			//modules.Add("opencv_aur_allocator");
 
 			// Static linking
-			var lib_dir = Path.Combine(opencv_dir, "install", "Win64", "x64", "vc14", "lib");
+			var lib_dir = Path.Combine(opencv_dir, "install", "Win64", "x64", "vc15", "lib");
 			PublicAdditionalLibraries.AddRange(
 				OpenCVModules.ConvertAll(m => Path.Combine(lib_dir, m + suffix + ".lib"))
 			);
