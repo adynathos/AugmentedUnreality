@@ -24,9 +24,7 @@ void FAugmentedUnrealityModule::StartupModule()
 	UE_LOG(LogAUR, Log, TEXT("AugmentedUnreality: module startup"))
 }
 
-
 void FAugmentedUnrealityModule::ShutdownModule()
 {
-	UE_LOG(LogAUR, Log, TEXT("AugmentedUnreality: module shutdown"))
+	UE_LOG(LogAUR, Log, TEXT("AugmentedUnreality: module shutdown"));
 }
-

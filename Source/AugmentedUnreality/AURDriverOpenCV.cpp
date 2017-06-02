@@ -239,16 +239,17 @@ uint32 UAURDriverOpenCV::FWorkerRunnable::Run()
 
 			if (Driver->SwitchToNextVideoSource)
 			{
+				// Disconnect from previous video source
+				if (current_video_source)
+				{
+					current_video_source->Disconnect();
+				}
+
 				video_config_to_open = Driver->NextVideoConfiguration; //save in local var in case it is modified before we connect to video source
 				UAURVideoSource* next_src_obj = video_config_to_open.VideoSourceObject;
 
 				const FString vid_src_name = next_src_obj ? next_src_obj->GetIdentifier() : "NULL";
 				UE_LOG(LogAUR, Log, TEXT("AURDriverOpenCV: Switching video source to [%s]"), *vid_src_name);
-
-				if (current_video_source)
-				{
-					current_video_source->Disconnect();
-				}
 
 				current_video_source = next_src_obj;
 				// need to be kept in UPROPERTY for GC
