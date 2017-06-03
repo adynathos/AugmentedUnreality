@@ -64,7 +64,8 @@ public class AugmentedUnreality : ModuleRules
 
 	protected string OpenCVVersion = "320";
 
-	public AugmentedUnreality(TargetInfo Target)
+	public AugmentedUnreality(ReadOnlyTargetRules Target)
+		: base(Target)
 	{
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
@@ -90,7 +91,7 @@ public class AugmentedUnreality : ModuleRules
 		RegisterAndroidCameraBridge();
 	}
 
-	protected string PlatformString(TargetInfo Target)
+	protected string PlatformString(ReadOnlyTargetRules Target)
 	{
 		if (Target.Platform == UnrealTargetPlatform.Win64) {return "Win64";}
 		if (Target.Platform == UnrealTargetPlatform.Win32) {return "Win32";}
@@ -99,17 +100,17 @@ public class AugmentedUnreality : ModuleRules
 		return "Unknown";
 	}
 
-	protected string BinariesDirForTarget(TargetInfo Target)
+	protected string BinariesDirForTarget(ReadOnlyTargetRules Target)
 	{
 		return Path.Combine(BinariesDir, PlatformString(Target));
 	}
 
-	public bool IsDebug(TargetInfo Target)
+	public bool IsDebug(ReadOnlyTargetRules Target)
 	{
 		return Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT;
 	}
 
-	public void LoadOpenCV(TargetInfo Target)
+	public void LoadOpenCV(ReadOnlyTargetRules Target)
 	{
 		string opencv_dir = Path.Combine(ThirdPartyPath, "opencv");
 
@@ -148,6 +149,8 @@ public class AugmentedUnreality : ModuleRules
 			PublicDelayLoadDLLs.AddRange(
 				OpenCVModules.ConvertAll(m => Path.Combine(BinariesDirForTarget(Target), m + suffix + ".dll"))
 			);
+
+			bEnableExceptions = true;
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux )
 		{
@@ -188,14 +191,13 @@ public class AugmentedUnreality : ModuleRules
 			);
 			PublicLibraryPaths.Add(thirdparty_lib_dir);
 			PublicAdditionalLibraries.AddRange(thirdparty_libs);
+
+			bEnableExceptions = true;
 		}
 		else
 		{
 			Console.WriteLine("AUR: No prebuilt binaries for OpenCV on platform "+Target.Platform);
 		}
-
-		// Force execption handling across all modules.
-		UEBuildConfiguration.bForceEnableExceptions = true;
 	}
 
 	public void RegisterAndroidCameraBridge()
