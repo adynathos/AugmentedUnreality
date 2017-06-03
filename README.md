@@ -21,8 +21,13 @@ It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>E
 </p>
 
 <h2>Platforms</h2>
-Windows, Linux, Android
+<ul>
+<li>Windows</li>
+<li>Linux</li>
+<li>Android</li>
+</ul>
 
+<h2>Video Presentation</h2>
 <figure>
 <a href="https://www.youtube.com/watch?v=Ys8br7AKW9g">
 	<img src="Documentation/images/video_link.jpg" width="600"/>
