@@ -82,10 +82,12 @@ void UAURDriver::WriteFrameToTexture()
 		UpdateTextureRenderCommand,
 		FTextureUpdateParameters*, UpdateParameters, &this->TextureUpdateParameters,
 		{
-			if (UpdateParameters->Texture2DResource && UpdateParameters->Texture2DResource->GetCurrentFirstMip() <= 0)
+			if (UpdateParameters->Texture2DResource 
+					&& UpdateParameters->Texture2DResource->GetCurrentFirstMip() <= 0 
+					&& UpdateParameters->Texture2DResource->GetTexture2DRHI())
 			{
 				// Re-draw only if a new frame has been captured
-				if (UpdateParameters->Driver->IsNewFrameAvailable())
+				if (UpdateParameters->Driver && UpdateParameters->Driver->IsNewFrameAvailable())
 				{
 					FAURVideoFrame* new_video_frame = UpdateParameters->Driver->GetFrame();
 
