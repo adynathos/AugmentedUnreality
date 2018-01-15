@@ -34,7 +34,7 @@ void UAURVideoSourceVideoFile::DiscoverConfigurations()
 {
 	Configurations.Empty();
 
-	const FString full_path = FPaths::GameDir() / VideoFile;
+	const FString full_path = FPaths::ProjectDir() / VideoFile;
 
 	if (FPaths::FileExists(full_path))
 	{

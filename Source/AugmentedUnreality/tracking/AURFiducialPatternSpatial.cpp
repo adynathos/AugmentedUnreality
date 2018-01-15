@@ -60,7 +60,7 @@ void AAURFiducialPatternSpatial::SaveMarkerFiles(FString output_dir, int32 dpi)
 
 	if (output_dir.IsEmpty())
 	{
-		output_dir = FPaths::GameSavedDir() / PatternFileDir / GetClass()->GetName();
+		output_dir = FPaths::ProjectSavedDir() / PatternFileDir / GetClass()->GetName();
 	}
 	FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*output_dir);
 

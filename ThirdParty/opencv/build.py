@@ -173,7 +173,7 @@ def copy(platform, copy_includes, copy_binaries):
 
 			shared_lib_src = pp(binaries_src, 'bin')
 			for mod in modules:
-				copy_single(pp(shared_lib_src, mod + '320.dll'), dir_binaries_dest)
+				copy_single(pp(shared_lib_src, mod + '340.dll'), dir_binaries_dest)
 
 			# static_lib_src = pp(binaries_src, 'lib')
 			# static_lib_dest = pp(opencv_root, 'lib', args.platform)
@@ -184,9 +184,9 @@ def copy(platform, copy_includes, copy_binaries):
 			shared_lib_src = pp(dir_install, 'lib')
 			for mod in modules:
 				symlink_name = pp(dir_binaries_dest, 'lib' + mod + '.so')
-				out_name = symlink_name + '.3.2'
+				out_name = symlink_name + '.3.4'
 
-				copy_single(pp(shared_lib_src, 'lib' + mod + '.so.3.2.0'), out_name)
+				copy_single(pp(shared_lib_src, 'lib' + mod + '.so.3.4.0'), out_name)
 
 				try:
 					os.remove(symlink_name)

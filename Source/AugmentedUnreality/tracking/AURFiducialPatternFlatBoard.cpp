@@ -51,7 +51,7 @@ void AAURFiducialPatternFlatBoard::SaveMarkerFiles(FString output_dir, int32 dpi
 #if !PLATFORM_ANDROID
 	if (output_dir.IsEmpty())
 	{
-		output_dir = FPaths::GameSavedDir() / PatternFileDir;
+		output_dir = FPaths::ProjectSavedDir() / PatternFileDir;
 	}
 
 	BuildPatternData();

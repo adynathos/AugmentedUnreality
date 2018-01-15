@@ -60,7 +60,7 @@ void UAURVideoSourceStream::DiscoverConfigurations()
 	}
 	else
 	{
-		const FString full_path = FPaths::GameDir() / StreamFile;
+		const FString full_path = FPaths::ProjectDir() / StreamFile;
 
 		if (FPaths::FileExists(full_path))
 		{

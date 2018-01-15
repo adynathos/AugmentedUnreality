@@ -158,7 +158,7 @@ FString UAURVideoSource::GetCalibrationFileFullPath() const
 		file_name = this->GetName() + TEXT(".xml");
 	}
 
-	return FPaths::GameSavedDir() / CalibrationDir / file_name;
+	return FPaths::ProjectSavedDir() / CalibrationDir / file_name;
 }
 
 /*

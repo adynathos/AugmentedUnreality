@@ -55,8 +55,8 @@ FString FindGstreamerPluginDir()
 
 	FString gst_subdir = "Binaries" / platform / "gstreamer_plugins";
 
-	FString main_gst_dir = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / gst_subdir);
-	FString plugin_gst_dir = FPaths::ConvertRelativePathToFull(FPaths::GamePluginsDir() / "AugmentedUnreality" / gst_subdir);
+	FString main_gst_dir = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / gst_subdir);
+	FString plugin_gst_dir = FPaths::ConvertRelativePathToFull(FPaths::ProjectPluginsDir() / "AugmentedUnreality" / gst_subdir);
 
 	if (FPaths::DirectoryExists(main_gst_dir))
 	{
