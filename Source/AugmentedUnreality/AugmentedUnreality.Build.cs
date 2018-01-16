@@ -107,7 +107,7 @@ public class AugmentedUnreality : ModuleRules
 
 	public bool IsDebug(ReadOnlyTargetRules Target)
 	{
-		return Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT;
+		return Target.Configuration == UnrealTargetConfiguration.Debug && Target.bDebugBuildsActuallyUseDebugCRT;
 	}
 
 	public void LoadOpenCV(ReadOnlyTargetRules Target)

@@ -8,6 +8,14 @@ inside the game and tracking camera position using fiducial markers.
 It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>ETH Zürich</b>.
 </p>
 
+<h2>News</h2>
+
+Version <b>1.2.03</b> - updated for UE 4.18.2, OpenCV 3.4.0, gstreamer 1.12.4 - preview download:
+<ul>
+<li><a href="https://drive.switch.ch/index.php/s/uBl9W0YGqwBNSVR/download">Plugin</a></li>
+<li><a href="https://drive.switch.ch/index.php/s/B6ipE0B9swAHroc/download">Example project</a></li>
+</ul>
+
 <h2>Features</h2>
 <p>
 <ul>

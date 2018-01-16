@@ -124,6 +124,9 @@ platform_dirs = {
 }
 parser.add_argument('--platform', type=str, choices=platform_dirs.values(), default=platform_dirs.get(platform.system().lower(), 'Win64'))
 parser.add_argument('--libs', type=bool, default=True)
-parser.add_argument('--gstreamer_root', type=str, default=os.environ.get('GSTREAMER_1_0_ROOT_X86_64', '.'))
+
+guessed_root = os.environ.get('GSTREAMER_1_0_ROOT_X86_64', None) or os.environ.get('GSTREAMER_DIR', None)
+
+parser.add_argument('--gstreamer_root', type=str, default=guessed_root)
 
 main(parser.parse_args())
