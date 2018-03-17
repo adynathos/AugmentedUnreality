@@ -95,6 +95,8 @@ def build(platform, build_dir):
 		dir_src # source dir
 	]
 
+	print('CMD ='+'\n	'.join(cmd_cmake))
+
 	# twice because sometimes there are error at first time
 	out_code = subprocess.call(cmd_cmake)
 
