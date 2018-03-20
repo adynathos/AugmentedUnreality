@@ -130,6 +130,7 @@ def copy(platform, copy_includes, copy_binaries):
 
 	# where we want to copy the files
 	dir_binaries_dest = pp(dir_plugin_root, 'Binaries', platform_dirs[platform])
+	os.makedirs(dir_binaries_dest, exist_ok=True)
 
 	print('Task:', color.MAGENTA + 'build')
 	print('- platform:', color.CYAN + platform)
@@ -175,7 +176,7 @@ def copy(platform, copy_includes, copy_binaries):
 
 			shared_lib_src = pp(binaries_src, 'bin')
 			for mod in modules:
-				copy_single(pp(shared_lib_src, mod + '340.dll'), dir_binaries_dest)
+				copy_single(pp(shared_lib_src, mod + '341.dll'), dir_binaries_dest)
 
 			# static_lib_src = pp(binaries_src, 'lib')
 			# static_lib_dest = pp(opencv_root, 'lib', args.platform)
@@ -188,7 +189,7 @@ def copy(platform, copy_includes, copy_binaries):
 				symlink_name = pp(dir_binaries_dest, 'lib' + mod + '.so')
 				out_name = symlink_name + '.3.4'
 
-				copy_single(pp(shared_lib_src, 'lib' + mod + '.so.3.4.0'), out_name)
+				copy_single(pp(shared_lib_src, 'lib' + mod + '.so.3.4.1'), out_name)
 
 				try:
 					os.remove(symlink_name)

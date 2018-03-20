@@ -62,7 +62,7 @@ public class AugmentedUnreality : ModuleRules
 		"libc++abi.so"
 	};
 
-	protected string OpenCVVersion = "340";
+	protected string OpenCVVersion = "341";
 
 	public AugmentedUnreality(ReadOnlyTargetRules Target)
 		: base(Target)
