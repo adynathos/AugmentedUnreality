@@ -18,7 +18,7 @@ limitations under the License.
 #include "AURVideoSourceAndroidCamera.h"
 
 #if PLATFORM_ANDROID
-#include "../../../Core/Public/Android/AndroidApplication.h"
+#include "Android/AndroidApplication.h"
 #include "Algo/Reverse.h"
 
 static UAURVideoSourceAndroidCamera* Instance = nullptr;

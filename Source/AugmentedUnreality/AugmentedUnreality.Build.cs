@@ -177,8 +177,8 @@ public class AugmentedUnreality : ModuleRules
 			var arch = "armeabi-v7a"; //Target.Architecture
 
 			var src_dir = Path.Combine(opencv_dir, "install", "Android", "sdk", "native");
-
-			var modules_lib_dir = Path.Combine(src_dir, "libs", arch);
+ 
+            var modules_lib_dir = Path.Combine(src_dir, "staticlibs", arch);
 			var opencv_libs = OpenCVModules.ConvertAll(
 				m => Path.Combine(modules_lib_dir, "lib" + m + ".a")
 			);
