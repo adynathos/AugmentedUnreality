@@ -109,7 +109,7 @@ void UAURVideoScreenBase::InitVideoMaterial()
 
 		UMaterialInterface* material = this->GetMaterial(material_idx);
 		UTexture* texture_param_value = nullptr;
-		if (material->GetTextureParameterValue("VideoTexture", texture_param_value))
+		if (material->GetTextureParameterValue(FMaterialParameterInfo("VideoTexture"), texture_param_value))
 		{
 			UMaterialInstanceDynamic* dynamic_material_instance = Cast<UMaterialInstanceDynamic>(material);
 			if (!dynamic_material_instance)
