@@ -120,7 +120,9 @@ void UAURDriverThreaded::NotifyVideoPropertiesChange()
 {
 	AsyncTask(ENamedThreads::GameThread, [this]() {
 		UE_LOG(LogAUR, Log, TEXT("NotifyVideoSourceStatusChange"))
-		this->OnVideoPropertiesChange.Broadcast(this);
+		if (GetCurrentDriver() != nullptr) {
+			this->OnVideoPropertiesChange.Broadcast(this);
+		}
 	});
 }
 
