@@ -57,7 +57,7 @@ Version <b>1.2.04</b> - build for UE 4.19, OpenCV 3.4.1:
 
 <h2 name="install">Installation</h2>
 
-<h3>Getting started - try the example project</h2>
+<h3>Getting started - try the example project</h3>
 <p>
 <ul>
 <li><a href="#downloads">Download the example project</a></li>
@@ -73,8 +73,7 @@ Version <b>1.2.04</b> - build for UE 4.19, OpenCV 3.4.1:
 
 <figure>
 <figcaption> Overview of elements visible in the example project: </figcaption>
-	<!--<img src="images/aur_overview.jpg" width="800" />-->
-	<img src="https://polybox.ethz.ch/index.php/s/Kc4hJHLdvjARvnJ/download" width="800" />
+	<img src="./Documentation/images/aur_overview.jpg" width="800" />
 </figure>
 
 <h3>Add plugin to an existing project:</h3>
@@ -144,8 +143,7 @@ To perform calibration of your camera:
 
 <figure name="fig_calibration">
 	<figcaption>Camera calibration in progress - the colorful overlay indicates the calibration pattern was detected:<figcaption>
-	<!--<img src="images/aur_calibration.jpg" width="800" />-->
-	<img src="https://polybox.ethz.ch/index.php/s/YZ2wQpd7tnGBrgh/download" width="800" />
+	<img src="./Documentation/images/aur_calibration.jpg" width="800" />
 </figure>
 
 <h2 name="tracking">Tracking</h2>
@@ -171,8 +169,7 @@ Boards are used for two purposes:
 
 <h3 name="boards">Boards</h3>
 <figure>
-	<!--<img src="images/board_arena.jpg" width="600" />-->
-	<img src="https://polybox.ethz.ch/index.php/s/H0GGOXE5XZNL9Ci/download" width="600" />
+	<img src="./Documentation/images/board_arena.jpg" width="600" />
 </figure>
 
 <p>
@@ -214,13 +211,11 @@ The IDs of the markers in the editor need to match the numbers present in the im
 </p>
 
 <figure>
-	<!--<img src="images/marker.png" width="400" />-->
-	<img src="https://polybox.ethz.ch/index.php/s/nBO36jy0kzjSsRP/download" width="400" />
+	<img src="./Documentation/images/marker.png" width="400" />
 </figure>
 
 <figure>
-	<!--<img src="images/board_tower.jpg" width="600" />-->
-	<img src="https://polybox.ethz.ch/index.php/s/31CTBjbqRJYoiqT/download" width="600" />
+	<img src="./Documentation/images/board_tower.jpg" width="600" />
 </figure>
 
 <h3 name="solutions">Education</h3>
