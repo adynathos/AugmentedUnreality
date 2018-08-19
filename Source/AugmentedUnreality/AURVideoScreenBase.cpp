@@ -31,7 +31,7 @@ UAURVideoScreenBase::UAURVideoScreenBase()
 
 	this->SetEnableGravity(false);
 	this->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	this->bGenerateOverlapEvents = false;
+	this->SetGenerateOverlapEvents(false);
 }
 
 void UAURVideoScreenBase::UseDriver(UAURDriver* new_driver)
