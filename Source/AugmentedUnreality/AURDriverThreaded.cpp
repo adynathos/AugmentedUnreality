@@ -118,12 +118,14 @@ void UAURDriverThreaded::SetFrameResolution(FIntPoint const & new_res)
 
 void UAURDriverThreaded::NotifyVideoPropertiesChange()
 {
-	AsyncTask(ENamedThreads::GameThread, [this]() {
-		UE_LOG(LogAUR, Log, TEXT("NotifyVideoSourceStatusChange"))
-		if (GetCurrentDriver() != nullptr) {
-			this->OnVideoPropertiesChange.Broadcast(this);
-		}
-	});
+	if (!this->IsPendingKill()) {
+		AsyncTask(ENamedThreads::GameThread, [this]() {
+			UE_LOG(LogAUR, Log, TEXT("NotifyVideoSourceStatusChange"))
+			if (GetCurrentDriver() != nullptr) {
+				this->OnVideoPropertiesChange.Broadcast(this);
+			}
+		});
+	}
 }
 
 void UAURDriverThreaded::NotifyCalibrationStatusChange()
