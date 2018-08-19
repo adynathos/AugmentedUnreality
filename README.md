@@ -10,10 +10,10 @@ It was created by <b>Krzysztof Lis (Adynathos)</b> as part of a project for <b>E
 
 <h2>News</h2>
 
-Version <b>1.2.04</b> - build for UE 4.19, OpenCV 3.4.1:
+Version <b>1.2.05</b> - build for UE 4.19, OpenCV 3.4.1:
 <ul>
-<li><a href="https://github.com/adynathos/AugmentedUnreality/releases/download/1.2.04/AugmentedUnreality_1_2_04.7z">Plugin</a></li>
-<li><a href="https://github.com/adynathos/AugmentedUnreality/releases/download/1.2.04/AugmentedUnrealityEx_1_2_04.7z">Example project</a></li>
+<li><a href="https://github.com/adynathos/AugmentedUnreality/releases/download/1.2.05/AugmentedUnreality_1_2_05.7z">Plugin</a></li>
+<li><a href="https://github.com/adynathos/AugmentedUnreality/releases/download/1.2.05/AugmentedUnrealityEx_1_2_05.7z">Example project</a></li>
 </ul>
 
 <h2>Features</h2>
@@ -46,10 +46,10 @@ Version <b>1.2.04</b> - build for UE 4.19, OpenCV 3.4.1:
 <p>
 <a href="https://github.com/adynathos/AugmentedUnreality/releases">Download Section</a>
 <ul>
-	<li><a name="downloads_plugin" href="https://github.com/adynathos/AugmentedUnreality/releases/download/1.2.02/AugmentedUnrealityPlugin_1_2_02.7z">Augmented Unreality Plugin</a>
+	<li><a name="downloads_plugin" href="https://github.com/adynathos/AugmentedUnreality/releases/download/1.2.05/AugmentedUnreality_1_2_05.7z">Augmented Unreality Plugin</a>
 		- the plugin files only, 
 	</li>
-	<li><a name="downloads_project" href="https://github.com/adynathos/AugmentedUnreality/releases/download/1.2.02/AugmentedUnrealityExampleProject_1_2_02.7z">Augmented Unreality Example Project</a>
+	<li><a name="downloads_project" href="https://github.com/adynathos/AugmentedUnreality/releases/download/1.2.05/AugmentedUnrealityEx_1_2_05.7z">Augmented Unreality Example Project</a>
 		- an example project using the plugin
 	</li> 
 </ul>
