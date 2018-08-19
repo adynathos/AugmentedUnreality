@@ -93,7 +93,7 @@ Version <b>1.2.04</b> - build for UE 4.19, OpenCV 3.4.1:
 The plugin tries to detect what video sources are available depending on the platform:
 <ul>
 	<li>Android - the device camera will be used, available resolutions determined using the camera API</li>
-	<li>Windows, Linux - video acquisition is achieved using OpenCV's <a href="http://docs.opencv.org/3.2.0/d8/dfe/classcv_1_1VideoCapture.html">VideoCapture</a>.
+	<li>Windows, Linux - video acquisition is achieved using OpenCV's <a href="https://docs.opencv.org/3.4.1/d8/dfe/classcv_1_1VideoCapture.html">VideoCapture</a>.
 	Standard resolutions are offered, but there is no guarantee that the camera can output in all resolutions.</li>
 	<li>Video files: <tt>AURVideoVideoFile</tt>. The <tt>VideoFile</tt> should be the path to the file relative to <tt>FPaths::GameDir()</tt>.
 		GStreamer needs to be installed to play videos.
@@ -149,7 +149,7 @@ To perform calibration of your camera:
 <h2 name="tracking">Tracking</h2>
 <p>
 This plugin uses <a href="http://www.uco.es/investiga/grupos/ava/node/26">ArUco</a> boards for camera pose estimation,
-specifically the <a href="http://docs.opencv.org/3.2.0/d5/dae/tutorial_aruco_detection.html">implementation of ArUco in OpenCV contrib</a>.
+specifically the <a href="https://docs.opencv.org/3.4.1/d5/dae/tutorial_aruco_detection.html">implementation of ArUco in OpenCV contrib</a>.
 </p>
 <p>
 Boards are used for two purposes:
@@ -183,10 +183,11 @@ Please see the example boards in <tt>AugmentedUnreality/Content/Patterns</tt> an
 <p>
 <p>
 <ul>
-	<li><a href="http://docs.opencv.org/3.2.0/d5/dae/tutorial_aruco_detection.html">ArUco</a> - markers can be arranged into any spatial configuration.
-	Use <tt>PatternCube</tt>, <tt>PatternSquare_A</tt>, <tt>PatternSquare_B</tt> or subclass <tt>AURFiducialPatternSpatialBP</tt>. </li>
-
-	<li><a href="http://docs.opencv.org/3.2.0/df/d4a/tutorial_charuco_detection.html">ChArUco</a> boards - markers are combined with a chessboard grid. More accurate tracking but must be on a plane. Use <tt>PatternChessboard_A</tt>, <tt>PatternChessboard_B</tt> or subclass <tt>AURFiducialPatternFlatBoardBP</tt>.</li>
+	<li><a href="https://docs.opencv.org/3.4.1/d5/dae/tutorial_aruco_detection.html">ArUco</a> - markers can be arranged into any spatial configuration.
+	Use <tt>PatternCube</tt>, <tt>PatternSquare_A</tt>, <tt>PatternSquare_B</tt> or subclass <tt>AURFiducialPatternSpatialBP</tt>. 
+	</li>
+	<li><a href="https://docs.opencv.org/3.4.1/df/d4a/tutorial_charuco_detection.html">ChArUco</a> boards - markers are combined with a chessboard grid. More accurate tracking but must be on a plane. Use <tt>PatternChessboard_A</tt>, <tt>PatternChessboard_B</tt> or subclass <tt>AURFiducialPatternFlatBoardBP</tt>.
+	</li>
 </ul>
 </p>
 <h4 name="custom_boards">Custom boards</h4>
