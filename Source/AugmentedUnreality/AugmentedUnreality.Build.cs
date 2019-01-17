@@ -67,6 +67,8 @@ public class AugmentedUnreality : ModuleRules
 	public AugmentedUnreality(ReadOnlyTargetRules Target)
 		: base(Target)
 	{
+		PrivatePCHHeaderFile = "AugmentedUnreality.h";
+
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",

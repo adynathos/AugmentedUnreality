@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include "AUROpenCV.h"
+#include "Components/TextRenderComponent.h"
 #include "AURMarkerComponentBase.generated.h"
 
 /*
