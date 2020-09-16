@@ -3,12 +3,13 @@
 
 <h4>General procedure:</h4>
 
-- Download <a href="https://github.com/opencv/opencv/releases/tag/3.4.1">OpenCV 3.4.1</a> source and decompress it to <tt>./src/opencv</tt>
-- Download <a href="https://github.com/opencv/opencv_contrib/releases/tag/3.4.1">OpenCV Contrib 3.4.1</a> source and decompress it to <tt>./src/opencv_contrib</tt>,
+- Download <a href="https://github.com/opencv/opencv/releases/tag/4.4.0">OpenCV 4.4.0</a> source and decompress it to <tt>./src/opencv</tt>
+- Download <a href="https://github.com/opencv/opencv_contrib/releases/tag/4.4.0">OpenCV Contrib 4.4.0</a> source and decompress it to <tt>./src/opencv_contrib</tt>,
 but do not delete the <tt>./src/opencv_contrib/modules/augmented_unreality</tt> directory that is already there
 - Create a directory for OpenCV build for this platform (anywhere, preferably not inside your UE project).
 - Run: ``python build.py build PLATFORM --build_dir MY_BUILD_DIR``
 - Follow the instruction printed by the program to build the library, it will be to run <tt>make</tt> on Linux and <tt>Visual Studio</tt> on Windows
+	- Achieve the equivalent of `make install`, so that the files are copied into the output directory.
 - Run: ``python build.py copy PLATFORM``
 
 <h4>Android</h4>

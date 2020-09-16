@@ -86,12 +86,14 @@ def build(platform, build_dir):
 
 	if platform == 'windows':
 		cmd_cmake += [
-			'-G', 'Visual Studio 15 2017 Win64'
+			'-G', 'Visual Studio 16 2019',
+			'-A', 'x64', #  Use -A option to specify architecture
 		]
 
 	cmd_cmake += [	
 		'-C', pp(dir_cmake, platform + '.cmake'), # load predefined cache
 		'-DCMAKE_INSTALL_PREFIX={d}'.format(d=dir_install),
+		'-DCMAKE_BUILD_TYPE=RelWithDebInfo',
 		dir_src # source dir
 	]
 
@@ -172,11 +174,11 @@ def copy(platform, copy_includes, copy_binaries):
 		if platform == 'windows':
 			#modules = MODULES + ["opencv_aur_allocator"]
 
-			binaries_src = pp(dir_install, 'x64', 'vc15')
+			binaries_src = pp(dir_install, 'x64', 'vc16')
 
 			shared_lib_src = pp(binaries_src, 'bin')
 			for mod in modules:
-				copy_single(pp(shared_lib_src, mod + '341.dll'), dir_binaries_dest)
+				copy_single(pp(shared_lib_src, mod + '440.dll'), dir_binaries_dest)
 
 			# static_lib_src = pp(binaries_src, 'lib')
 			# static_lib_dest = pp(opencv_root, 'lib', args.platform)
@@ -187,9 +189,9 @@ def copy(platform, copy_includes, copy_binaries):
 			shared_lib_src = pp(dir_install, 'lib')
 			for mod in modules:
 				symlink_name = pp(dir_binaries_dest, 'lib' + mod + '.so')
-				out_name = symlink_name + '.3.4'
+				out_name = symlink_name + '.4.4'
 
-				copy_single(pp(shared_lib_src, 'lib' + mod + '.so.3.4.1'), out_name)
+				copy_single(pp(shared_lib_src, 'lib' + mod + '.so.4.4.0'), out_name)
 
 				try:
 					os.remove(symlink_name)
