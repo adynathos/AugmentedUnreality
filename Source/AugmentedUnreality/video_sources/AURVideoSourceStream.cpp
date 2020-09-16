@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2017 Krzysztof Lis
+Copyright 2016-2020 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "AugmentedUnreality.h"
 #include "AURVideoSourceStream.h"
+#include "../AURLog.h"
 
 UAURVideoSourceStream::UAURVideoSourceStream()
 	: ConnectionString("udpsrc port=5000 ! application/x-rtp, encoding-name=H264,payload=96 ! rtph264depay ! queue ! h264parse ! avdec_h264 ! videoconvert ! appsink")

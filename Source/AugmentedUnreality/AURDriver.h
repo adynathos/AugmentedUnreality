@@ -323,19 +323,11 @@ protected:
 	}
 
 private:
-	// The rendering scheduled by ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER
-	// takes place in the rendering thread:
+	// The rendering scheduled by ENQUEUE_UNIQUE_RENDER takes place in the rendering thread:
 	// https://docs.unrealengine.com/latest/INT/Programming/Rendering/ThreadedRendering/index.html
-	// so data has to be passed through a struct.
-	struct FTextureUpdateParameters
-	{
-		FTexture2DResource*	Texture2DResource;
-		FUpdateTextureRegion2D RegionDefinition;
-		UAURDriver* Driver;
-	};
-	// The constant values of these parameters:
-	FTextureUpdateParameters TextureUpdateParameters;
-
+	FTexture2DResource*	Texture2DResource;
+	FUpdateTextureRegion2D RegionDefinition;
+	
 	void WriteFrameToTexture();
 
 	// Global registry of boards to track

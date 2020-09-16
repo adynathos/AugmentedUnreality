@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2017 Krzysztof Lis
+Copyright 2016-2020 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@ limitations under the License.
 */
 #pragma once
 
-#include "AUROpenCV.h"
+#include "../AUROpenCV.h"
 #include "Components/TextRenderComponent.h"
 #include "AURMarkerComponentBase.generated.h"
 

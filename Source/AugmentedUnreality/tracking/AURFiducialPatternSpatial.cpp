@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2017 Krzysztof Lis
+Copyright 2016-2020 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "AugmentedUnreality.h"
 #include "AURFiducialPatternSpatial.h"
 #include "AURMarkerComponentBase.h"
-#include "AURDriver.h"
+#include "../AURLog.h"
+#include "../AURDriver.h"
 
 const float INCH = 2.54f;
 
@@ -165,7 +165,7 @@ void AAURFiducialPatternSpatial::AssignAutomaticMarkerIds()
 	marker_components.Sort(
 		[](UAURMarkerComponentBase const & left, UAURMarkerComponentBase const & right)
 		{
-			return left.GetFName() < right.GetFName();
+			return left.GetFName().LexicalLess(right.GetFName());
 		}
 	);
 

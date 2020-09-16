@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2017 Krzysztof Lis
+Copyright 2016-2020 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "AugmentedUnreality.h"
 #include "AURVideoScreenBackground.h"
+#include "AURLog.h"
 
 UAURVideoScreenBackground::UAURVideoScreenBackground()
 	: Resolution(640, 480)
@@ -60,7 +60,9 @@ void UAURVideoScreenBackground::SetSizeForFOV(float FOV_Horizontal)
 	// With the new texture, the XY placement of texture is swapped
 	this->SetRelativeScale3D(FVector(height / 100.0, width / 100.0, 1));
 
+	FVector const component_scale = GetRelativeScale3D();
 	const FString msg = "UAURVideoScreenBackground::SetSizeForFOV(fov_horizontal=" + FString::SanitizeFloat(FOV_Horizontal) + ") -> scale = " 
-		+ FString::SanitizeFloat(this->RelativeScale3D.X) + " x " + FString::SanitizeFloat(this->RelativeScale3D.Y);
+		+ FString::SanitizeFloat(component_scale.X) + " x " + FString::SanitizeFloat(component_scale.Y);
 	UE_LOG(LogAUR, Log, TEXT("%s"), *msg)
+	
 }

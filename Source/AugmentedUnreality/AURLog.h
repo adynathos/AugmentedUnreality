@@ -13,26 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#include "AURTrackingComponent.h"
-#include "../AURLog.h"
-#include "../AURDriver.h"
-#include "AURFiducialPattern.h"
 
-void UAURTrackingComponent::BeginPlay()
-{
-	UE_LOG(LogAUR, Log, TEXT("AURTrackingComponent::BeginPlay"))
+#pragma once
 
-	AAURFiducialPattern* board = Cast<AAURFiducialPattern>(GetChildActor());
-
-	if (!board)
-	{
-		UE_LOG(LogAUR, Error, TEXT("AURTrackingComponent: No valid board child-actor"))
-	}
-	else
-	{
-		// Move our actor to match the board's position
-		board->ActorToMove = GetOwner();
-
-		UAURDriver::RegisterBoardForTracking(board);
-	}
-}
+DECLARE_LOG_CATEGORY_EXTERN(LogAUR, Log, All);

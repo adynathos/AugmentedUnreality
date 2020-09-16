@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2017 Krzysztof Lis
+Copyright 2016-2020 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 #include "AugmentedUnreality.h"
+#include "AURLog.h"
 
 IMPLEMENT_MODULE(FAugmentedUnrealityModule, AugmentedUnreality)
 DEFINE_LOG_CATEGORY(LogAUR)

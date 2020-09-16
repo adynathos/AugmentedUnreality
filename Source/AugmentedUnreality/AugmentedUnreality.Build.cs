@@ -1,5 +1,5 @@
 /*
-	Copyright 2016-2017 Krzysztof Lis
+	Copyright 2016-2020 Krzysztof Lis
 
 	Licensed under the Apache License, Version 2.0 (the "License");
 	you may not use this file except in compliance with the License.
@@ -62,12 +62,14 @@ public class AugmentedUnreality : ModuleRules
 		"libc++abi.so"
 	};
 
-	protected string OpenCVVersion = "341";
+	protected string OpenCVVersion = "440";
 
 	public AugmentedUnreality(ReadOnlyTargetRules Target)
 		: base(Target)
 	{
-		PrivatePCHHeaderFile = "AugmentedUnreality.h";
+		//PrivatePCHHeaderFile = "AugmentedUnreality.h";
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		bLegacyPublicIncludePaths = false;
 
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
@@ -141,7 +143,7 @@ public class AugmentedUnreality : ModuleRules
 			//modules.Add("opencv_aur_allocator");
 
 			// Static linking
-			var lib_dir = Path.Combine(opencv_dir, "install", "Win64", "x64", "vc15", "lib");
+			var lib_dir = Path.Combine(opencv_dir, "install", "Win64", "x64", "vc16", "lib");
 			PublicAdditionalLibraries.AddRange(
 				OpenCVModules.ConvertAll(m => Path.Combine(lib_dir, m + suffix + ".lib"))
 			);

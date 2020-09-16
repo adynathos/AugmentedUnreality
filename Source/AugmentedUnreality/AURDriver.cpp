@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2017 Krzysztof Lis
+Copyright 2016-2020 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "AugmentedUnreality.h"
+#include "AURLog.h"
 #include "AURDriver.h"
 #include "tracking/AURFiducialPattern.h"
 
@@ -78,18 +78,21 @@ void UAURDriver::WriteFrameToTexture()
 	We will have just one constant region definition at this->WholeTextureRegion.
 	**/
 	//******************************************************************************************************************************
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		UpdateTextureRenderCommand,
-		FTextureUpdateParameters*, UpdateParameters, &this->TextureUpdateParameters,
-		{
-			if (UpdateParameters->Texture2DResource 
-					&& UpdateParameters->Texture2DResource->GetCurrentFirstMip() <= 0 
-					&& UpdateParameters->Texture2DResource->GetTexture2DRHI())
+
+	FTexture2DResource*	tex_resource = Texture2DResource;
+	FUpdateTextureRegion2D region_def = RegionDefinition;
+
+	ENQUEUE_RENDER_COMMAND(UpdateTextureRenderCommand)(
+		[this, tex_resource, region_def] (FRHICommandListImmediate& RHICmdList) {
+			if (tex_resource 
+					&& tex_resource->GetCurrentFirstMip() <= 0 
+					&& tex_resource->GetTexture2DRHI())
 			{
 				// Re-draw only if a new frame has been captured
-				if (UpdateParameters->Driver && UpdateParameters->Driver->IsNewFrameAvailable())
+				//if (UpdateParameters->Driver && UpdateParameters->Driver->IsNewFrameAvailable())
+				if (this && this->IsNewFrameAvailable())
 				{
-					FAURVideoFrame* new_video_frame = UpdateParameters->Driver->GetFrame();
+					FAURVideoFrame* new_video_frame = this->GetFrame();
 
 					// If the driver was shut down, it will return null
 					// better print an error than make the whole program disappear mysteriously
@@ -108,10 +111,10 @@ void UAURDriver::WriteFrameToTexture()
 						)
 						**/
 						RHIUpdateTexture2D(
-							UpdateParameters->Texture2DResource->GetTexture2DRHI(),
+							tex_resource->GetTexture2DRHI(),
 							0,
-							UpdateParameters->RegionDefinition,
-							sizeof(FColor) * UpdateParameters->RegionDefinition.Width, // width of the video in bytes
+							region_def,
+							sizeof(FColor) * region_def.Width, // width of the video in bytes
 							new_video_frame->GetDataPointerRaw()
 						);
 					}
@@ -308,9 +311,8 @@ void UAURDriver::SetFrameResolution(FIntPoint const & new_res)
 
 	// The AVideoDisplaySurface::FTextureUpdateParameters struct
 	// holds information sent from this class to the render thread.
-	this->TextureUpdateParameters.Texture2DResource = (FTexture2DResource*)this->OutputTexture->Resource;
-	this->TextureUpdateParameters.RegionDefinition = whole_texture_region;
-	this->TextureUpdateParameters.Driver = this;
+	this->Texture2DResource = (FTexture2DResource*)this->OutputTexture->Resource;
+	this->RegionDefinition = whole_texture_region;
 }
 
 UAURDriver * UAURDriver::GetCurrentDriver()

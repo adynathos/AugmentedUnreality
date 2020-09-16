@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2017 Krzysztof Lis
+Copyright 2016-2020 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "AugmentedUnreality.h"
 #include "AURFiducialPatternFlatBoard.h"
+#include "../AURLog.h"
 #include "AURMarkerComponentBase.h"
-#include "AURDriver.h"
+#include "../AURDriver.h"
 
 AAURFiducialPatternFlatBoard::AAURFiducialPatternFlatBoard()
 	: BoardWidth(3)

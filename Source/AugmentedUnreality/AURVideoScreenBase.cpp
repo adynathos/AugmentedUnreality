@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2017 Krzysztof Lis
+Copyright 2016-2020 Krzysztof Lis
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "AugmentedUnreality.h"
-#include "Engine.h"
 #include "AURVideoScreenBase.h"
+#include "AURLog.h"
+#include "EngineMinimal.h"
+
 
 UAURVideoScreenBase::UAURVideoScreenBase()
 	: UseGlobalDriver(true)
